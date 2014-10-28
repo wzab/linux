@@ -72,4 +72,3 @@ struct dvb_frontend *lgdt3306a_attach(const struct lgdt3306a_config *config,
 #endif /* CONFIG_DVB_LGDT3306A */
 
 #endif /* _LGDT3306A_H_ */
-
