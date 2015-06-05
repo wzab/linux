@@ -30,6 +30,8 @@
 #include <media/media-devnode.h>
 #include <media/media-entity.h>
 
+#ifdef CONFIG_MEDIA_CONTROLLER
+
 /* -----------------------------------------------------------------------------
  * Userspace API
  */
@@ -502,3 +504,5 @@ struct media_device *media_device_find_devres(struct device *dev)
 	return devres_find(dev, media_device_release_devres, NULL, NULL);
 }
 EXPORT_SYMBOL_GPL(media_device_find_devres);
+
+#endif /* CONFIG_MEDIA_CONTROLLER */
