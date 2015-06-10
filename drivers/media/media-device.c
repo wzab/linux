@@ -426,6 +426,8 @@ EXPORT_SYMBOL_GPL(media_device_unregister);
 int __must_check media_device_register_entity(struct media_device *mdev,
 					      struct media_entity *entity)
 {
+	struct media_entity *eptr;
+
 	/* Warn if we apparently re-register an entity */
 	WARN_ON(entity->parent != NULL);
 	entity->parent = mdev;
@@ -437,6 +439,11 @@ int __must_check media_device_register_entity(struct media_device *mdev,
 		mdev->entity_id = max(entity->id + 1, mdev->entity_id);
 	list_add_tail(&entity->list, &mdev->entities);
 	spin_unlock(&mdev->lock);
+
+	media_device_for_each_entity(eptr, mdev) {
+		if (eptr != entity)
+			media_entity_call(eptr, register_notify);
+	}
 
 	return 0;
 }

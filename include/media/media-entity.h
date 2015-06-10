@@ -46,6 +46,7 @@ struct media_pad {
 
 /**
  * struct media_entity_operations - Media entity operations
+ * @register_notify	Notify entity of newly registered entity
  * @link_setup:		Notify the entity of link changes. The operation can
  *			return an error, in which case link setup will be
  *			cancelled. Optional.
@@ -54,6 +55,7 @@ struct media_pad {
  *			validates all links by calling this operation. Optional.
  */
 struct media_entity_operations {
+	int (*register_notify)(struct media_entity *entity);
 	int (*link_setup)(struct media_entity *entity,
 			  const struct media_pad *local,
 			  const struct media_pad *remote, u32 flags);
@@ -101,6 +103,8 @@ struct media_entity {
 		/* Sub-device specifications */
 		/* Nothing needed yet */
 	} info;
+
+	void *private;			/* private data for the entity */
 };
 
 static inline u32 media_entity_type(struct media_entity *entity)
