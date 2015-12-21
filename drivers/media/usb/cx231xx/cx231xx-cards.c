@@ -1751,7 +1751,9 @@ static int cx231xx_usb_probe(struct usb_interface *interface,
 	if (retval < 0)
 		goto done;
 
+#ifdef CONFIG_MEDIA_CONTROLLER
 	retval = media_device_register(dev->media_dev);
+#endif
 
 done:
 	if (retval < 0)
