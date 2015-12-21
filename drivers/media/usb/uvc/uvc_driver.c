@@ -1957,10 +1957,11 @@ static int uvc_probe(struct usb_interface *intf,
 	if (uvc_register_chains(dev) < 0)
 		goto error;
 
+#ifdef CONFIG_MEDIA_CONTROLLER
 	/* Register the media device node */
 	if (media_device_register(&dev->mdev) < 0)
 		goto error;
-
+#endif
 	/* Save our data pointer in the interface data. */
 	usb_set_intfdata(intf, dev);
 
