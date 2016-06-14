@@ -46,7 +46,7 @@ static int imx_tlv320_dai_init(struct snd_soc_pcm_runtime *rtd)
 	struct imx_tlv320_data *data = container_of(rtd->card,
 					struct imx_tlv320_data, card);
 	struct device *dev = rtd->card->dev;
-	//struct snd_soc_dapm_context *dapm = &rtd->codec->dapm;
+	struct snd_soc_dapm_context *dapm = &rtd->card->dapm;
 	int ret;
 
 	ret = snd_soc_dai_set_sysclk(rtd->codec_dai, 0,
@@ -56,17 +56,9 @@ static int imx_tlv320_dai_init(struct snd_soc_pcm_runtime *rtd)
 		return ret;
 	}
 
-	pr_err("\n--\n-- WITHOUT DAPM UP\n");
-	//snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
+	snd_soc_dapm_enable_pin(dapm, "Headphone Jack");
 
-	ret = tpa6130a2_add_controls(rtd->codec);
-	if (ret < 0) {
-		dev_err(rtd->card->dev, "Failed to add TPA6130A2 controls\n");
-		return ret;
-	}
 	snd_soc_limit_volume(rtd->card, "TPA6130A2 Headphone Playback Volume", 100);
-
-	tpa6130a2_stereo_enable(rtd->codec, 1);
 
 	return 0;
 }
@@ -75,19 +67,53 @@ static const struct snd_soc_dapm_widget imx_tlv320_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone Jack", NULL)
 };
 
+static const struct snd_soc_dapm_route imx_tlv320_dapm_routes[] = {
+	{"Headphone Jack", NULL, "TPA6130A2 HPLEFT"},
+	{"Headphone Jack", NULL, "TPA6130A2 HPRIGHT"}
+};
+
 static int imx_tlv320aic31xx_late_probe(struct snd_soc_card *card)
 {
-	//struct snd_soc_dai *codec_dai = card->rtd[0].codec_dai;
+	struct snd_soc_pcm_runtime *rtd = list_first_entry(&card->rtd_list,
+			struct snd_soc_pcm_runtime, list);
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int ret = 0;
 
-	pr_err("\n--\n-- WITHOUT LATE PROBE UP\n");
-	//ret = snd_soc_dai_set_sysclk(codec_dai, 0,
-	//		24000000, SND_SOC_CLOCK_IN);
-	//if (ret < 0)
-	//	printk(KERN_ERR "failed to set sysclk in %s\n", __func__);
+	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
+			24000000, SND_SOC_CLOCK_IN);
+	if (ret < 0)
+		printk(KERN_ERR "failed to set sysclk in %s\n", __func__);
 
 	return ret;
 }
+
+static struct snd_soc_codec_conf imx_tlv320_codec_conf_sound1[] = {
+	{
+		.dev_name = "tpa6130a2.2-0060",
+		.name_prefix = "TPA6130A2",
+	},
+};
+
+static struct snd_soc_codec_conf imx_tlv320_codec_conf_sound2[] = {
+	{
+		.dev_name = "tpa6130a2.0-0060",
+		.name_prefix = "TPA6130A2",
+	}
+};
+
+static struct snd_soc_aux_dev imx_tlv320_aux_dev_sound1[] = {
+        {
+                .name = "TPA61320A2",
+                .codec_name = "tpa6130a2.2-0060",
+        },
+};
+
+static struct snd_soc_aux_dev imx_tlv320_aux_dev_sound2[] = {
+        {
+                .name = "TPA61320A2",
+                .codec_name = "tpa6130a2.0-0060",
+        },
+};
 
 
 static int imx_tlv320_probe(struct platform_device *pdev)
@@ -204,6 +230,20 @@ static int imx_tlv320_probe(struct platform_device *pdev)
 	data->card.dapm_widgets = imx_tlv320_dapm_widgets;
 	data->card.num_dapm_widgets = ARRAY_SIZE(imx_tlv320_dapm_widgets);
 	data->card.late_probe = imx_tlv320aic31xx_late_probe;
+	data->card.dapm_routes = imx_tlv320_dapm_routes;
+	data->card.num_dapm_routes = ARRAY_SIZE(imx_tlv320_dapm_routes);
+
+	if (strcmp(pdev->name, "sound1") == 0) {
+		data->card.aux_dev = imx_tlv320_aux_dev_sound1;
+		data->card.num_aux_devs = ARRAY_SIZE(imx_tlv320_aux_dev_sound1);
+		data->card.codec_conf = imx_tlv320_codec_conf_sound1;
+		data->card.num_configs = ARRAY_SIZE(imx_tlv320_codec_conf_sound1);
+	} else {
+		data->card.aux_dev = imx_tlv320_aux_dev_sound2;
+		data->card.num_aux_devs = ARRAY_SIZE(imx_tlv320_aux_dev_sound2);
+		data->card.codec_conf = imx_tlv320_codec_conf_sound2;
+		data->card.num_configs = ARRAY_SIZE(imx_tlv320_codec_conf_sound2);
+	}
 
 	platform_set_drvdata(pdev, &data->card);
 	snd_soc_card_set_drvdata(&data->card, data);
