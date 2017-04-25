@@ -106,8 +106,7 @@ static const struct vimc_ent_config ent_config[] = {
 	},
 	{
 		.name = "RGB/YUV Input",
-		/* TODO: change to vimc-output when output is implemented */
-		.drv = "vimc-sensor",
+		.drv = "vimc-output",
 	},
 	{
 		.name = "Scaler",
