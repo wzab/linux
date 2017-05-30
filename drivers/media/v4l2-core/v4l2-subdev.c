@@ -502,10 +502,27 @@ int v4l2_subdev_link_validate_default(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_format *source_fmt,
 				      struct v4l2_subdev_format *sink_fmt)
 {
-	/* The width, height and code must match. */
+	/* The width, height, code and colorspace must match. */
 	if (source_fmt->format.width != sink_fmt->format.width
 	    || source_fmt->format.height != sink_fmt->format.height
-	    || source_fmt->format.code != sink_fmt->format.code)
+	    || source_fmt->format.code != sink_fmt->format.code
+	    || source_fmt->format.colorspace != sink_fmt->format.colorspace)
+		return -EPIPE;
+
+	/* Colorimetry must match if they are not set to DEFAULT */
+	if (source_fmt->format.ycbcr_enc != V4L2_YCBCR_ENC_DEFAULT
+	    && sink_fmt->format.ycbcr_enc != V4L2_YCBCR_ENC_DEFAULT
+	    && source_fmt->format.ycbcr_enc != sink_fmt->format.ycbcr_enc)
+		return -EPIPE;
+
+	if (source_fmt->format.quantization != V4L2_QUANTIZATION_DEFAULT
+	    && sink_fmt->format.quantization != V4L2_QUANTIZATION_DEFAULT
+	    && source_fmt->format.quantization != sink_fmt->format.quantization)
+		return -EPIPE;
+
+	if (source_fmt->format.xfer_func != V4L2_XFER_FUNC_DEFAULT
+	    && sink_fmt->format.xfer_func != V4L2_XFER_FUNC_DEFAULT
+	    && source_fmt->format.xfer_func != sink_fmt->format.xfer_func)
 		return -EPIPE;
 
 	/* The field order must match, or the sink field order must be NONE
