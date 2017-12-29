@@ -13,6 +13,7 @@
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-subdev.h>
 #include <media/videobuf2-dma-contig.h>
+//#include <soc/rockchip/rk3399_dmc.h>
 #include "dev.h"
 #include "regs.h"
 
@@ -1180,6 +1181,9 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	if (ret < 0)
 		v4l2_err(v4l2_dev, "pipeline close failed error:%d\n", ret);
 
+	/* recovery ddr dvfs when stop stream */
+	if (stream->ispdev->devfreq)
+		rockchip_dmcfreq_unblock(stream->ispdev->devfreq);
 	rkisp1_destroy_dummy_buf(stream);
 }
 
@@ -1229,6 +1233,13 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	if (ret < 0)
 		goto return_queued_buf;
 
+	/*
+	 * we need to disalbe ddr dvfs to avoid frame drop
+	 * ddr frequency will bump up to max frequency when disable it
+	 */
+	if (stream->ispdev->devfreq)
+		rockchip_dmcfreq_block(stream->ispdev->devfreq);
+
 	/* enable clocks/power-domains */
 	ret = dev->pipe.open(&dev->pipe, &node->vdev.entity, true);
 	if (ret < 0) {
@@ -1264,6 +1275,9 @@ close_pipe:
 	dev->pipe.close(&dev->pipe);
 destroy_dummy_buf:
 	rkisp1_destroy_dummy_buf(stream);
+
+	if (stream->ispdev->devfreq)
+		rockchip_dmcfreq_unblock(stream->ispdev->devfreq);
 return_queued_buf:
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_QUEUED);
 
