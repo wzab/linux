@@ -913,7 +913,7 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 		}
 		stream->curr_buf->vb.sequence =
 				atomic_read(&isp_sd->frm_sync_seq) - 1;
-		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_ns();
+		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_boot_ns();
 		stream->curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&stream->curr_buf->vb.vb2_buf,
 				VB2_BUF_STATE_DONE);
