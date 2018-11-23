@@ -743,19 +743,26 @@ struct drm_mode_destroy_dumb {
  *
  * DRM_MODE_ATOMIC_ALLOW_MODESET
  * Indicates whether a full modeset is acceptable or not.
+ *
+ * DRM_MODE_ATOMIC_AMEND
+ * Used to perform an atomic amend. See "DOC: amend mode atomic commit" in
+ * drm_atomic_helper.c for more details.
+ * This flag can't be used with DRM_MODE_ATOMIC_ALLOW_MODESET.
  */
 
 /*  */
 #define DRM_MODE_ATOMIC_TEST_ONLY 0x0100
 #define DRM_MODE_ATOMIC_NONBLOCK  0x0200
 #define DRM_MODE_ATOMIC_ALLOW_MODESET 0x0400
+#define DRM_MODE_ATOMIC_AMEND 0x0800
 
 #define DRM_MODE_ATOMIC_FLAGS (\
 		DRM_MODE_PAGE_FLIP_EVENT |\
 		DRM_MODE_PAGE_FLIP_ASYNC |\
 		DRM_MODE_ATOMIC_TEST_ONLY |\
 		DRM_MODE_ATOMIC_NONBLOCK |\
-		DRM_MODE_ATOMIC_ALLOW_MODESET)
+		DRM_MODE_ATOMIC_ALLOW_MODESET |\
+		DRM_MODE_ATOMIC_AMEND)
 
 struct drm_mode_atomic {
 	__u32 flags;

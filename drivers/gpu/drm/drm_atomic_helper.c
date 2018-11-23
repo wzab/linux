@@ -947,10 +947,18 @@ int drm_atomic_helper_check(struct drm_device *dev,
 	if (ret)
 		return ret;
 
+	/*
+	 * If amend was explicitly requested, but it is not possible,
+	 * return error instead of falling back to a normal commit.
+	 */
+	if (state->amend_update)
+		return drm_atomic_helper_amend_check(dev, state);
+
+	/* Legacy mode falls back to a normal commit if amend isn't possible. */
 	if (state->legacy_cursor_update)
 		state->amend_update = !drm_atomic_helper_amend_check(dev, state);
 
-	return ret;
+	return 0;
 }
 EXPORT_SYMBOL(drm_atomic_helper_check);
 
@@ -1574,12 +1582,20 @@ static void commit_work(struct work_struct *work)
  * The amend feature provides a way to perform 1000 updates to be applied as
  * soon as possible without waiting for 1000 vblanks.
 
- * Currently, only the legacy cursor update uses amend mode, where historically,
+ * Legacy cursor update uses amend mode, where historically,
  * userspace performs several updates before the next vblank and don't want to
  * see a delay in the cursor's movement.
  * If amend is not supported, legacy cursor falls back to a normal sync update.
  *
- * To implement the legacy cursor update, drivers should provide
+ * Amend can also be performed through the atomic API using the flag
+ * DRM_MODE_ATOMIC_AMEND. The atomic commit will fail if this flag is set but
+ * the driver doesn't support it.
+ * Amend can't perform modeset, thus atomic API will fail if
+ * DRM_MODE_ATOMIC_AMEND is used in conjunction with
+ * DRM_MODE_ATOMIC_ALLOW_MODESET flag.
+ *
+ * To implement the legacy cursor update and amend mode through atomic, drivers
+ * should provide:
  * &drm_plane_helper_funcs.atomic_amend_check() and
  * &drm_plane_helper_funcs.atomic_amend_update()
  *
@@ -1601,15 +1617,20 @@ static void commit_work(struct work_struct *work)
  *
  * Notes / highlights:
  *
- * - amend update is performed on legacy cursor updates.
+ * - amend update is performed on legacy cursor updates, but it will fallback to
+ *   a normal commit if amend is not possible. However, if amend was requested
+ *   through atomic, the ioctl will fail instead of fall back if it can't be
+ *   amended.
+ *
+ * - atomic api will reject amend if DRM_MODE_ATOMIC_ALLOW_MODESET flag is used.
+ *
+ * - If DRM_MODE_PAGE_FLIP_ASYNC is set, then the DRM_MODE_ATOMIC_AMEND flag
+ *   will be ignored.
  *
  * - amend update won't happen if there is an outstanding commit modifying the
  *   same plane.
  *
  * - amend update won't happen if atomic_amend_check() returns false.
- *
- * - if atomic_amend_check() fails, it falls back to a normal synchronous
- *   update.
  *
  * - if userspace wants to ensure an asynchronous page flip, i.e. change hw
  *   state immediately, see DRM_MODE_PAGE_FLIP_ASYNC flag
@@ -1671,6 +1692,10 @@ int drm_atomic_helper_amend_check(struct drm_device *dev,
 		return -EINVAL;
 
 	if (new_plane_state->fence)
+		return -EINVAL;
+
+	/* Only allow amend update for cursor type planes. */
+	if (plane->type != DRM_PLANE_TYPE_CURSOR)
 		return -EINVAL;
 
 	/*
