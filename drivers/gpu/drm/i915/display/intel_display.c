@@ -3155,12 +3155,6 @@ static void intel_plane_disable_noatomic(struct intel_crtc *crtc,
 	intel_disable_plane(plane, crtc_state);
 }
 
-static struct intel_frontbuffer *
-to_intel_frontbuffer(struct drm_framebuffer *fb)
-{
-	return fb ? to_intel_framebuffer(fb)->frontbuffer : NULL;
-}
-
 static void
 intel_find_initial_plane_obj(struct intel_crtc *intel_crtc,
 			     struct intel_initial_plane_config *plane_config)
@@ -14152,6 +14146,15 @@ static int intel_atomic_commit(struct drm_device *dev,
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	int ret = 0;
 
+	if (_state->async_update) {
+		ret = drm_atomic_helper_prepare_planes(dev, _state);
+		if (ret)
+			return ret;
+		drm_atomic_helper_async_commit(dev, _state);
+		drm_atomic_helper_cleanup_planes(dev, _state);
+		return 0;
+	}
+
 	state->wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
 
 	drm_atomic_state_get(&state->base);
@@ -14421,17 +14424,25 @@ intel_prepare_plane_fb(struct drm_plane *plane,
 	if (!new_state->fence) { /* implicit fencing */
 		struct dma_fence *fence;
 
-		ret = i915_sw_fence_await_reservation(&intel_state->commit_ready,
-						      obj->base.resv, NULL,
-						      false, I915_FENCE_TIMEOUT,
-						      GFP_KERNEL);
-		if (ret < 0)
-			return ret;
+		/*
+		 * Skip handling commit_ready fence in async update as the state
+		 * is volatile.
+		 */
+		if (!new_state->state->async_update) {
+			ret = i915_sw_fence_await_reservation(
+						&intel_state->commit_ready,
+						obj->base.resv, NULL,
+						false, I915_FENCE_TIMEOUT,
+						GFP_KERNEL);
+			if (ret < 0)
+				return ret;
 
-		fence = dma_resv_get_excl_rcu(obj->base.resv);
-		if (fence) {
-			add_rps_boost_after_vblank(new_state->crtc, fence);
-			dma_fence_put(fence);
+			fence = dma_resv_get_excl_rcu(obj->base.resv);
+			if (fence) {
+				add_rps_boost_after_vblank(new_state->crtc,
+							   fence);
+				dma_fence_put(fence);
+			}
 		}
 	} else {
 		add_rps_boost_after_vblank(new_state->crtc, new_state->fence);
