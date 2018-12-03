@@ -14142,11 +14142,21 @@ static int intel_atomic_commit(struct drm_device *dev,
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	int ret = 0;
 
+	i915_sw_fence_init(&state->commit_ready,
+			   intel_atomic_commit_ready);
+
+	if (_state->async_update) {
+		ret = drm_atomic_helper_prepare_planes(dev, _state);
+		if (ret)
+			return ret;
+		drm_atomic_helper_async_commit(dev, _state);
+		drm_atomic_helper_cleanup_planes(dev, _state);
+		return 0;
+	}
+
 	state->wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
 
 	drm_atomic_state_get(&state->base);
-	i915_sw_fence_init(&state->commit_ready,
-			   intel_atomic_commit_ready);
 
 	/*
 	 * The intel_legacy_cursor_update() fast path takes care
