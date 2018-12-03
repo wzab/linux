@@ -13385,6 +13385,15 @@ static int intel_atomic_commit(struct drm_device *dev,
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	int ret = 0;
 
+	if (state->async_update) {
+		ret = drm_atomic_helper_prepare_planes(dev, state);
+		if (ret)
+			return ret;
+		drm_atomic_helper_async_commit(dev, state);
+		drm_atomic_helper_cleanup_planes(dev, state);
+		return 0;
+	}
+
 	drm_atomic_state_get(state);
 	i915_sw_fence_init(&intel_state->commit_ready,
 			   intel_atomic_commit_ready);
