@@ -826,7 +826,7 @@ static bool intel_wm_plane_visible(const struct intel_crtc_state *crtc_state,
 	 * can happen faster than the vrefresh rate, and the current
 	 * watermark code doesn't handle that correctly. Cursor updates
 	 * which set/clear the fb or change the cursor size are going
-	 * to get throttled by intel_legacy_cursor_update() to work
+	 * to get throttled by intel_plane_atomic_async_update() to work
 	 * around this problem with the watermark code.
 	 */
 	if (plane->id == PLANE_CURSOR)
