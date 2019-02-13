@@ -13412,6 +13412,12 @@ static int intel_plane_pin_fb(struct intel_plane_state *plane_state)
 	struct drm_framebuffer *fb = plane_state->base.fb;
 	struct i915_vma *vma;
 
+	if (plane->id == PLANE_CURSOR) {
+		fb->base.pinned = 42;
+		//pr_err("pinning buffer %d, async %d\n", fb->base.id,
+		//       plane_state->base.state->async_update);
+	}
+
 	if (plane->id == PLANE_CURSOR &&
 	    INTEL_INFO(dev_priv)->display.cursor_needs_physical) {
 		struct drm_i915_gem_object *obj = intel_fb_obj(fb);
@@ -13438,6 +13444,14 @@ static int intel_plane_pin_fb(struct intel_plane_state *plane_state)
 static void intel_plane_unpin_fb(struct intel_plane_state *old_plane_state)
 {
 	struct i915_vma *vma;
+	struct intel_plane *plane = to_intel_plane(old_plane_state->base.plane);
+	struct drm_framebuffer *fb = old_plane_state->base.fb;
+	//pr_err("UNpinning buffer\n");
+
+	if (plane && fb && plane->id == PLANE_CURSOR) {
+		fb->base.pinned = 0;
+		//pr_err("UNpinning buffer %d\n", fb->base.id);
+	}
 
 	vma = fetch_and_zero(&old_plane_state->vma);
 	if (vma)
@@ -13479,8 +13493,11 @@ intel_prepare_plane_fb(struct drm_plane *plane,
 	struct drm_i915_gem_object *old_obj = intel_fb_obj(plane->state->fb);
 	int ret;
 
-	if (new_state->state->async_update)
+	if (fb && fb->base.pinned == 42) {
+		//pr_err("intel_prepare_plane_fb skiped, buffer pinned %d\n",
+		//       fb->base.id);
 		return 0;
+	}
 
 	if (old_obj) {
 		struct drm_crtc_state *crtc_state =

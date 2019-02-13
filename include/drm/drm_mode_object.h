@@ -58,6 +58,7 @@ struct drm_mode_object {
 	struct drm_object_properties *properties;
 	struct kref refcount;
 	void (*free_cb)(struct kref *kref);
+	int pinned;
 };
 
 #define DRM_OBJECT_MAX_PROPERTY 24
