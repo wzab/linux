@@ -1599,8 +1599,7 @@ int drm_atomic_helper_async_check(struct drm_device *dev,
 		return -EINVAL;
 
 	if (!new_plane_state->crtc ||
-	    old_plane_state->crtc != new_plane_state->crtc ||
-	    old_plane_state->fb != new_plane_state->fb)
+	    old_plane_state->crtc != new_plane_state->crtc)
 		return -EINVAL;
 
 	funcs = plane->helper_private;
