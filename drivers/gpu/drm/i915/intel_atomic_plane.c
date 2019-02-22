@@ -327,7 +327,6 @@ static void intel_plane_atomic_async_update(struct drm_plane *plane,
 	struct intel_plane *intel_plane = to_intel_plane(plane);
 	struct drm_crtc *crtc = plane->state->crtc;
 	struct intel_crtc_state *new_crtc_state;
-	struct drm_framebuffer *old_fb;
 	struct intel_crtc *intel_crtc;
 	int i;
 
@@ -337,18 +336,16 @@ static void intel_plane_atomic_async_update(struct drm_plane *plane,
 		WARN_ON(new_crtc_state->wm.need_postvbl_update ||
 			new_crtc_state->update_wm_post);
 
-	old_fb = plane->state->fb;
-
-	i915_gem_track_fb(intel_fb_obj(old_fb), intel_fb_obj(new_state->fb),
+	i915_gem_track_fb(intel_fb_obj(plane->state->fb),
+			  intel_fb_obj(new_state->fb),
 			  intel_plane->frontbuffer_bit);
 
 	plane->state->src_x = new_state->src_x;
 	plane->state->src_y = new_state->src_y;
 	plane->state->crtc_x = new_state->crtc_x;
 	plane->state->crtc_y = new_state->crtc_y;
-	plane->state->fb = new_state->fb;
 
-	new_state->fb = old_fb;
+	swap(plane->state->fb, new_state->fb);
 
 	if (plane->state->visible) {
 		trace_intel_update_plane(plane, to_intel_crtc(crtc));
