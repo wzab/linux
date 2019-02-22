@@ -924,9 +924,7 @@ static void vop_plane_atomic_async_update(struct drm_plane *plane,
 	plane_state->src_h = new_state->src_h;
 	plane_state->src_w = new_state->src_w;
 
-	if (plane_state->fb != new_state->fb)
-		drm_atomic_set_fb_for_plane(plane_state, new_state->fb);
-
+	swap(plane_state->fb, new_state->fb);
 	swap(plane_state, plane->state);
 
 	if (plane->state->fb && plane->state->fb != new_state->fb) {

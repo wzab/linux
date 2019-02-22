@@ -1642,6 +1642,9 @@ void drm_atomic_helper_async_commit(struct drm_device *dev,
 	int i;
 
 	for_each_new_plane_in_state(state, plane, plane_state, i) {
+		struct drm_plane_state tmp_state = *plane_state;
+		bool same_fb = plane->state->fb == plane_state->fb;
+
 		funcs = plane->helper_private;
 		funcs->atomic_async_update(plane, plane_state);
 
@@ -1650,11 +1653,17 @@ void drm_atomic_helper_async_commit(struct drm_device *dev,
 		 * plane->state in-place, make sure at least common
 		 * properties have been properly updated.
 		 */
-		WARN_ON_ONCE(plane->state->fb != plane_state->fb);
-		WARN_ON_ONCE(plane->state->crtc_x != plane_state->crtc_x);
-		WARN_ON_ONCE(plane->state->crtc_y != plane_state->crtc_y);
-		WARN_ON_ONCE(plane->state->src_x != plane_state->src_x);
-		WARN_ON_ONCE(plane->state->src_y != plane_state->src_y);
+		WARN_ON_ONCE(plane->state->fb != tmp_state->fb);
+		WARN_ON_ONCE(plane->state->crtc_x != tmp_state->crtc_x);
+		WARN_ON_ONCE(plane->state->crtc_y != tmp_state->crtc_y);
+		WARN_ON_ONCE(plane->state->src_x != tmp_state->src_x);
+		WARN_ON_ONCE(plane->state->src_y != tmp_state->src_y);
+
+		/*
+		 * Make sure the FB have been swapped so that
+		 * drm_atomic_helper_cleanup_planes() does the right thing.
+		 */
+		WARN_ON_ONCE(!same_fb && plane->state->fb == plane_state->fb);
 	}
 }
 EXPORT_SYMBOL(drm_atomic_helper_async_commit);
