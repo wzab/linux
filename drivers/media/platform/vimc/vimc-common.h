@@ -22,6 +22,8 @@
 #include <media/media-device.h>
 #include <media/v4l2-device.h>
 
+#include "vimc-streamer.h"
+
 #define VIMC_PDEV_NAME "vimc"
 
 /* VIMC-specific controls */
@@ -115,11 +117,22 @@ struct vimc_pix_map {
 struct vimc_ent_device {
 	struct media_entity *ent;
 	struct media_pad *pads;
+	struct vimc_stream *stream;
 	void * (*process_frame)(struct vimc_ent_device *ved,
 				const void *frame);
 	void (*vdev_get_format)(struct vimc_ent_device *ved,
 			      struct v4l2_pix_format *fmt);
 };
+
+/**
+ * vimc_enum_mbus_code - enumerate mbus codes
+ *
+ * Helper function to be pluged in .enum_mbus_code from
+ * struct v4l2_subdev_pad_ops.
+ */
+int vimc_enum_mbus_code(struct v4l2_subdev *sd,
+			struct v4l2_subdev_pad_config *cfg,
+			struct v4l2_subdev_mbus_code_enum *code);
 
 /**
  * vimc_pads_init - initialize pads
