@@ -912,29 +912,30 @@ static void vop_plane_atomic_async_update(struct drm_plane *plane,
 					  struct drm_plane_state *new_state)
 {
 	struct vop *vop = to_vop(plane->state->crtc);
-	struct drm_plane_state *plane_state;
+	struct drm_framebuffer *old_fb = plane->state->fb;
 
-	plane_state = plane->funcs->atomic_duplicate_state(plane);
-	plane_state->crtc_x = new_state->crtc_x;
-	plane_state->crtc_y = new_state->crtc_y;
-	plane_state->crtc_h = new_state->crtc_h;
-	plane_state->crtc_w = new_state->crtc_w;
-	plane_state->src_x = new_state->src_x;
-	plane_state->src_y = new_state->src_y;
-	plane_state->src_h = new_state->src_h;
-	plane_state->src_w = new_state->src_w;
-
-	if (plane_state->fb != new_state->fb)
-		drm_atomic_set_fb_for_plane(plane_state, new_state->fb);
-
-	swap(plane_state, plane->state);
-
-	if (plane->state->fb && plane->state->fb != new_state->fb) {
+	/*
+	 * A scanout can still be occurring, so we can't drop the reference to
+	 * the old framebuffer. To solve this we get a reference to old_fb and
+	 * set a worker to release it later.
+	 */
+	if (vop->is_enabled &&
+	    plane->state->fb && plane->state->fb != new_state->fb) {
 		drm_framebuffer_get(plane->state->fb);
 		WARN_ON(drm_crtc_vblank_get(plane->state->crtc) != 0);
 		drm_flip_work_queue(&vop->fb_unref_work, plane->state->fb);
 		set_bit(VOP_PENDING_FB_UNREF, &vop->pending);
 	}
+
+	plane->state->crtc_x = new_state->crtc_x;
+	plane->state->crtc_y = new_state->crtc_y;
+	plane->state->crtc_h = new_state->crtc_h;
+	plane->state->crtc_w = new_state->crtc_w;
+	plane->state->src_x = new_state->src_x;
+	plane->state->src_y = new_state->src_y;
+	plane->state->src_h = new_state->src_h;
+	plane->state->src_w = new_state->src_w;
+	plane->state->fb = new_state->fb;
 
 	if (vop->is_enabled) {
 		rockchip_drm_psr_inhibit_get_state(new_state->state);
@@ -945,7 +946,12 @@ static void vop_plane_atomic_async_update(struct drm_plane *plane,
 		rockchip_drm_psr_inhibit_put_state(new_state->state);
 	}
 
-	plane->funcs->atomic_destroy_state(plane, plane_state);
+	/*
+	 * In async update we perform inplace modifications and release the
+	 * new_state. The following is required so we release the reference of
+	 * the old framebuffer.
+	 */
+	new_state->fb = old_fb;
 }
 
 static const struct drm_plane_helper_funcs plane_helper_funcs = {
