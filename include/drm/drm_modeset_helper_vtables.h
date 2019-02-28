@@ -1174,6 +1174,11 @@ struct drm_plane_helper_funcs {
 	 * current one with the new plane configurations in the new
 	 * plane_state.
 	 *
+	 * Drivers should also swap the framebuffers between plane state
+	 * and new_state. This is required because prepare and cleanup calls
+	 * are performed on the new_state object, then to cleanup the old
+	 * framebuffer, it needs to be placed inside the new_state object.
+	 *
 	 * FIXME:
 	 *  - It only works for single plane updates
 	 *  - Async Pageflips are not supported yet
