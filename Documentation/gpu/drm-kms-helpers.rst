@@ -53,11 +53,17 @@ Overview
 .. kernel-doc:: drivers/gpu/drm/drm_atomic_helper.c
    :doc: overview
 
-Implementing Asynchronous Atomic Commit
+Implementing Nonblocking Atomic Commit
 ---------------------------------------
 
 .. kernel-doc:: drivers/gpu/drm/drm_atomic_helper.c
    :doc: implementing nonblocking commit
+
+Amend Mode Atomic Commit
+------------------------
+
+.. kernel-doc:: drivers/gpu/drm/drm_atomic_helper.c
+   :doc: amend mode atomic commit
 
 Helper Functions Reference
 --------------------------

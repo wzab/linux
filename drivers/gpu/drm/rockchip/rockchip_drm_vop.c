@@ -877,7 +877,7 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 	spin_unlock(&vop->reg_lock);
 }
 
-static int vop_plane_atomic_async_check(struct drm_plane *plane,
+static int vop_plane_atomic_amend_check(struct drm_plane *plane,
 					struct drm_plane_state *state)
 {
 	struct vop_win *vop_win = to_vop_win(plane);
@@ -908,7 +908,7 @@ static int vop_plane_atomic_async_check(struct drm_plane *plane,
 						   true, true);
 }
 
-static void vop_plane_atomic_async_update(struct drm_plane *plane,
+static void vop_plane_atomic_amend_update(struct drm_plane *plane,
 					  struct drm_plane_state *new_state)
 {
 	struct vop *vop = to_vop(plane->state->crtc);
@@ -952,8 +952,8 @@ static const struct drm_plane_helper_funcs plane_helper_funcs = {
 	.atomic_check = vop_plane_atomic_check,
 	.atomic_update = vop_plane_atomic_update,
 	.atomic_disable = vop_plane_atomic_disable,
-	.atomic_async_check = vop_plane_atomic_async_check,
-	.atomic_async_update = vop_plane_atomic_async_update,
+	.atomic_amend_check = vop_plane_atomic_amend_check,
+	.atomic_amend_update = vop_plane_atomic_amend_update,
 	.prepare_fb = drm_gem_fb_prepare_fb,
 };
 

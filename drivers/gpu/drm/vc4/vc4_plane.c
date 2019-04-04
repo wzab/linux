@@ -1169,8 +1169,12 @@ static const struct drm_plane_helper_funcs vc4_plane_helper_funcs = {
 	.atomic_update = vc4_plane_atomic_update,
 	.prepare_fb = vc4_prepare_fb,
 	.cleanup_fb = vc4_cleanup_fb,
-	.atomic_async_check = vc4_plane_atomic_async_check,
-	.atomic_async_update = vc4_plane_atomic_async_update,
+	/*
+	 * FIXME: ideally, instead of hooking async updates to amend,
+	 * we could avoid tearing by modifying the pending commit.
+	 */
+	.atomic_amend_check = vc4_plane_atomic_async_check,
+	.atomic_amend_update = vc4_plane_atomic_async_update,
 };
 
 static void vc4_plane_destroy(struct drm_plane *plane)

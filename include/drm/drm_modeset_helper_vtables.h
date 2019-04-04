@@ -1136,53 +1136,55 @@ struct drm_plane_helper_funcs {
 			       struct drm_plane_state *old_state);
 
 	/**
-	 * @atomic_async_check:
+	 * @atomic_amend_check:
 	 *
 	 * Drivers should set this function pointer to check if the plane state
-	 * can be updated in a async fashion. Here async means "not vblank
-	 * synchronized".
+	 * can be updated in amend mode.
+	 * For amend mode definition see :doc: amend mode atomic commit
 	 *
-	 * This hook is called by drm_atomic_async_check() to establish if a
-	 * given update can be committed asynchronously, that is, if it can
+	 * This hook is called by drm_atomic_amend_check() to establish if a
+	 * given update can be committed in amend mode, that is, if it can
 	 * jump ahead of the state currently queued for update.
 	 *
 	 * RETURNS:
 	 *
 	 * Return 0 on success and any error returned indicates that the update
-	 * can not be applied in asynchronous manner.
+	 * can not be applied in amend mode.
 	 */
-	int (*atomic_async_check)(struct drm_plane *plane,
+	int (*atomic_amend_check)(struct drm_plane *plane,
 				  struct drm_plane_state *state);
 
 	/**
-	 * @atomic_async_update:
+	 * @atomic_amend_update:
 	 *
-	 * Drivers should set this function pointer to perform asynchronous
-	 * updates of planes, that is, jump ahead of the currently queued
-	 * state and update the plane. Here async means "not vblank
-	 * synchronized".
+	 * Drivers should set this function pointer to perform amend
+	 * updates of planes.
+	 * The amend feature provides a way to perform 1000 commits, without
+	 * waiting for 1000 vblanks to get the last state applied.
 	 *
-	 * This hook is called by drm_atomic_helper_async_commit().
+	 * For amend mode definition see :doc: amend mode atomic commit
 	 *
-	 * An async update will happen on legacy cursor updates. An async
+	 * This hook is called by drm_atomic_helper_amend_commit().
+	 *
+	 * An amend update will happen on legacy cursor updates. An amend
 	 * update won't happen if there is an outstanding commit modifying
 	 * the same plane.
 	 *
 	 * Note that unlike &drm_plane_helper_funcs.atomic_update this hook
-	 * takes the new &drm_plane_state as parameter. When doing async_update
+	 * takes the new &drm_plane_state as parameter. When doing amend_update
 	 * drivers shouldn't replace the &drm_plane_state but update the
 	 * current one with the new plane configurations in the new
 	 * plane_state.
 	 *
 	 * FIXME:
 	 *  - It only works for single plane updates
-	 *  - Async Pageflips are not supported yet
-	 *  - Some hw might still scan out the old buffer until the next
+	 *  - If hardware don't support asyncronous update to implement amend,
+	 *    some hw might still scan out the old buffer until the next
 	 *    vblank, however we let go of the fb references as soon as
 	 *    we run this hook. For now drivers must implement their own workers
 	 *    for deferring if needed, until a common solution is created.
 	 */
-	void (*atomic_async_update)(struct drm_plane *plane,
+	void (*atomic_amend_update)(struct drm_plane *plane,
 				    struct drm_plane_state *new_state);
 };
 

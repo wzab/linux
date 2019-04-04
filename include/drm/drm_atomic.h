@@ -300,7 +300,7 @@ struct __drm_private_objs_state {
  * @ref: count of all references to this state (will not be freed until zero)
  * @dev: parent DRM device
  * @legacy_cursor_update: hint to enforce legacy cursor IOCTL semantics
- * @async_update: hint for asynchronous plane update
+ * @amend_update: hint for amend plane update
  * @planes: pointer to array of structures with per-plane data
  * @crtcs: pointer to array of CRTC pointers
  * @num_connector: size of the @connectors and @connector_states arrays
@@ -328,7 +328,7 @@ struct drm_atomic_state {
 	 */
 	bool allow_modeset : 1;
 	bool legacy_cursor_update : 1;
-	bool async_update : 1;
+	bool amend_update : 1;
 	/**
 	 * @duplicated:
 	 *

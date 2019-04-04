@@ -948,7 +948,7 @@ int drm_atomic_helper_check(struct drm_device *dev,
 		return ret;
 
 	if (state->legacy_cursor_update)
-		state->async_update = !drm_atomic_helper_async_check(dev, state);
+		state->amend_update = !drm_atomic_helper_amend_check(dev, state);
 
 	return ret;
 }
@@ -1569,19 +1569,68 @@ static void commit_work(struct work_struct *work)
 }
 
 /**
- * drm_atomic_helper_async_check - check if state can be commited asynchronously
+ * DOC: amend mode atomic commit
+ *
+ * The amend feature provides a way to perform 1000 updates to be applied as
+ * soon as possible without waiting for 1000 vblanks.
+
+ * Currently, only the legacy cursor update uses amend mode, where historically,
+ * userspace performs several updates before the next vblank and don't want to
+ * see a delay in the cursor's movement.
+ * If amend is not supported, legacy cursor falls back to a normal sync update.
+ *
+ * To implement the legacy cursor update, drivers should provide
+ * &drm_plane_helper_funcs.atomic_amend_check() and
+ * &drm_plane_helper_funcs.atomic_amend_update()
+ *
+ * Drivers just need to make sure the last state overrides the previous one, so
+ * that if X updates were performed, then, in some point in the near future,
+ * preferentially in the next vblank, the Xth state will be the hardware state.
+ *
+ * If the hardware supports asynchronous update, i.e, changing its state without
+ * waiting for vblank, then &drm_plane_helper_funcs.atomic_amend_update() can be
+ * implemented using asynchronous update (the amend mode property is held), but
+ * it can cause tearing in the image.
+ *
+ * Otherwise (if async is not supported by the hw), drivers need to override the
+ * commit to be applied in the next vblank, and also they need to take care of
+ * framebuffer references when programming a new framebuffer, as hw can still be
+ * scanning out the old framebuffer. For now drivers must implement their own
+ * workers for deferring if needed, until a common solution is created.
+ *
+ *
+ * Notes / highlights:
+ *
+ * - amend update is performed on legacy cursor updates.
+ *
+ * - amend update won't happen if there is an outstanding commit modifying the
+ *   same plane.
+ *
+ * - amend update won't happen if atomic_amend_check() returns false.
+ *
+ * - if atomic_amend_check() fails, it falls back to a normal synchronous
+ *   update.
+ *
+ * - if userspace wants to ensure an asynchronous page flip, i.e. change hw
+ *   state immediately, see DRM_MODE_PAGE_FLIP_ASYNC flag
+ *   (asynchronous page flip maintains the amend property by definition).
+ *
+ * - Asynchronous modeset doesn't make sense, only asynchronous page flip.
+ */
+
+/**
+ * drm_atomic_helper_amend_check - check if state can be amended.
  * @dev: DRM device
  * @state: the driver state object
  *
- * This helper will check if it is possible to commit the state asynchronously.
- * Async commits are not supposed to swap the states like normal sync commits
- * but just do in-place changes on the current state.
+ * This helper will check if it is possible perform a commit in amend mode.
+ * For amend mode definition see :doc: amend mode atomic commit
  *
- * It will return 0 if the commit can happen in an asynchronous fashion or error
- * if not. Note that error just mean it can't be commited asynchronously, if it
- * fails the commit should be treated like a normal synchronous commit.
+ * It will return 0 if the commit can happen in an amend fashion or error
+ * if not. Note that error just mean it can't be committed in amend mode, if it
+ * fails the commit should be treated like a normal commit.
  */
-int drm_atomic_helper_async_check(struct drm_device *dev,
+int drm_atomic_helper_amend_check(struct drm_device *dev,
 				   struct drm_atomic_state *state)
 {
 	struct drm_crtc *crtc;
@@ -1610,7 +1659,7 @@ int drm_atomic_helper_async_check(struct drm_device *dev,
 
 	/*
 	 * FIXME: Since prepare_fb and cleanup_fb are always called on
-	 * the new_plane_state for async updates we need to block framebuffer
+	 * the new_plane_state for amend updates, we need to block framebuffer
 	 * changes. This prevents use of a fb that's been cleaned up and
 	 * double cleanups from occuring.
 	 */
@@ -1618,37 +1667,43 @@ int drm_atomic_helper_async_check(struct drm_device *dev,
 		return -EINVAL;
 
 	funcs = plane->helper_private;
-	if (!funcs->atomic_async_update)
+	if (!funcs->atomic_amend_update)
 		return -EINVAL;
 
 	if (new_plane_state->fence)
 		return -EINVAL;
 
 	/*
-	 * Don't do an async update if there is an outstanding commit modifying
-	 * the plane.  This prevents our async update's changes from getting
-	 * overridden by a previous synchronous update's state.
+	 * Don't do an amend update if there is an outstanding commit modifying
+	 * the plane.
+	 * TODO: add support for modifying the outstanding commit.
 	 */
 	if (old_plane_state->commit &&
 	    !try_wait_for_completion(&old_plane_state->commit->hw_done))
 		return -EBUSY;
 
-	return funcs->atomic_async_check(plane, new_plane_state);
+	return funcs->atomic_amend_check(plane, new_plane_state);
 }
-EXPORT_SYMBOL(drm_atomic_helper_async_check);
+EXPORT_SYMBOL(drm_atomic_helper_amend_check);
 
 /**
- * drm_atomic_helper_async_commit - commit state asynchronously
+ * drm_atomic_helper_amend_commit - commit state in amend mode
  * @dev: DRM device
  * @state: the driver state object
  *
- * This function commits a state asynchronously, i.e., not vblank
- * synchronized. It should be used on a state only when
- * drm_atomic_async_check() succeeds. Async commits are not supposed to swap
- * the states like normal sync commits, but just do in-place changes on the
- * current state.
+ * This function commits a state in amend mode.
+ * For amend mode definition see :doc: amend mode atomic commit
+ *
+ * It should be used on a state only when drm_atomic_amend_check() succeeds.
+ *
+ * Amend commits are not supposed to swap the states like normal sync commits,
+ * but just do in-place changes on the current state.
+ *
+ * TODO: instead of doing in-place changes, modify the new_state and perform an
+ * immediate flip. Drivers could reuse the page_flip code and even use the
+ * DRM_MODE_PAGE_FLIP_ASYNC flag if the hardware supports asyncronous update.
  */
-void drm_atomic_helper_async_commit(struct drm_device *dev,
+void drm_atomic_helper_amend_commit(struct drm_device *dev,
 				    struct drm_atomic_state *state)
 {
 	struct drm_plane *plane;
@@ -1658,10 +1713,10 @@ void drm_atomic_helper_async_commit(struct drm_device *dev,
 
 	for_each_new_plane_in_state(state, plane, plane_state, i) {
 		funcs = plane->helper_private;
-		funcs->atomic_async_update(plane, plane_state);
+		funcs->atomic_amend_update(plane, plane_state);
 
 		/*
-		 * ->atomic_async_update() is supposed to update the
+		 * ->atomic_amend_update() is supposed to update the
 		 * plane->state in-place, make sure at least common
 		 * properties have been properly updated.
 		 */
@@ -1672,7 +1727,7 @@ void drm_atomic_helper_async_commit(struct drm_device *dev,
 		WARN_ON_ONCE(plane->state->src_y != plane_state->src_y);
 	}
 }
-EXPORT_SYMBOL(drm_atomic_helper_async_commit);
+EXPORT_SYMBOL(drm_atomic_helper_amend_commit);
 
 /**
  * drm_atomic_helper_commit - commit validated state object
@@ -1698,12 +1753,12 @@ int drm_atomic_helper_commit(struct drm_device *dev,
 {
 	int ret;
 
-	if (state->async_update) {
+	if (state->amend_update) {
 		ret = drm_atomic_helper_prepare_planes(dev, state);
 		if (ret)
 			return ret;
 
-		drm_atomic_helper_async_commit(dev, state);
+		drm_atomic_helper_amend_commit(dev, state);
 		drm_atomic_helper_cleanup_planes(dev, state);
 
 		return 0;

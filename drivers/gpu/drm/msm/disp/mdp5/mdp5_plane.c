@@ -531,8 +531,12 @@ static const struct drm_plane_helper_funcs mdp5_plane_helper_funcs = {
 		.cleanup_fb = mdp5_plane_cleanup_fb,
 		.atomic_check = mdp5_plane_atomic_check,
 		.atomic_update = mdp5_plane_atomic_update,
-		.atomic_async_check = mdp5_plane_atomic_async_check,
-		.atomic_async_update = mdp5_plane_atomic_async_update,
+		/*
+		 * FIXME: ideally, instead of hooking async updates to amend,
+		 * we could avoid tearing by modifying the pending commit.
+		 */
+		.atomic_amend_check = mdp5_plane_atomic_async_check,
+		.atomic_amend_update = mdp5_plane_atomic_async_update,
 };
 
 static void set_scanout_locked(struct mdp5_kms *mdp5_kms,

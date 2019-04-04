@@ -3779,8 +3779,12 @@ static const struct drm_plane_helper_funcs dm_plane_helper_funcs = {
 	.prepare_fb = dm_plane_helper_prepare_fb,
 	.cleanup_fb = dm_plane_helper_cleanup_fb,
 	.atomic_check = dm_plane_atomic_check,
-	.atomic_async_check = dm_plane_atomic_async_check,
-	.atomic_async_update = dm_plane_atomic_async_update
+	/*
+	 * FIXME: ideally, instead of hooking async updates to amend,
+	 * we could avoid tearing by modifying the pending commit.
+	 */
+	.atomic_amend_check = dm_plane_atomic_async_check,
+	.atomic_amend_update = dm_plane_atomic_async_update
 };
 
 /*
@@ -6140,7 +6144,7 @@ static int amdgpu_dm_atomic_check(struct drm_device *dev,
 		 * helper, check if it can be done asynchronously for better
 		 * performance.
 		 */
-		state->async_update = !drm_atomic_helper_async_check(dev, state);
+		state->amend_update = !drm_atomic_helper_amend_check(dev, state);
 	}
 
 	/* Must be success */
