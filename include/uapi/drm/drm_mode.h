@@ -729,7 +729,23 @@ struct drm_mode_destroy_dumb {
 	__u32 handle;
 };
 
-/* page-flip flags are valid, plus: */
+/*
+ * drm atomic flags
+ *
+ * page-flip flags are valid, plus:
+ *
+ * DRM_MODE_ATOMIC_TEST_ONLY
+ * Used with fences to check if the Sync File is a valid one.
+ *
+ * DRM_MODE_ATOMIC_NONBLOCK
+ * Perform a normal atomic update but do not block the ioctl until the request
+ * is finished, return the ioctl call immediately.
+ *
+ * DRM_MODE_ATOMIC_ALLOW_MODESET
+ * Indicates whether a full modeset is acceptable or not.
+ */
+
+/*  */
 #define DRM_MODE_ATOMIC_TEST_ONLY 0x0100
 #define DRM_MODE_ATOMIC_NONBLOCK  0x0200
 #define DRM_MODE_ATOMIC_ALLOW_MODESET 0x0400
