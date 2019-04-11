@@ -1175,6 +1175,8 @@ static const struct drm_plane_helper_funcs vc4_plane_helper_funcs = {
 	 */
 	.atomic_amend_check = vc4_plane_atomic_async_check,
 	.atomic_amend_update = vc4_plane_atomic_async_update,
+	.atomic_async_check = vc4_plane_atomic_async_check,
+	.atomic_async_update = vc4_plane_atomic_async_update,
 };
 
 static void vc4_plane_destroy(struct drm_plane *plane)

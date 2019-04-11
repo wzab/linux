@@ -1136,6 +1136,43 @@ struct drm_plane_helper_funcs {
 			       struct drm_plane_state *old_state);
 
 	/**
+	 * @atomic_async_check:
+	 *
+	 * Drivers should set this function pointer to check if a page flip can
+	 * be performed asynchronously, i.e., immediately without waiting for a
+	 * vblank.
+	 *
+	 * This hook is called by drm_atomic_async_check() to establish if a
+	 * given update can be committed in async mode, that is, if it can
+	 * jump ahead of the state currently queued for update.
+	 *
+	 * RETURNS:
+	 *
+	 * Return 0 on success and any error returned indicates that the update
+	 * can not be applied in asynd mode.
+	 */
+	int (*atomic_async_check)(struct drm_plane *plane,
+				  struct drm_plane_state *state);
+
+	/**
+	 * @atomic_async_update:
+	 *
+	 * Drivers should set this function pointer to perform asynchronous page
+	 * flips through the atomic api, i.e. not vblank synchronized.
+	 *
+	 * Note that unlike &drm_plane_helper_funcs.atomic_update this hook
+	 * takes the new &drm_plane_state as parameter. When doing async_update
+	 * drivers shouldn't replace the &drm_plane_state but update the
+	 * current one with the new plane configurations in the new
+	 * plane_state.
+	 *
+	 * FIXME:
+	 *  - It only works for single plane updates
+	 */
+	void (*atomic_async_update)(struct drm_plane *plane,
+				    struct drm_plane_state *new_state);
+
+	/**
 	 * @atomic_amend_check:
 	 *
 	 * Drivers should set this function pointer to check if the plane state

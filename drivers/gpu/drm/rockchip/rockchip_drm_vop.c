@@ -954,6 +954,10 @@ static const struct drm_plane_helper_funcs plane_helper_funcs = {
 	.atomic_disable = vop_plane_atomic_disable,
 	.atomic_amend_check = vop_plane_atomic_amend_check,
 	.atomic_amend_update = vop_plane_atomic_amend_update,
+	/*
+	 * Note: rockchip doesn't support async page flip, thus
+	 * .atomic_async_update and .atomic_async_check are not provided.
+	 */
 	.prepare_fb = drm_gem_fb_prepare_fb,
 };
 

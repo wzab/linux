@@ -3785,6 +3785,11 @@ static const struct drm_plane_helper_funcs dm_plane_helper_funcs = {
 	 */
 	.atomic_amend_check = dm_plane_atomic_async_check,
 	.atomic_amend_update = dm_plane_atomic_async_update
+	/*
+	 * Note: amdgpu takes care of DRM_MODE_PAGE_FLIP_ASYNC flag in the
+	 * normal commit path, thus .atomic_async_check and .atomic_async_update
+	 * are not provided here.
+	 */
 };
 
 /*

@@ -1312,8 +1312,9 @@ int drm_mode_atomic_ioctl(struct drm_device *dev,
 	drm_modeset_acquire_init(&ctx, DRM_MODESET_ACQUIRE_INTERRUPTIBLE);
 	state->acquire_ctx = &ctx;
 	state->allow_modeset = !!(arg->flags & DRM_MODE_ATOMIC_ALLOW_MODESET);
+	state->async_update = !!(arg->flags & DRM_MODE_PAGE_FLIP_ASYNC);
 	/* async takes precedence over amend */
-	state->amend_update = arg->flags & DRM_MODE_PAGE_FLIP_ASYNC ? 0 :
+	state->amend_update = state->async_update ? 0 :
 					!!(arg->flags & DRM_MODE_ATOMIC_AMEND);
 
 retry:

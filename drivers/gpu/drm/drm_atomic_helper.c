@@ -948,15 +948,30 @@ int drm_atomic_helper_check(struct drm_device *dev,
 		return ret;
 
 	/*
+	 * If async page flip was explicitly requested, but it is not possible,
+	 * return error instead of falling back to a normal commit.
+	 * If async_amend_check returns -EOPNOTSUPP, it means
+	 * ->atomic_async_update hook doesn't exist, so fallback to normal
+	 *  commit and let the driver handle DRM_MODE_PAGE_FLIP_ASYNC flag
+	 *  through normal commit code path.
+	 */
+	if (state->async_update) {
+		ret = drm_atomic_helper_async_amend_check(dev, state, false);
+		state->async_update = !ret;
+		return !ret || ret == -EOPNOTSUPP ? 0 : ret;
+	}
+
+	/*
 	 * If amend was explicitly requested, but it is not possible,
 	 * return error instead of falling back to a normal commit.
 	 */
 	if (state->amend_update)
-		return drm_atomic_helper_amend_check(dev, state);
+		return drm_atomic_helper_async_amend_check(dev, state, true);
 
 	/* Legacy mode falls back to a normal commit if amend isn't possible. */
 	if (state->legacy_cursor_update)
-		state->amend_update = !drm_atomic_helper_amend_check(dev, state);
+		state->amend_update =
+			!drm_atomic_helper_async_amend_check(dev, state, true);
 
 	return 0;
 }
@@ -1651,8 +1666,9 @@ static void commit_work(struct work_struct *work)
  * if not. Note that error just mean it can't be committed in amend mode, if it
  * fails the commit should be treated like a normal commit.
  */
-int drm_atomic_helper_amend_check(struct drm_device *dev,
-				   struct drm_atomic_state *state)
+int drm_atomic_helper_async_amend_check(struct drm_device *dev,
+					struct drm_atomic_state *state,
+					bool amend)
 {
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *crtc_state;
@@ -1688,14 +1704,15 @@ int drm_atomic_helper_amend_check(struct drm_device *dev,
 		return -EINVAL;
 
 	funcs = plane->helper_private;
-	if (!funcs->atomic_amend_update)
-		return -EINVAL;
+	if ((amend && !funcs->atomic_amend_update) ||
+	    !funcs->atomic_async_update)
+		return -EOPNOTSUPP;
 
 	if (new_plane_state->fence)
 		return -EINVAL;
 
 	/* Only allow amend update for cursor type planes. */
-	if (plane->type != DRM_PLANE_TYPE_CURSOR)
+	if (amend && plane->type != DRM_PLANE_TYPE_CURSOR)
 		return -EINVAL;
 
 	/*
@@ -1707,9 +1724,10 @@ int drm_atomic_helper_amend_check(struct drm_device *dev,
 	    !try_wait_for_completion(&old_plane_state->commit->hw_done))
 		return -EBUSY;
 
-	return funcs->atomic_amend_check(plane, new_plane_state);
+	return amend ? funcs->atomic_amend_check(plane, new_plane_state) :
+		       funcs->atomic_async_check(plane, new_plane_state);
 }
-EXPORT_SYMBOL(drm_atomic_helper_amend_check);
+EXPORT_SYMBOL(drm_atomic_helper_async_amend_check);
 
 /**
  * drm_atomic_helper_amend_commit - commit state in amend mode
