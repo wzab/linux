@@ -502,7 +502,7 @@ static int mipidphy_rx_stream_on(struct mipidphy_priv *priv,
 			break;
 		}
 	}
-	write_grf_reg(priv, GRF_CON_ISP_DPHY_SEL, 0);
+//	write_grf_reg(priv, GRF_CON_ISP_DPHY_SEL, 0);
 	write_grf_reg(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	write_grf_reg(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
 	/* Disable lan turn around, which is ignored in receive mode */
