@@ -5,6 +5,7 @@
  * Copyright (C) 2017 Fuzhou Rockchip Electronics Co., Ltd.
  */
 
+#include <linux/io.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/module.h>
@@ -816,8 +817,9 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 	priv->stream_on = mipidphy_txrx_stream_on;
 	priv->txrx_base_addr = NULL;
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	priv->txrx_base_addr = devm_ioremap_resource(dev, res);
-	if (IS_ERR(priv->txrx_base_addr))
+	if (res)
+		priv->txrx_base_addr = devm_ioremap_resource(dev, res);
+	if (!res || IS_ERR(priv->txrx_base_addr))
 		priv->stream_on = mipidphy_rx_stream_on;
 
 	sd = &priv->sd;
