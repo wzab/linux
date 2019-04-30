@@ -32,6 +32,7 @@
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-image-sizes.h>
 #include <media/v4l2-mediabus.h>
+#include <media/v4l2-ctrls.h>
 
 #define SENSOR_NAME "ov5647"
 
@@ -72,9 +73,22 @@
 #define OV5647_WINDOW_WIDTH_MAX		2752
 #define OV5647_WINDOW_WIDTH_DEF		2592
 
+/* 250 MHz works too. */
+#define OV5647_LINK_FREQ_150MHZ		150000000
+static const s64 link_freq_menu_items[] = {
+	OV5647_LINK_FREQ_150MHZ
+};
+
 struct regval_list {
 	u16 addr;
 	u8 data;
+};
+
+struct ov5647_mode {
+	u32 width;
+	u32 height;
+	u32 max_fps;
+	const struct regval_list *reg_list;
 };
 
 struct ov5647 {
@@ -86,6 +100,8 @@ struct ov5647 {
 	unsigned int			height;
 	int				power_count;
 	struct clk			*xclk;
+	const struct ov5647_mode	*cur_mode;
+	struct v4l2_ctrl_handler ctrl_handler;
 };
 
 static inline struct ov5647 *to_state(struct v4l2_subdev *sd)
@@ -194,6 +210,15 @@ static struct regval_list ov5647_640x480[] = {
 	{0x4050, 0x6e},
 	{0x4051, 0x8f},
 	{0x0100, 0x01},
+};
+
+static const struct ov5647_mode supported_modes[] = {
+	{
+		.width = 640,
+		.height = 480,
+		.max_fps = 90,
+		.reg_list = ov5647_640x480,
+	},
 };
 
 static int ov5647_write(struct v4l2_subdev *sd, u16 reg, u8 val)
@@ -451,6 +476,62 @@ static const struct v4l2_subdev_video_ops ov5647_subdev_video_ops = {
 	.s_stream =		ov5647_s_stream,
 };
 
+static int ov5647_set_fmt(struct v4l2_subdev *sd,
+			  struct v4l2_subdev_pad_config *cfg,
+			  struct v4l2_subdev_format *fmt)
+{
+	struct ov5647 *ov5647 = to_state(sd);
+	const struct ov5647_mode *mode;
+
+	mutex_lock(&ov5647->lock);
+
+	mode = &supported_modes[0];
+	fmt->format.code = MEDIA_BUS_FMT_SBGGR8_1X8;
+	fmt->format.width = mode->width;
+	fmt->format.height = mode->height;
+	fmt->format.field = V4L2_FIELD_NONE;
+	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
+#ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
+		*v4l2_subdev_get_try_format(sd, cfg, fmt->pad) = fmt->format;
+#else
+		mutex_unlock(&ov5647->lock);
+		return -ENOTTY;
+#endif
+	} else {
+		ov5647->cur_mode = mode;
+	}
+
+	mutex_unlock(&ov5647->lock);
+
+	return 0;
+}
+
+static int ov5647_get_fmt(struct v4l2_subdev *sd,
+			  struct v4l2_subdev_pad_config *cfg,
+			  struct v4l2_subdev_format *fmt)
+{
+	struct ov5647 *ov5647 = to_state(sd);
+	const struct ov5647_mode *mode = ov5647->cur_mode;
+
+	mutex_lock(&ov5647->lock);
+	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
+#ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
+		fmt->format = *v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
+#else
+		mutex_unlock(&ov5647->lock);
+		return -ENOTTY;
+#endif
+	} else {
+		fmt->format.width = mode->width;
+		fmt->format.height = mode->height;
+		fmt->format.code = MEDIA_BUS_FMT_SBGGR8_1X8;
+		fmt->format.field = V4L2_FIELD_NONE;
+	}
+	mutex_unlock(&ov5647->lock);
+
+	return 0;
+}
+
 static int ov5647_enum_mbus_code(struct v4l2_subdev *sd,
 				struct v4l2_subdev_pad_config *cfg,
 				struct v4l2_subdev_mbus_code_enum *code)
@@ -463,8 +544,29 @@ static int ov5647_enum_mbus_code(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int ov5647_enum_frame_sizes(struct v4l2_subdev *sd,
+				   struct v4l2_subdev_pad_config *cfg,
+				   struct v4l2_subdev_frame_size_enum *fse)
+{
+	if (fse->index >= ARRAY_SIZE(supported_modes))
+		return -EINVAL;
+
+	if (fse->code != MEDIA_BUS_FMT_SBGGR8_1X8)
+		return -EINVAL;
+
+	fse->min_width  = supported_modes[fse->index].width;
+	fse->max_width  = supported_modes[fse->index].width;
+	fse->max_height = supported_modes[fse->index].height;
+	fse->min_height = supported_modes[fse->index].height;
+
+	return 0;
+}
+
 static const struct v4l2_subdev_pad_ops ov5647_subdev_pad_ops = {
 	.enum_mbus_code = ov5647_enum_mbus_code,
+	.enum_frame_size = ov5647_enum_frame_sizes,
+	.get_fmt = ov5647_get_fmt,
+	.set_fmt = ov5647_set_fmt,
 };
 
 static const struct v4l2_subdev_ops ov5647_subdev_ops = {
@@ -554,12 +656,15 @@ static int ov5647_probe(struct i2c_client *client,
 	struct ov5647 *sensor;
 	int ret;
 	struct v4l2_subdev *sd;
+	struct v4l2_ctrl_handler *handler;
+	struct v4l2_ctrl *ctrl;
 	struct device_node *np = client->dev.of_node;
 	u32 xclk_freq;
 
 	sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
 		return -ENOMEM;
+	sensor->cur_mode = &supported_modes[0];
 
 	if (IS_ENABLED(CONFIG_OF) && np) {
 		ret = ov5647_parse_dt(np);
@@ -586,6 +691,17 @@ static int ov5647_probe(struct i2c_client *client,
 
 	sd = &sensor->sd;
 	v4l2_i2c_subdev_init(sd, client, &ov5647_subdev_ops);
+
+	handler = &sensor->ctrl_handler;
+	ret = v4l2_ctrl_handler_init(handler, 1);
+	if (ret)
+		return ret;
+	ctrl = v4l2_ctrl_new_int_menu(handler, NULL, V4L2_CID_LINK_FREQ,
+				      0, 0, link_freq_menu_items);
+	if (ctrl)
+		ctrl->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+	sensor->sd.ctrl_handler = handler;
+
 	sensor->sd.internal_ops = &ov5647_subdev_internal_ops;
 	sensor->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
@@ -596,8 +712,10 @@ static int ov5647_probe(struct i2c_client *client,
 		goto mutex_remove;
 
 	ret = ov5647_detect(sd);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(&client->dev, "not detected!");
 		goto error;
+	}
 
 	ret = v4l2_async_register_subdev(sd);
 	if (ret < 0)
