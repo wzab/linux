@@ -73,8 +73,8 @@
 #define OV5647_WINDOW_WIDTH_MAX		2752
 #define OV5647_WINDOW_WIDTH_DEF		2592
 
-/* 250 MHz works too. */
-#define OV5647_LINK_FREQ_150MHZ		150000000
+// FIXME: only need to expose pixel rate really
+#define OV5647_LINK_FREQ_150MHZ		93000000
 static const s64 link_freq_menu_items[] = {
 	OV5647_LINK_FREQ_150MHZ
 };
