@@ -296,12 +296,13 @@ static int mipidphy_get_sensor_data_rate(struct v4l2_subdev *sd)
 {
 	struct mipidphy_priv *priv = to_dphy_priv(sd);
 	struct v4l2_subdev *sensor_sd = get_remote_sensor(sd);
-	struct v4l2_ctrl *link_freq;
-	struct v4l2_querymenu qm = { .id = V4L2_CID_LINK_FREQ, };
+	struct mipidphy_sensor *sensor = sd_to_sensor(priv, sensor_sd);
+	struct v4l2_ctrl *pixel_rate;
+	struct v4l2_querymenu qm = { .id = V4L2_CID_PIXEL_RATE, };
 	int ret;
 
-	link_freq = v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_LINK_FREQ);
-	if (!link_freq) {
+	pixel_rate= v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_PIXEL_RATE);
+	if (!pixel_rate) {
 		v4l2_warn(sd, "No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
@@ -314,10 +315,10 @@ static int mipidphy_get_sensor_data_rate(struct v4l2_subdev *sd)
 	}
 
 	if (!qm.value) {
-		v4l2_err(sd, "Invalid link_freq\n");
+		v4l2_err(sd, "Invalid pixel_rate\n");
 		return -EINVAL;
 	}
-	priv->data_rate_mbps = qm.value * 2;
+	priv->data_rate_mbps = (qm.value / sensor->lanes) * 8;
 	do_div(priv->data_rate_mbps, 1000 * 1000);
 
 	return 0;
@@ -817,10 +818,15 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 	priv->stream_on = mipidphy_txrx_stream_on;
 	priv->txrx_base_addr = NULL;
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (res)
+	if (res) {
 		priv->txrx_base_addr = devm_ioremap_resource(dev, res);
-	if (!res || IS_ERR(priv->txrx_base_addr))
+		if (IS_ERR(priv->txrx_base_addr))
+			return PTR_ERR(priv->txrx_base_addr);
+		priv->stream_on = mipidphy_txrx_stream_on;
+	} else {
+		priv->txrx_base_addr = NULL;
 		priv->stream_on = mipidphy_rx_stream_on;
+	}
 
 	sd = &priv->sd;
 	v4l2_subdev_init(sd, &mipidphy_subdev_ops);
