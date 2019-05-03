@@ -298,29 +298,22 @@ static int mipidphy_get_sensor_data_rate(struct v4l2_subdev *sd)
 	struct v4l2_subdev *sensor_sd = get_remote_sensor(sd);
 	struct mipidphy_sensor *sensor = sd_to_sensor(priv, sensor_sd);
 	struct v4l2_ctrl *pixel_rate;
-	struct v4l2_querymenu qm = { .id = V4L2_CID_PIXEL_RATE, };
+	s64 value;
 	int ret;
 
-	pixel_rate= v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_PIXEL_RATE);
+	pixel_rate = v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_PIXEL_RATE);
 	if (!pixel_rate) {
 		v4l2_warn(sd, "No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
 
-	qm.index = v4l2_ctrl_g_ctrl(link_freq);
-	ret = v4l2_querymenu(sensor_sd->ctrl_handler, &qm);
-	if (ret < 0) {
-		v4l2_err(sd, "Failed to get menu item\n");
-		return ret;
-	}
-
-	if (!qm.value) {
+	value = v4l2_ctrl_g_ctrl_int64(pixel_rate);
+	if (!pixel_rate) {
 		v4l2_err(sd, "Invalid pixel_rate\n");
 		return -EINVAL;
 	}
-	priv->data_rate_mbps = (qm.value / sensor->lanes) * 8;
+	priv->data_rate_mbps = (value * 8) / sensor->lanes;
 	do_div(priv->data_rate_mbps, 1000 * 1000);
-
 	return 0;
 }
 

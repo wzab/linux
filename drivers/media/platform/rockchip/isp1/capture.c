@@ -1217,7 +1217,7 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	struct rkisp1_vdev_node *node = &stream->vnode;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
-	int ret;
+	int ret = -EINVAL;
 
 	if (WARN_ON(stream->state != RKISP1_STATE_READY))
 		goto return_queued_buf;
