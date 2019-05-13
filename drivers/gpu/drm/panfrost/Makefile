@@ -3,10 +3,11 @@
 panfrost-y := \
 	panfrost_drv.o \
 	panfrost_device.o \
-	panfrost_devfreq.o \
 	panfrost_gem.o \
 	panfrost_gpu.o \
 	panfrost_job.o \
 	panfrost_mmu.o
+
+panfrost-$(CONFIG_PM_DEVFREQ) += panfrost_devfreq.o
 
 obj-$(CONFIG_DRM_PANFROST) += panfrost.o
