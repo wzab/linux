@@ -424,6 +424,7 @@ static const struct of_device_id rkisp1_plat_of_match[] = {
 	},
 	{},
 };
+MODULE_DEVICE_TABLE(of, rkisp1_plat_of_match);
 
 static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
 {
