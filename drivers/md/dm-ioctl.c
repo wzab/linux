@@ -205,7 +205,8 @@ static void free_cell(struct hash_cell *hc)
  * The kdev_t and uuid of a device can never change once it is
  * initially inserted.
  */
-static int dm_hash_insert(const char *name, const char *uuid, struct mapped_device *md)
+static struct hash_cell *dm_hash_insert(const char *name, const char *uuid,
+					struct mapped_device *md)
 {
 	struct hash_cell *cell, *hc;
 
@@ -214,7 +215,7 @@ static int dm_hash_insert(const char *name, const char *uuid, struct mapped_devi
 	 */
 	cell = alloc_cell(name, uuid, md);
 	if (!cell)
-		return -ENOMEM;
+		return ERR_PTR(-ENOMEM);
 
 	/*
 	 * Insert the cell into both hash tables.
@@ -243,12 +244,12 @@ static int dm_hash_insert(const char *name, const char *uuid, struct mapped_devi
 	mutex_unlock(&dm_hash_cells_mutex);
 	up_write(&_hash_lock);
 
-	return 0;
+	return cell;
 
  bad:
 	up_write(&_hash_lock);
 	free_cell(cell);
-	return -EBUSY;
+	return ERR_PTR(-EBUSY);
 }
 
 static struct dm_table *__hash_remove(struct hash_cell *hc)
@@ -747,6 +748,7 @@ static int dev_create(struct file *filp, struct dm_ioctl *param, size_t param_si
 {
 	int r, m = DM_ANY_MINOR;
 	struct mapped_device *md;
+	struct hash_cell *hc;
 
 	r = check_name(param->name);
 	if (r)
@@ -759,11 +761,11 @@ static int dev_create(struct file *filp, struct dm_ioctl *param, size_t param_si
 	if (r)
 		return r;
 
-	r = dm_hash_insert(param->name, *param->uuid ? param->uuid : NULL, md);
-	if (r) {
+	hc = dm_hash_insert(param->name, *param->uuid ? param->uuid : NULL, md);
+	if (IS_ERR(hc)) {
 		dm_put(md);
 		dm_destroy(md);
-		return r;
+		return PTR_ERR(hc);
 	}
 
 	param->flags &= ~DM_INACTIVE_PRESENT_FLAG;
@@ -2044,6 +2046,7 @@ int __init dm_early_create(struct dm_ioctl *dmi,
 	int r, m = DM_ANY_MINOR;
 	struct dm_table *t, *old_map;
 	struct mapped_device *md;
+	struct hash_cell *hc;
 	unsigned int i;
 
 	if (!dmi->target_count)
@@ -2062,14 +2065,14 @@ int __init dm_early_create(struct dm_ioctl *dmi,
 		return r;
 
 	/* hash insert */
-	r = dm_hash_insert(dmi->name, *dmi->uuid ? dmi->uuid : NULL, md);
-	if (r)
+	hc = dm_hash_insert(dmi->name, *dmi->uuid ? dmi->uuid : NULL, md);
+	if (IS_ERR(hc))
 		goto err_destroy_dm;
 
 	/* alloc table */
 	r = dm_table_create(&t, get_mode(dmi), dmi->target_count, md);
 	if (r)
-		goto err_destroy_dm;
+		goto err_hash_remove;
 
 	/* add targets */
 	for (i = 0; i < dmi->target_count; i++) {
@@ -2116,6 +2119,8 @@ int __init dm_early_create(struct dm_ioctl *dmi,
 
 err_destroy_table:
 	dm_table_destroy(t);
+err_hash_remove:
+	__hash_remove(hc);
 err_destroy_dm:
 	dm_put(md);
 	dm_destroy(md);
