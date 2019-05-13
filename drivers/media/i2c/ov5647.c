@@ -101,6 +101,7 @@ struct ov5647 {
 	struct v4l2_ctrl		*pixel_rate;
 	const struct ov5647_mode	*cur_mode;
 	struct v4l2_ctrl_handler ctrl_handler;
+	struct gpio_desc *enable_gpio;
 };
 
 static inline struct ov5647 *to_state(struct v4l2_subdev *sd)
@@ -332,8 +333,8 @@ static int ov5647_write(struct v4l2_subdev *sd, u16 reg, u8 val)
 
 	ret = i2c_master_send(client, data, 3);
 	if (ret < 0)
-		dev_dbg(&client->dev, "%s: i2c write error, reg: %x\n",
-				__func__, reg);
+		dev_err(&client->dev, "%s: i2c write error %d, reg: %x\n",
+				__func__, ret, reg);
 
 	return ret;
 }
@@ -346,15 +347,15 @@ static int ov5647_read(struct v4l2_subdev *sd, u16 reg, u8 *val)
 
 	ret = i2c_master_send(client, data_w, 2);
 	if (ret < 0) {
-		dev_dbg(&client->dev, "%s: i2c write error, reg: %x\n",
-			__func__, reg);
+		dev_err(&client->dev, "%s: i2c write error %d, reg: %x\n",
+			__func__, ret, reg);
 		return ret;
 	}
 
 	ret = i2c_master_recv(client, val, 1);
 	if (ret < 0)
-		dev_dbg(&client->dev, "%s: i2c read error, reg: %x\n",
-				__func__, reg);
+		dev_err(&client->dev, "%s: i2c read error %d, reg: %x\n",
+				__func__, ret, reg);
 
 	return ret;
 }
@@ -500,6 +501,8 @@ static int ov5647_sensor_power(struct v4l2_subdev *sd, int on)
 			goto out;
 		}
 
+		gpiod_set_value_cansleep(ov5647->enable_gpio, 1);
+
 		ret = ov5647_write_array(sd, sensor_oe_enable_regs);
 		if (ret < 0) {
 			clk_disable_unprepare(ov5647->xclk);
@@ -523,6 +526,7 @@ static int ov5647_sensor_power(struct v4l2_subdev *sd, int on)
 			dev_dbg(&client->dev, "disable oe failed\n");
 
 		clk_disable_unprepare(ov5647->xclk);
+		gpiod_set_value_cansleep(ov5647->enable_gpio, 0);
 	}
 
 	/* Update the power count. */
@@ -817,6 +821,12 @@ static int ov5647_probe(struct i2c_client *client,
 	if (xclk_freq != 25000000) {
 		dev_err(dev, "Unsupported clock frequency: %u\n", xclk_freq);
 		return -EINVAL;
+	}
+
+	sensor->enable_gpio = devm_gpiod_get(dev, "enable", GPIOD_OUT_HIGH);
+	if (IS_ERR(sensor->enable_gpio)) {
+		dev_err(dev, "cannot get enable gpio\n");
+		return PTR_ERR(sensor->enable_gpio);
 	}
 
 	mutex_init(&sensor->lock);
