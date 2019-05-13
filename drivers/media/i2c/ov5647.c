@@ -795,7 +795,7 @@ static int ov5647_probe(struct i2c_client *client,
 	struct v4l2_ctrl_handler *handler;
 	struct device_node *np = client->dev.of_node;
 	u32 xclk_freq;
-	int ret;
+	int i, ret;
 
 	sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
@@ -828,6 +828,7 @@ static int ov5647_probe(struct i2c_client *client,
 		dev_err(dev, "cannot get enable gpio\n");
 		return PTR_ERR(sensor->enable_gpio);
 	}
+	msleep(10);
 
 	mutex_init(&sensor->lock);
 
@@ -852,10 +853,13 @@ static int ov5647_probe(struct i2c_client *client,
 	if (ret < 0)
 		goto mutex_remove;
 
-	ret = ov5647_detect(sd);
-	if (ret < 0) {
-		dev_err(&client->dev, "not detected!");
-		goto error;
+	for (i = 0; i < 3; i++) {
+		ret = ov5647_detect(sd);
+		if (ret < 0) {
+			dev_err(&client->dev, "not detected!");
+			goto error;
+		}
+		msleep(10);
 	}
 
 	ret = v4l2_async_register_subdev(sd);
