@@ -15,8 +15,8 @@
 #include <media/v4l2-device.h>
 #include <media/videobuf2-v4l2.h>
 
-#define RKISP1_DEFAULT_WIDTH		1296
-#define RKISP1_DEFAULT_HEIGHT		972
+#define RKISP1_DEFAULT_WIDTH		1280
+#define RKISP1_DEFAULT_HEIGHT		960
 
 #define RKISP1_MAX_STREAM		2
 #define RKISP1_STREAM_SP		0

@@ -47,13 +47,17 @@
 #define OV5647_REG_CHIPID_H		0x300a
 #define OV5647_REG_CHIPID_L		0x300b
 #define OV5647_REG_PAD_OUT		0x300d
+
+#define OV5647_REG_TIMING_DVPHO		0x3808
+#define OV5647_REG_TIMING_DVPVO		0x380a
+#define OV5647_REG_TIMING_HTS		0x380c
+#define OV5647_REG_TIMING_VTS		0x380e
+#define OV5647_REG_TIMING_TC_REG20	0x3820
+#define OV5647_REG_TIMING_TC_REG21	0x3821
+
 #define OV5647_REG_FRAME_OFF_NUMBER	0x4202
 #define OV5647_REG_MIPI_CTRL00		0x4800
 #define OV5647_REG_MIPI_CTRL14		0x4814
-
-#define REG_TERM 0xfffe
-#define VAL_TERM 0xfe
-#define REG_DLY  0xffff
 
 #define OV5647_ROW_START		0x01
 #define OV5647_ROW_START_MIN		0
@@ -84,8 +88,8 @@ struct ov5647_mode {
 	unsigned int width;
 	unsigned int height;
 	unsigned int max_fps;
-	unsigned int hts_def;
-	unsigned int vts_def;
+	unsigned int htot;
+	unsigned int vtot;
 	const struct regval_list *reg_list;
 };
 
@@ -215,13 +219,13 @@ static struct regval_list ov5647_640x480[] = {
 	{0x3a0d, 0x04},
 	{0x3a0e, 0x03},
 	{0x4004, 0x02},
-	{0x4837, 0x24},
+	{0x4837, 0x0b},		/* MIPI pclk period */
 	{0x4050, 0x6e},
 	{0x4051, 0x8f},
 	{REG_NULL, 0x00}
 };
 
-static struct regval_list ov5647_1296x972[] = {
+static struct regval_list ov5647_1280x960[] = {
 	{0x3035, 0x21},		/* PLL */
 	{0x3036, 0x60},		/* PLL */
 	{0x303c, 0x11},		/* PLL */
@@ -229,26 +233,18 @@ static struct regval_list ov5647_1296x972[] = {
 	{0x3820, 0x41},		/* ISP flip off, Sensor flip off, V bin on */
 	{0x3612, 0x59},		/* analog control */
 	{0x3618, 0x00},		/* analog control */
-	{0x380c, 0x07},		/* HTS = 1896 */
-	{0x380d, 0x68},		/* HTS */
-	{0x380e, 0x05},		/* VTS = 1420 */
-	{0x380f, 0x8c},		/* VTS */
 	{0x3814, 0x31},		/* X INC */
-	{0x3815, 0x31},		/* X INC */
+	{0x3815, 0x31},		/* Y INC */
 	{0x3708, 0x64},		/* analog control */
 	{0x3709, 0x52},		/* analog control */
-	{0x3808, 0x05},		/* DVPHO = 1296 */
-	{0x3809, 0x10},		/* DVPHO */
-	{0x380a, 0x03},		/* DVPVO = 984 */
-	{0x380b, 0xcc},		/* DVPVO */
-	{0x3800, 0x00},		/* X Start */
-	{0x3801, 0x08},		/* X Start */
-	{0x3802, 0x00},		/* Y Start */
-	{0x3803, 0x02},		/* Y Start */
-	{0x3804, 0x0a},		/* X End */
-	{0x3805, 0x37},		/* X End */
-	{0x3806, 0x07},		/* Y End */
-	{0x3807, 0xa1},		/* Y End */
+	{0x3800, 0x00},
+	{0x3801, 0x00},
+	{0x3802, 0x00},
+	{0x3803, 0x06},
+	{0x3804, 0x0a},
+	{0x3805, 0x3f},
+	{0x3806, 0x07},
+	{0x3807, 0x9d},
 	/* banding filter */
 	{0x3a08, 0x01},		/* B50 */
 	{0x3a09, 0x27},		/* B50 */
@@ -257,13 +253,13 @@ static struct regval_list ov5647_1296x972[] = {
 	{0x3a0d, 0x04},		/* B60 max */
 	{0x3a0e, 0x03},		/* B50 max */
 	{0x4004, 0x02},		/* black line number */
-	{0x4837, 0x24},		/* MIPI pclk period */
+	{0x4837, 0x0b},		/* MIPI pclk period */
 	{REG_NULL, 0x00}
 };
 
 static struct regval_list ov5647_2592x1944[] = {
 	{0x3035, 0x21},
-	{0x3036, 0x60},
+	{0x3036, 0x70},
 	{0x303c, 0x11},
 	{0x3612, 0x5b},
 	{0x3618, 0x04},
@@ -280,7 +276,7 @@ static struct regval_list ov5647_2592x1944[] = {
 	{0x380a, 0x07},
 	{0x380b, 0x98},
 	{0x3800, 0x00},
-	{0x3801, 0x0c},
+	{0x3801, 0x00},
 	{0x3802, 0x00},
 	{0x3803, 0x04},
 	{0x3804, 0x0a},
@@ -294,70 +290,138 @@ static struct regval_list ov5647_2592x1944[] = {
 	{0x3a0d, 0x08},
 	{0x3a0e, 0x06},
 	{0x4004, 0x04},
-	{0x4837, 0x19},
+	{0x4837, 0x0b},	/* MIPI pclk period */
 	{REG_NULL, 0x00}
 };
 
 static const struct ov5647_mode supported_modes[] = {
 	{
-		.width = 640,
-		.height = 480,
-		.max_fps = 40, /* should be 60 but I get errors that way */
-		.hts_def = 0x0768,
-		.vts_def = 0x03d8,
-		.reg_list = ov5647_640x480,
-	},
-	{
-		.width = 1296,
-		.height = 972,
-		.max_fps = 25,
-		.hts_def = 0x0768,
-		.vts_def = 0x058c,
-		.reg_list = ov5647_1296x972,
+		.width = 1280,
+		.height = 960,
+		.max_fps = 45,
+		.htot = 1896,
+		.vtot = 984,
+		.reg_list = ov5647_1280x960,
 	},
 	{
 		.width = 2592,
 		.height = 1944,
 		.max_fps = 15,
-		.hts_def = 0x0a8c,
-		.vts_def = 0x07b6,
+		.htot = 2592,
+		.vtot = 1944,
 		.reg_list = ov5647_2592x1944,
 	},
 };
 
 static int ov5647_write(struct v4l2_subdev *sd, u16 reg, u8 val)
 {
-	int ret;
-	unsigned char data[3] = { reg >> 8, reg & 0xff, val};
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct i2c_msg msg;
+	u8 buf[3];
+	int ret;
 
-	ret = i2c_master_send(client, data, 3);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: i2c write error %d, reg: %x\n",
-				__func__, ret, reg);
+	buf[0] = reg >> 8;
+	buf[1] = reg & 0xff;
+	buf[2] = val;
 
-	return ret;
+	msg.addr = client->addr;
+	msg.flags = client->flags;
+	msg.buf = buf;
+	msg.len = sizeof(buf);
+
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret < 0) {
+		dev_err(&client->dev, "%s: error: reg=%x, val=%x\n",
+			__func__, reg, val);
+		return ret;
+	}
+
+	return 0;
 }
 
 static int ov5647_read(struct v4l2_subdev *sd, u16 reg, u8 *val)
 {
-	int ret;
-	unsigned char data_w[2] = { reg >> 8, reg & 0xff };
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct i2c_msg msg[2];
+	u8 buf[2];
+	int ret;
 
-	ret = i2c_master_send(client, data_w, 2);
+	buf[0] = reg >> 8;
+	buf[1] = reg & 0xff;
+
+	msg[0].addr = client->addr;
+	msg[0].flags = client->flags;
+	msg[0].buf = buf;
+	msg[0].len = sizeof(buf);
+
+	msg[1].addr = client->addr;
+	msg[1].flags = client->flags | I2C_M_RD;
+	msg[1].buf = buf;
+	msg[1].len = 1;
+
+	ret = i2c_transfer(client->adapter, msg, 2);
 	if (ret < 0) {
-		dev_err(&client->dev, "%s: i2c write error %d, reg: %x\n",
-			__func__, ret, reg);
+		dev_err(&client->dev, "%s: error: reg=%x\n",
+			__func__, reg);
 		return ret;
 	}
 
-	ret = i2c_master_recv(client, val, 1);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: i2c read error %d, reg: %x\n",
-				__func__, ret, reg);
+	*val = buf[0];
+	return 0;
+}
 
-	return ret;
+static int ov5647_read16(struct v4l2_subdev *sd, u16 reg, u16 *val)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct i2c_msg msg[4];
+	u8 buflo[2], bufhi[2];
+	int ret;
+
+	buflo[0] = reg >> 8;
+	buflo[1] = reg & 0xff;
+	bufhi[0] = (reg + 1) >> 8;
+	bufhi[1] = (reg + 1) & 0xff;
+
+	msg[0].addr = client->addr;
+	msg[0].flags = client->flags;
+	msg[0].buf = buflo;
+	msg[0].len = sizeof(buflo);
+
+	msg[1].addr = client->addr;
+	msg[1].flags = client->flags | I2C_M_RD;
+	msg[1].buf = buflo;
+	msg[1].len = 1;
+
+	msg[2].addr = client->addr;
+	msg[2].flags = client->flags;
+	msg[2].buf = bufhi;
+	msg[2].len = sizeof(bufhi);
+
+	msg[3].addr = client->addr;
+	msg[3].flags = client->flags | I2C_M_RD;
+	msg[3].buf = bufhi;
+	msg[3].len = 1;
+
+	ret = i2c_transfer(client->adapter, msg, 4);
+	if (ret < 0) {
+		dev_err(&client->dev, "%s: error: reg=%x\n",
+			__func__, reg);
+		return ret;
+	}
+
+	*val = ((u16)bufhi[0] << 8) | (u16)buflo;
+	return 0;
+}
+
+static int ov5647_write16(struct v4l2_subdev *sd, u16 reg, u16 val)
+{
+	int ret;
+
+	ret = ov5647_write(sd, reg, val >> 8);
+	if (ret)
+		return ret;
+
+	return ov5647_write(sd, reg + 1, val & 0xff);
 }
 
 static int ov5647_write_array(struct v4l2_subdev *sd,
@@ -371,6 +435,34 @@ static int ov5647_write_array(struct v4l2_subdev *sd,
 			return ret;
 	}
 
+	return 0;
+}
+
+static int ov5647_mod_reg(struct v4l2_subdev *sd, u16 reg,
+			  u8 mask, u8 val)
+{
+	u8 readval;
+	int ret;
+
+	ret = ov5647_read(sd, reg, &readval);
+	if (ret)
+		return ret;
+
+	readval &= ~mask;
+	val &= mask;
+	val |= readval;
+
+	return ov5647_write(sd, reg, val);
+}
+
+static int ov5647_sw_reset(struct v4l2_subdev *sd)
+{
+	int ret;
+
+	ret = ov5647_write(sd, OV5647_SW_RESET, 0x01);
+	if (ret < 0)
+		return ret;
+	msleep(5);
 	return 0;
 }
 
@@ -411,7 +503,6 @@ static int ov5647_stream_on(struct v4l2_subdev *sd)
 	ret = ov5647_write(sd, OV5647_REG_MIPI_CTRL00, MIPI_CTRL00_BUS_IDLE);
 	if (ret < 0)
 		return ret;
-	/* TODO: Might need to sleep here */
 
 	ret = ov5647_write(sd, OV5647_REG_FRAME_OFF_NUMBER, 0x00);
 	if (ret < 0)
@@ -444,21 +535,39 @@ static int ov5647_stream_off(struct v4l2_subdev *sd)
 	return ov5647_write(sd, OV5647_REG_PAD_OUT, 0x01);
 }
 
-static int __sensor_init(struct v4l2_subdev *sd)
+static int ov5647_set_timings(struct v4l2_subdev *sd,
+			      const struct ov5647_mode *mode)
 {
 	int ret;
-	u8 resetval;
-	struct ov5647 *sensor = to_state(sd);
+
+	ret = ov5647_write16(sd, OV5647_REG_TIMING_DVPHO, mode->width);
+	if (ret < 0)
+		return ret;
+
+	ret = ov5647_write16(sd, OV5647_REG_TIMING_DVPVO, mode->height);
+	if (ret < 0)
+		return ret;
+
+	ret = ov5647_write16(sd, OV5647_REG_TIMING_HTS, mode->htot);
+	if (ret < 0)
+		return ret;
+
+	return ov5647_write16(sd, OV5647_REG_TIMING_VTS, mode->vtot);
+}
+
+static int __sensor_init(struct v4l2_subdev *sd)
+{
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct ov5647 *sensor = to_state(sd);
+	int ret;
 
 	ret = ov5647_set_sw_standby(sd, true);
 	if (ret < 0)
 		return ret;
 
-	ret = ov5647_write(sd, OV5647_SW_RESET, 0x01);
+	ret = ov5647_sw_reset(sd);
 	if (ret < 0)
 		return ret;
-	msleep(50);
 
 	ret = ov5647_write_array(sd, ov5647_init_regs);
 	if (ret < 0) {
@@ -472,11 +581,13 @@ static int __sensor_init(struct v4l2_subdev *sd)
 		return ret;
 	}
 
-	ret = ov5647_set_virtual_channel(sd, 0);
+	ret = ov5647_set_timings(sd, sensor->cur_mode);
 	if (ret < 0)
 		return ret;
 
-	msleep(50);
+	ret = ov5647_set_virtual_channel(sd, 0);
+	if (ret < 0)
+		return ret;
 
 	/*
 	 * stream off to make the clock lane into LP-11 state.
@@ -502,6 +613,7 @@ static int ov5647_sensor_power(struct v4l2_subdev *sd, int on)
 		}
 
 		gpiod_set_value_cansleep(ov5647->enable_gpio, 1);
+		msleep(20);
 
 		ret = ov5647_write_array(sd, sensor_oe_enable_regs);
 		if (ret < 0) {
@@ -633,11 +745,13 @@ static int ov5647_set_fmt(struct v4l2_subdev *sd,
 		*v4l2_subdev_get_try_format(sd, cfg, fmt->pad) = fmt->format;
 	} else {
 		ov5647->cur_mode = mode;
-		pixel_rate = mode->vts_def * mode->hts_def * mode->max_fps;
+		pixel_rate = mode->vtot * mode->htot * mode->max_fps;
 		ret = v4l2_ctrl_s_ctrl_int64(ov5647->pixel_rate,
 					     pixel_rate);
 		if (ret < 0)
 			goto err_unlock;
+		pr_info("new mode is %dx%d\n", mode->width, mode->height);
+		pr_info("pixel rate is now %lld\n", pixel_rate);
 	}
 
 err_unlock:
@@ -714,33 +828,23 @@ static const struct v4l2_subdev_ops ov5647_subdev_ops = {
 
 static int ov5647_detect(struct v4l2_subdev *sd)
 {
-	u8 read;
-	int ret;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	u16 chip_id;
+	int ret;
 
-	ret = ov5647_write(sd, OV5647_SW_RESET, 0x01);
-	if (ret < 0)
-		return ret;
-
-	ret = ov5647_read(sd, OV5647_REG_CHIPID_H, &read);
-	if (ret < 0)
-		return ret;
-
-	if (read != 0x56) {
-		dev_err(&client->dev, "ID High expected 0x56 got %x", read);
+	ret = ov5647_read16(sd, OV5647_REG_CHIPID_H, &chip_id);
+	if (ret) {
+		dev_err(&client->dev, "%s: failed to read chip identifier\n",
+			__func__);
 		return -ENODEV;
 	}
 
-	ret = ov5647_read(sd, OV5647_REG_CHIPID_L, &read);
-	if (ret < 0)
-		return ret;
-
-	if (read != 0x47) {
-		dev_err(&client->dev, "ID Low expected 0x47 got %x", read);
-		return -ENODEV;
+	if (chip_id != 0x5647) {
+		dev_err(&client->dev, "%s: wrong chip identifier, expected 0x5647, got 0x%x\n",
+			__func__, chip_id);
+		ret = -ENXIO;
 	}
-
-	return ov5647_write(sd, OV5647_SW_RESET, 0x00);
+	return 0;
 }
 
 static int ov5647_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
@@ -771,7 +875,7 @@ static const struct v4l2_subdev_internal_ops ov5647_subdev_internal_ops = {
 
 static int ov5647_parse_dt(struct device_node *np)
 {
-	struct v4l2_fwnode_endpoint bus_cfg = { .bus_type = 0 };
+	struct v4l2_fwnode_endpoint bus_cfg = { .bus_type = V4L2_MBUS_CSI2_DPHY };
 	struct device_node *ep;
 
 	int ret;
@@ -783,6 +887,7 @@ static int ov5647_parse_dt(struct device_node *np)
 	ret = v4l2_fwnode_endpoint_parse(of_fwnode_handle(ep), &bus_cfg);
 
 	of_node_put(ep);
+
 	return ret;
 }
 
@@ -795,7 +900,7 @@ static int ov5647_probe(struct i2c_client *client,
 	struct v4l2_ctrl_handler *handler;
 	struct device_node *np = client->dev.of_node;
 	u32 xclk_freq;
-	int i, ret;
+	int ret;
 
 	sensor = devm_kzalloc(dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
@@ -828,7 +933,7 @@ static int ov5647_probe(struct i2c_client *client,
 		dev_err(dev, "cannot get enable gpio\n");
 		return PTR_ERR(sensor->enable_gpio);
 	}
-	msleep(10);
+	msleep(20);
 
 	mutex_init(&sensor->lock);
 
@@ -846,27 +951,31 @@ static int ov5647_probe(struct i2c_client *client,
 
 	sensor->sd.internal_ops = &ov5647_subdev_internal_ops;
 	sensor->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-
 	sensor->pad.flags = MEDIA_PAD_FL_SOURCE;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sd->entity, 1, &sensor->pad);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "cannot register media entity\n");
 		goto mutex_remove;
-
-	for (i = 0; i < 3; i++) {
-		ret = ov5647_detect(sd);
-		if (ret < 0) {
-			dev_err(&client->dev, "not detected!");
-			goto error;
-		}
-		msleep(10);
 	}
+
+	ret = ov5647_sw_reset(sd);
+	if (ret < 0)
+		return ret;
+
+	ret = ov5647_detect(sd);
+	if (ret < 0) {
+		dev_err(&client->dev, "not detected!");
+		goto error;
+	}
+
+	/* TODO: power off here */
 
 	ret = v4l2_async_register_subdev(sd);
 	if (ret < 0)
 		goto error;
 
-	dev_dbg(dev, "OmniVision OV5647 camera driver probed\n");
+	dev_info(dev, "OV5647 detected at address 0x%02x\n", client->addr);
 	return 0;
 error:
 	media_entity_cleanup(&sd->entity);

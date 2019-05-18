@@ -542,7 +542,7 @@
 	cam_pins {
 		enable: enable-pins {
 			rockchip,pins =
-				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 		camled: cam_led_pins {
 			rockchip,pins =
