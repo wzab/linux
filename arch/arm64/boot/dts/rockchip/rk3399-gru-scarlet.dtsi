@@ -409,7 +409,11 @@ camera: &i2c7 {
 	sdmode-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
 };
 
-&mipi_dphy_rx0 {
+&dphy {
+	status = "okay";
+};
+
+&csi2 {
 	status = "okay";
 
 	ports {

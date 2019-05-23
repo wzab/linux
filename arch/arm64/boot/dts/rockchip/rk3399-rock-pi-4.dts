@@ -685,7 +685,11 @@
 &i2c4 {
 };
 
-&mipi_dphy_rx0 {
+&dphy {
+	status = "okay";
+};
+
+&csi2 {
 	status = "okay";
 
 	ports {
