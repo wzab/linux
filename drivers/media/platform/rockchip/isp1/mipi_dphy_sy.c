@@ -19,8 +19,6 @@
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-subdev.h>
 
-#define MAX_DPHY_SENSORS	2
-
 enum mipi_dphy_sy_pads {
 	MIPI_DPHY_SY_PAD_SINK = 0,
 	MIPI_DPHY_SY_PAD_SOURCE,
@@ -37,6 +35,7 @@ struct mipi_csi2_sensor {
 	struct v4l2_subdev *sd;
 	struct v4l2_mbus_config mbus;
 	int lanes;
+	struct list_head list;
 };
 
 struct mipi_csi2_priv {
@@ -44,9 +43,8 @@ struct mipi_csi2_priv {
 	struct v4l2_async_notifier notifier;
 	struct v4l2_subdev sd;
 	struct media_pad pads[MIPI_DPHY_SY_PADS_NUM];
-	struct mipi_csi2_sensor sensors[MAX_DPHY_SENSORS];
 	struct phy *dphy;
-	int num_sensors;
+	struct list_head sensors;
 	bool is_streaming;
 };
 
@@ -74,11 +72,11 @@ static struct v4l2_subdev *get_remote_sensor(struct v4l2_subdev *sd)
 static struct mipi_csi2_sensor *sd_to_sensor(struct mipi_csi2_priv *priv,
 					    struct v4l2_subdev *sd)
 {
-	int i;
+	struct mipi_csi2_sensor *sensor;
 
-	for (i = 0; i < priv->num_sensors; ++i)
-		if (priv->sensors[i].sd == sd)
-			return &priv->sensors[i];
+	list_for_each_entry(sensor, &priv->sensors, list)
+		if (sensor->sd == sd)
+			return sensor;
 
 	return NULL;
 }
@@ -206,17 +204,15 @@ rockchip_mipi_csi2_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mipi_csi2_sensor *sensor;
 	unsigned int pad, ret;
 
-	if (priv->num_sensors == ARRAY_SIZE(priv->sensors))
-		return -EBUSY;
+	sensor = devm_kzalloc(priv->dev, sizeof(*sensor), GFP_KERNEL);
+	list_add(&sensor->list, &priv->sensors);
 
-	sensor = &priv->sensors[priv->num_sensors++];
 	sensor->lanes = s_asd->lanes;
 	sensor->mbus = s_asd->mbus;
 	sensor->sd = sd;
 
 	for (pad = 0; pad < sensor->sd->entity.num_pads; pad++)
-		if (sensor->sd->entity.pads[pad].flags
-					& MEDIA_PAD_FL_SOURCE)
+		if (sensor->sd->entity.pads[pad].flags & MEDIA_PAD_FL_SOURCE)
 			break;
 
 	if (pad == sensor->sd->entity.num_pads) {
@@ -230,7 +226,8 @@ rockchip_mipi_csi2_notifier_bound(struct v4l2_async_notifier *notifier,
 	ret = media_create_pad_link(
 			&sensor->sd->entity, pad,
 			&priv->sd.entity, MIPI_DPHY_SY_PAD_SINK,
-			priv->num_sensors != 1 ? 0 : MEDIA_LNK_FL_ENABLED);
+			!list_is_first(&sensor->list, &priv->sensors) ?
+						0 : MEDIA_LNK_FL_ENABLED);
 	if (ret) {
 		dev_err(priv->dev,
 			"failed to create link for %s\n",
@@ -352,6 +349,7 @@ static int rockchip_mipi_csi2_probe(struct platform_device *pdev)
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
+	INIT_LIST_HEAD(&priv->sensors);
 	priv->dev = dev;
 	priv->dphy = devm_phy_get(dev, "dphy");
 	if (IS_ERR(priv->dphy)) {
