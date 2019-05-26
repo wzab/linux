@@ -451,20 +451,6 @@ static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
 	return IRQ_HANDLED;
 }
 
-static void rkisp1_disable_sys_clk(struct rkisp1_device *rkisp1_dev)
-{
-	clk_bulk_disable_unprepare(rkisp1_dev->clk_size, rkisp1_dev->clks);
-}
-
-static int rkisp1_enable_sys_clk(struct rkisp1_device *rkisp1_dev)
-{
-	int ret = clk_bulk_prepare_enable(rkisp1_dev->clk_size, rkisp1_dev->clks);
-
-	if (ret)
-		return ret;
-	return 0;
-}
-
 static int rkisp1_plat_probe(struct platform_device *pdev)
 {
 	const struct of_device_id *match;
@@ -577,7 +563,7 @@ static int __maybe_unused rkisp1_runtime_suspend(struct device *dev)
 {
 	struct rkisp1_device *isp_dev = dev_get_drvdata(dev);
 
-	rkisp1_disable_sys_clk(isp_dev);
+	clk_bulk_disable_unprepare(isp_dev->clk_size, isp_dev->clks);
 	return pinctrl_pm_select_sleep_state(dev);
 }
 
@@ -589,7 +575,9 @@ static int __maybe_unused rkisp1_runtime_resume(struct device *dev)
 	ret = pinctrl_pm_select_default_state(dev);
 	if (ret < 0)
 		return ret;
-	rkisp1_enable_sys_clk(isp_dev);
+	ret = clk_bulk_prepare_enable(isp_dev->clk_size, isp_dev->clks);
+	if (ret < 0)
+		return ret;
 
 	return 0;
 }
