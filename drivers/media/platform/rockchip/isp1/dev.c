@@ -453,26 +453,16 @@ static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
 
 static void rkisp1_disable_sys_clk(struct rkisp1_device *rkisp1_dev)
 {
-	int i;
-
-	for (i = rkisp1_dev->clk_size - 1; i >= 0; i--)
-		clk_disable_unprepare(rkisp1_dev->clks[i]);
+	clk_bulk_disable_unprepare(rkisp1_dev->clk_size, rkisp1_dev->clks);
 }
 
 static int rkisp1_enable_sys_clk(struct rkisp1_device *rkisp1_dev)
 {
-	int i, ret = -EINVAL;
+	int ret = clk_bulk_prepare_enable(rkisp1_dev->clk_size, rkisp1_dev->clks);
 
-	for (i = 0; i < rkisp1_dev->clk_size; i++) {
-		ret = clk_prepare_enable(rkisp1_dev->clks[i]);
-		if (ret < 0)
-			goto err;
-	}
+	if (ret)
+		return ret;
 	return 0;
-err:
-	for (--i; i >= 0; --i)
-		clk_disable_unprepare(rkisp1_dev->clks[i]);
-	return ret;
 }
 
 static int rkisp1_plat_probe(struct platform_device *pdev)
@@ -513,15 +503,12 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 
 	isp_dev->irq = irq;
 	clk_data = match->data;
-	for (i = 0; i < clk_data->size; i++) {
-		struct clk *clk = devm_clk_get(dev, clk_data->clks[i]);
 
-		if (IS_ERR(clk)) {
-			dev_err(dev, "failed to get %s\n", clk_data->clks[i]);
-			return PTR_ERR(clk);
-		}
-		isp_dev->clks[i] = clk;
-	}
+	for (i = 0; i < clk_data->size; i++)
+		isp_dev->clks[i].id = clk_data->clks[i];
+	ret = devm_clk_bulk_get(dev, clk_data->size, isp_dev->clks);
+	if (ret)
+		return ret;
 	isp_dev->clk_size = clk_data->size;
 
 	atomic_set(&isp_dev->pipe.power_cnt, 0);

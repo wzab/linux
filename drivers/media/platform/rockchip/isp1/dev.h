@@ -8,6 +8,8 @@
 #ifndef _RKISP1_DEV_H
 #define _RKISP1_DEV_H
 
+#include <linux/clk.h>
+
 #include "capture.h"
 #include "rkisp1.h"
 #include "isp_params.h"
@@ -72,8 +74,8 @@ struct rkisp1_device {
 	void __iomem *base_addr;
 	int irq;
 	struct device *dev;
-	struct clk *clks[RKISP1_MAX_BUS_CLK];
-	int clk_size;
+	unsigned int clk_size;
+	struct clk_bulk_data clks[RKISP1_MAX_BUS_CLK];
 	struct v4l2_device v4l2_dev;
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct media_device media_dev;
