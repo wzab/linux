@@ -309,6 +309,7 @@ static int rockchip_mipi_csi2_media_init(struct mipi_csi2_priv *priv)
 	priv->pads[MIPI_DPHY_SY_PAD_SINK].flags =
 		MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;
 
+	priv->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE;
 	ret = media_entity_pads_init(&priv->sd.entity,
 				MIPI_DPHY_SY_PADS_NUM, priv->pads);
 	if (ret < 0)
