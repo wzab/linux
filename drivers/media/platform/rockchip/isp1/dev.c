@@ -550,6 +550,8 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 
 	pm_runtime_disable(&pdev->dev);
 	media_device_unregister(&isp_dev->media_dev);
+	v4l2_async_notifier_unregister(&isp_dev->notifier);
+	v4l2_async_notifier_cleanup(&isp_dev->notifier);
 	v4l2_device_unregister(&isp_dev->v4l2_dev);
 	rkisp1_unregister_params_vdev(&isp_dev->params_vdev);
 	rkisp1_unregister_stats_vdev(&isp_dev->stats_vdev);
