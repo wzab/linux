@@ -94,6 +94,11 @@ static int mipi_csi2_s_stream_start(struct v4l2_subdev *sd)
 	if (priv->is_streaming)
 		return 0;
 
+	if (!sensor_sd) {
+		v4l2_err(sd, "Could not find sensor\n");
+		return -EINVAL;
+	}
+
 	pixel_rate = v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_PIXEL_RATE);
 	if (!pixel_rate) {
 		v4l2_warn(sd, "No pixel rate control in subdev\n");
@@ -144,7 +149,14 @@ static int mipi_csi2_g_mbus_config(struct v4l2_subdev *sd,
 {
 	struct mipi_csi2_priv *priv = to_csi2_priv(sd);
 	struct v4l2_subdev *sensor_sd = get_remote_sensor(sd);
-	struct mipi_csi2_sensor *sensor = sd_to_sensor(priv, sensor_sd);
+	struct mipi_csi2_sensor *sensor;
+
+	if (!sensor_sd) {
+		v4l2_err(sd, "Could not find sensor\n");
+		return -EINVAL;
+	}
+
+	sensor = sd_to_sensor(priv, sensor_sd);
 
 	*config = sensor->mbus;
 
