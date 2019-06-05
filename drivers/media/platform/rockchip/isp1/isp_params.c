@@ -1300,9 +1300,9 @@ static int rkisp1_params_querycap(struct file *file,
 {
 	struct video_device *vdev = video_devdata(file);
 
-	strcpy(cap->driver, DRIVER_NAME);
-	strlcpy(cap->card, vdev->name, sizeof(cap->card));
-	strlcpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
+	strscpy(cap->driver, DRIVER_NAME, sizeof(cap->driver));
+	strscpy(cap->card, vdev->name, sizeof(cap->card));
+	strscpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
 
 	return 0;
 }
@@ -1491,7 +1491,7 @@ int rkisp1_register_params_vdev(struct rkisp1_isp_params_vdev *params_vdev,
 	mutex_init(&node->vlock);
 	spin_lock_init(&params_vdev->config_lock);
 
-	strlcpy(vdev->name, "rkisp1-input-params", sizeof(vdev->name));
+	strscpy(vdev->name, "rkisp1-input-params", sizeof(vdev->name));
 
 	video_set_drvdata(vdev, params_vdev);
 	vdev->ioctl_ops = &rkisp1_params_ioctl;

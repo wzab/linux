@@ -51,9 +51,9 @@ static int rkisp1_stats_querycap(struct file *file,
 {
 	struct video_device *vdev = video_devdata(file);
 
-	strlcpy(cap->driver, DRIVER_NAME, sizeof(cap->driver));
-	strlcpy(cap->card, vdev->name, sizeof(cap->card));
-	strlcpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
+	strscpy(cap->driver, DRIVER_NAME, sizeof(cap->driver));
+	strscpy(cap->card, vdev->name, sizeof(cap->card));
+	strscpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
 
 	return 0;
 }
