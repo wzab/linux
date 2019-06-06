@@ -1492,6 +1492,9 @@ static int rkisp1_g_selection(struct file *file, void *prv,
 	struct v4l2_rect *dcrop = &stream->dcrop;
 	struct v4l2_rect *input_win;
 
+	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
+		return -EINVAL;
+
 	input_win = rkisp1_get_isp_sd_win(&dev->isp_sdev);
 
 	switch (sel->target) {
@@ -1547,6 +1550,9 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
 	const struct v4l2_rect *input_win;
+
+	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
+		return -EINVAL;
 
 	if (vb2_is_busy(&node->buf_queue)) {
 		v4l2_err(&dev->v4l2_dev, "%s queue busy\n", __func__);
