@@ -1325,6 +1325,8 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 			      config->max_rsz_height);
 	pixm->num_planes = fmt->mplanes;
 	pixm->field = V4L2_FIELD_NONE;
+	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
+	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
 	/* get quantization from ispsd */
 	pixm->quantization = stream->ispdev->isp_sdev.quantization;
 
