@@ -1020,6 +1020,8 @@ static int rkisp1_queue_setup(struct vb2_queue *queue,
 		const struct v4l2_plane_pix_format *plane_fmt;
 
 		plane_fmt = &pixm->plane_fmt[i];
+		if (sizes[i] && sizes[i] < plane_fmt->sizeimage)
+			return -EINVAL;
 		sizes[i] = plane_fmt->sizeimage;
 	}
 
