@@ -1313,8 +1313,10 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	int i;
 
 	fmt = find_fmt(stream, pixm->pixelformat);
-	if (!fmt)
+	if (!fmt) {
 		fmt = config->fmts;
+		pixm->pixelformat = fmt->fourcc;
+	}
 
 	/* do checks on resolution */
 	pixm->width = clamp_t(u32, pixm->width, config->min_rsz_width,
