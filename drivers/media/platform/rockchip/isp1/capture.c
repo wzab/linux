@@ -1427,33 +1427,6 @@ static const struct v4l2_file_operations rkisp1_fops = {
  * mp and sp v4l2_ioctl_ops
  */
 
-static int rkisp1_enum_input(struct file *file, void *priv,
-			     struct v4l2_input *input)
-{
-	if (input->index > 0)
-		return -EINVAL;
-
-	input->type = V4L2_INPUT_TYPE_CAMERA;
-	strscpy(input->name, "Camera", sizeof(input->name));
-
-	return 0;
-}
-
-static int rkisp1_g_input(struct file *file, void *priv, unsigned int *i)
-{
-	*i = 0;
-
-	return 0;
-}
-
-static int rkisp1_s_input(struct file *file, void *priv, unsigned int i)
-{
-	if (i > 0)
-		return -EINVAL;
-
-	return 0;
-}
-
 static int rkisp1_try_fmt_vid_cap_mplane(struct file *file, void *fh,
 					 struct v4l2_format *f)
 {
@@ -1618,9 +1591,6 @@ static const struct v4l2_ioctl_ops rkisp1_v4l2_ioctl_ops = {
 	.vidioc_prepare_buf = vb2_ioctl_prepare_buf,
 	.vidioc_streamon = vb2_ioctl_streamon,
 	.vidioc_streamoff = vb2_ioctl_streamoff,
-	.vidioc_enum_input = rkisp1_enum_input,
-	.vidioc_g_input = rkisp1_g_input,
-	.vidioc_s_input = rkisp1_s_input,
 	.vidioc_try_fmt_vid_cap_mplane = rkisp1_try_fmt_vid_cap_mplane,
 	.vidioc_enum_fmt_vid_cap_mplane = rkisp1_enum_fmt_vid_cap_mplane,
 	.vidioc_s_fmt_vid_cap_mplane = rkisp1_s_fmt_vid_cap_mplane,
