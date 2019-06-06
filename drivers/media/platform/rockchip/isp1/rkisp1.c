@@ -625,7 +625,15 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_mbus_code_enum *code)
 {
-	int i = code->index;
+	unsigned int i = code->index;
+
+	if ((code->pad != RKISP1_ISP_PAD_SINK) &&
+	    (code->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+		if (i > 0)
+			return -EINVAL;
+		code->code = MEDIA_BUS_FMT_FIXED;
+		return 0;
+	}
 
 	if (code->pad == RKISP1_ISP_PAD_SINK) {
 		if (i >= ARRAY_SIZE(rkisp1_isp_input_formats))
@@ -635,6 +643,37 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 		if (i >= ARRAY_SIZE(rkisp1_isp_output_formats))
 			return -EINVAL;
 		code->code = rkisp1_isp_output_formats[i].mbus_code;
+	}
+
+	pr_err("koike: %s: 2\n", __func__);
+	return 0;
+}
+
+static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
+				     struct v4l2_subdev_pad_config *cfg)
+{
+	struct v4l2_mbus_framefmt *mf;
+	struct v4l2_rect *mf_crop;
+	unsigned int i;
+
+	for (i = 0; i < sd->entity.num_pads; i++) {
+		//if (i != RKISP1_ISP_PAD_SINK && i != RKISP1_ISP_PAD_SOURCE_PATH)
+		//	continue;
+
+		mf = v4l2_subdev_get_try_format(sd, cfg, i);
+		mf->width = RKISP1_DEFAULT_WIDTH;
+		mf->height = RKISP1_DEFAULT_HEIGHT;
+		mf->field = V4L2_FIELD_NONE;
+		if (i == RKISP1_ISP_PAD_SOURCE_PATH || i == RKISP1_ISP_PAD_SOURCE_STATS)
+			mf->code = rkisp1_isp_output_formats[0].mbus_code;
+		else
+			mf->code = rkisp1_isp_input_formats[0].mbus_code;
+
+		mf_crop = v4l2_subdev_get_try_crop(sd, cfg, i);
+		mf_crop->width = RKISP1_DEFAULT_WIDTH;
+		mf_crop->height = RKISP1_DEFAULT_HEIGHT;
+		mf_crop->left = 0;
+		mf_crop->top = 0;
 	}
 
 	return 0;
@@ -649,8 +688,14 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK) &&
-	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH))
-		return -EINVAL;
+	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+		fmt->format.code = MEDIA_BUS_FMT_FIXED;
+		fmt->format.width = RKISP1_DEFAULT_WIDTH;
+		fmt->format.height = RKISP1_DEFAULT_HEIGHT;
+		fmt->format.field = V4L2_FIELD_NONE;
+		fmt->format.colorspace = V4L2_COLORSPACE_DEFAULT;
+		return 0;
+	}
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 		mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
@@ -722,14 +767,14 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK) &&
 	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH))
-		return -EINVAL;
+		return rkisp1_isp_sd_get_fmt(sd, cfg, fmt);
 
 	rkisp1_isp_sd_try_fmt(sd, fmt->pad, mf);
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 		struct v4l2_mbus_framefmt *try_mf;
 
-		mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
+		try_mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
 		*try_mf = *mf;
 		return 0;
 	}
@@ -973,6 +1018,7 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_sd_pad_ops = {
 	.enum_mbus_code = rkisp1_isp_sd_enum_mbus_code,
 	.get_selection = rkisp1_isp_sd_get_selection,
 	.set_selection = rkisp1_isp_sd_set_selection,
+	.init_cfg = rkisp1_isp_sd_init_config,
 	.get_fmt = rkisp1_isp_sd_get_fmt,
 	.set_fmt = rkisp1_isp_sd_set_fmt,
 	.link_validate = rkisp1_subdev_fmt_link_validate,

@@ -1455,6 +1455,8 @@ static int rkisp1_enum_fmt_vid_cap_mplane(struct file *file, void *priv,
 	fmt = &stream->config->fmts[f->index];
 	f->pixelformat = fmt->fourcc;
 
+	pr_err("KOIKE: %s: pixfmt %08x\n", __func__, f->pixelformat);
+
 	return 0;
 }
 
@@ -1481,7 +1483,12 @@ static int rkisp1_g_fmt_vid_cap_mplane(struct file *file, void *fh,
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
 
+
 	f->fmt.pix_mp = stream->out_fmt;
+
+	pr_err("KOIKE: %s: colorspace %d, pixfmt %08x\n", __func__,
+	       f->fmt.pix_mp.colorspace,
+	       f->fmt.pix_mp.pixelformat);
 
 	return 0;
 }
