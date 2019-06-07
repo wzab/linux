@@ -155,8 +155,17 @@ static int rkisp1_pipeline_set_stream(struct rkisp1_pipeline *p, bool on)
 	    (!on && atomic_dec_return(&p->stream_cnt) > 0))
 		return 0;
 
-	if (on)
-		v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream, true);
+	if (on) {
+		ret = v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream, true);
+		if (ret && ret != -ENOIOCTLCMD && ret != -ENODEV) {
+			v4l2_err(&dev->v4l2_dev,
+				 "s_stream failed on subdevice %s (%d)\n",
+				 dev->isp_sdev.sd.name,
+				 ret);
+			atomic_dec(&p->stream_cnt);
+			return ret;
+		}
+	}
 
 	/* phy -> sensor */
 	for (i = 0; i < p->num_subdevs; ++i) {
@@ -174,6 +183,7 @@ err_stream_off:
 	for (--i; i >= 0; --i)
 		v4l2_subdev_call(p->subdevs[i], video, s_stream, false);
 	v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream, false);
+	atomic_dec(&p->stream_cnt);
 	return ret;
 }
 
