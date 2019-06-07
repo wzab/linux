@@ -509,6 +509,8 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	strscpy(isp_dev->media_dev.model, "rkisp1",
 		sizeof(isp_dev->media_dev.model));
 	isp_dev->media_dev.dev = &pdev->dev;
+	strscpy(isp_dev->media_dev.bus_info,
+		"platform: " DRIVER_NAME, sizeof(isp_dev->media_dev.bus_info));
 	media_device_init(&isp_dev->media_dev);
 
 	v4l2_dev = &isp_dev->v4l2_dev;
