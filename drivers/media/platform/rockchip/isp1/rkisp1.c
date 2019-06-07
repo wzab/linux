@@ -625,7 +625,15 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_mbus_code_enum *code)
 {
-	int i = code->index;
+	unsigned int i = code->index;
+
+	if ((code->pad != RKISP1_ISP_PAD_SINK) &&
+	    (code->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+		if (i > 0)
+			return -EINVAL;
+		code->code = MEDIA_BUS_FMT_FIXED;
+		return 0;
+	}
 
 	if (code->pad == RKISP1_ISP_PAD_SINK) {
 		if (i >= ARRAY_SIZE(rkisp1_isp_input_formats))
@@ -640,6 +648,37 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
+				     struct v4l2_subdev_pad_config *cfg)
+{
+	struct v4l2_mbus_framefmt *mf_in, *mf_out;
+	struct v4l2_rect *mf_in_crop, *mf_out_crop;
+
+	mf_in = v4l2_subdev_get_try_format(sd, cfg, RKISP1_ISP_PAD_SINK);
+	mf_in->width = RKISP1_DEFAULT_WIDTH;
+	mf_in->height = RKISP1_DEFAULT_HEIGHT;
+	mf_in->field = V4L2_FIELD_NONE;
+	mf_in->code = rkisp1_isp_input_formats[0].mbus_code;
+
+	mf_in_crop = v4l2_subdev_get_try_crop(sd, cfg, RKISP1_ISP_PAD_SINK);
+	mf_in_crop->width = RKISP1_DEFAULT_WIDTH;
+	mf_in_crop->height = RKISP1_DEFAULT_HEIGHT;
+	mf_in_crop->left = 0;
+	mf_in_crop->top = 0;
+
+	mf_out = v4l2_subdev_get_try_format(sd, cfg,
+					    RKISP1_ISP_PAD_SOURCE_PATH);
+	*mf_out = *mf_in;
+	mf_out->code = rkisp1_isp_output_formats[0].mbus_code;
+	mf_out->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+
+	mf_out_crop = v4l2_subdev_get_try_crop(sd, cfg,
+					       RKISP1_ISP_PAD_SOURCE_PATH);
+	*mf_out_crop = *mf_in_crop;
+
+	return 0;
+}
+
 #define sd_to_isp_sd(_sd) container_of(_sd, struct rkisp1_isp_subdev, sd)
 static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
@@ -649,8 +688,17 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK) &&
-	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH))
-		return -EINVAL;
+	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+		fmt->format.code = MEDIA_BUS_FMT_FIXED;
+		/*
+		 * NOTE: setting a format here doesn't make much sense
+		 * but v4l2-compliance complains
+		 */
+		fmt->format.width = RKISP1_DEFAULT_WIDTH;
+		fmt->format.height = RKISP1_DEFAULT_HEIGHT;
+		fmt->format.field = V4L2_FIELD_NONE;
+		return 0;
+	}
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 		mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
@@ -699,7 +747,7 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 		if (out_fmt)
 			fmt->code = out_fmt->mbus_code;
 		else
-			fmt->code = MEDIA_BUS_FMT_YUYV8_2X8;
+			fmt->code = rkisp1_isp_output_formats[0].mbus_code;
 		/* window size is set in s_selection */
 		fmt->width  = isp_sd->out_crop.width;
 		fmt->height = isp_sd->out_crop.height;
@@ -722,14 +770,14 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK) &&
 	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH))
-		return -EINVAL;
+		return rkisp1_isp_sd_get_fmt(sd, cfg, fmt);
 
 	rkisp1_isp_sd_try_fmt(sd, fmt->pad, mf);
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 		struct v4l2_mbus_framefmt *try_mf;
 
-		mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
+		try_mf = v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
 		*try_mf = *mf;
 		return 0;
 	}
@@ -973,6 +1021,7 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_sd_pad_ops = {
 	.enum_mbus_code = rkisp1_isp_sd_enum_mbus_code,
 	.get_selection = rkisp1_isp_sd_get_selection,
 	.set_selection = rkisp1_isp_sd_set_selection,
+	.init_cfg = rkisp1_isp_sd_init_config,
 	.get_fmt = rkisp1_isp_sd_get_fmt,
 	.set_fmt = rkisp1_isp_sd_set_fmt,
 	.link_validate = rkisp1_subdev_fmt_link_validate,
@@ -1019,6 +1068,7 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 	/* propagate to source */
 	*out_crop = *in_crop;
 	*out_fmt = rkisp1_isp_output_formats[0];
+	isp_sd->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 }
 
 int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
