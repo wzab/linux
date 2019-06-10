@@ -994,7 +994,7 @@ static int rkisp1_subdev_fmt_link_validate(struct v4l2_subdev *sd,
 }
 
 static void
-riksp1_isp_queue_event_sof(struct rkisp1_isp_subdev *isp)
+rkisp1_isp_queue_event_sof(struct rkisp1_isp_subdev *isp)
 {
 	struct v4l2_event event = {
 		.type = V4L2_EVENT_FRAME_SYNC,
@@ -1170,7 +1170,7 @@ void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev)
 
 	/* start edge of v_sync */
 	if (isp_mis & CIF_ISP_V_START) {
-		riksp1_isp_queue_event_sof(&dev->isp_sdev);
+		rkisp1_isp_queue_event_sof(&dev->isp_sdev);
 
 		writel(CIF_ISP_V_START, base + CIF_ISP_ICR);
 		isp_mis_tmp = readl(base + CIF_ISP_MIS);
