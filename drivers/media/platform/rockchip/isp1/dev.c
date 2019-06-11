@@ -470,7 +470,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	struct rkisp1_device *isp_dev;
 	const struct isp_match_data *clk_data;
 
-	struct resource *res;
 	int i, ret, irq;
 
 	match = of_match_node(rkisp1_plat_of_match, node);
@@ -481,8 +480,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	dev_set_drvdata(dev, isp_dev);
 	isp_dev->dev = dev;
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	isp_dev->base_addr = devm_ioremap_resource(dev, res);
+	isp_dev->base_addr = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(isp_dev->base_addr))
 		return PTR_ERR(isp_dev->base_addr);
 
