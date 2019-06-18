@@ -20,6 +20,7 @@
 #include <media/v4l2-subdev.h>
 
 #include "dev.h"
+#include "regs.h"
 
 enum mipi_dphy_sy_pads {
 	MIPI_DPHY_SY_PAD_SINK = 0,
@@ -128,6 +129,94 @@ static int mipi_csi2_s_stream_start(struct v4l2_subdev *sd)
 	return 0;
 }
 
+static int rkisp1_config_mipi(struct rkisp1_device *dev)
+{
+	u32 mipi_ctrl;
+	void __iomem *base = dev->base_addr;
+	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	int lanes;
+
+	/*
+	 * sensor->mbus is set in isp or d-phy notifier_bound function
+	 */
+	switch (sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
+	case V4L2_MBUS_CSI2_4_LANE:
+		lanes = 4;
+		break;
+	case V4L2_MBUS_CSI2_3_LANE:
+		lanes = 3;
+		break;
+	case V4L2_MBUS_CSI2_2_LANE:
+		lanes = 2;
+		break;
+	case V4L2_MBUS_CSI2_1_LANE:
+		lanes = 1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	mipi_ctrl = CIF_MIPI_CTRL_NUM_LANES(lanes - 1) |
+		    CIF_MIPI_CTRL_SHUTDOWNLANES(0xf) |
+		    CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP |
+		    CIF_MIPI_CTRL_CLOCKLANE_ENA;
+
+	writel(mipi_ctrl, base + CIF_MIPI_CTRL);
+
+	/* Configure Data Type and Virtual Channel */
+	writel(CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) | CIF_MIPI_DATA_SEL_VC(0),
+	       base + CIF_MIPI_IMG_DATA_SEL);
+
+	/* Clear MIPI interrupts */
+	writel(~0, base + CIF_MIPI_ICR);
+	/*
+	 * Disable CIF_MIPI_ERR_DPHY interrupt here temporary for
+	 * isp bus may be dead when switch isp.
+	 */
+	writel(CIF_MIPI_FRAME_END | CIF_MIPI_ERR_CSI | CIF_MIPI_ERR_DPHY |
+	       CIF_MIPI_SYNC_FIFO_OVFLW(0x03) | CIF_MIPI_ADD_DATA_OVFLW,
+	       base + CIF_MIPI_IMSC);
+
+	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "\n  MIPI_CTRL 0x%08x\n"
+		 "  MIPI_IMG_DATA_SEL 0x%08x\n"
+		 "  MIPI_STATUS 0x%08x\n"
+		 "  MIPI_IMSC 0x%08x\n",
+		 readl(base + CIF_MIPI_CTRL),
+		 readl(base + CIF_MIPI_IMG_DATA_SEL),
+		 readl(base + CIF_MIPI_STATUS),
+		 readl(base + CIF_MIPI_IMSC));
+
+	return 0;
+}
+
+/* Configure MUX */
+static int rkisp1_config_path(struct rkisp1_device *dev)
+{
+	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	u32 dpcl = readl(dev->base_addr + CIF_VI_DPCL);
+	void __iomem *base = dev->base_addr;
+	int ret = 0;
+	u32 val;
+
+	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
+		ret = rkisp1_config_mipi(dev);
+		dpcl |= CIF_VI_DPCL_IF_SEL_MIPI;
+	}
+
+	writel(dpcl, dev->base_addr + CIF_VI_DPCL);
+
+	/* Activate MIPI */
+	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
+		val = readl(base + CIF_MIPI_CTRL);
+		writel(val | CIF_MIPI_CTRL_OUTPUT_ENA, base + CIF_MIPI_CTRL);
+	}
+
+	return ret;
+}
+
+
+
 static int mipi_csi2_s_stream_stop(struct v4l2_subdev *sd)
 {
 	struct mipi_csi2_priv *priv = to_csi2_priv(sd);
@@ -142,8 +231,15 @@ static int mipi_csi2_s_stream_stop(struct v4l2_subdev *sd)
 
 static int mipi_csi2_s_stream(struct v4l2_subdev *sd, int on)
 {
-	if (on)
+	struct mipi_csi2_priv *priv = to_csi2_priv(sd);
+	int ret;
+
+	if (on) {
+		ret = rkisp1_config_path(priv->isp_dev);
+		if (ret < 0)
+			return ret;
 		return mipi_csi2_s_stream_start(sd);
+	}
 	else
 		return mipi_csi2_s_stream_stop(sd);
 }
