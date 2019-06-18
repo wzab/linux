@@ -413,7 +413,7 @@ camera: &i2c7 {
 	status = "okay";
 };
 
-&csi2 {
+&isp0 {
 	status = "okay";
 
 	ports {

@@ -12,6 +12,7 @@
 
 #include "capture.h"
 #include "rkisp1.h"
+#include "mipi_csi2.h"
 #include "isp_params.h"
 #include "isp_stats.h"
 
@@ -30,6 +31,9 @@
 #define RKISP1_MAX_BUS_CLK	8
 #define RKISP1_MAX_SENSOR	2
 #define RKISP1_MAX_PIPELINE	4
+
+// TODO: fixme
+int rkisp1_create_links(struct rkisp1_device *dev);
 
 /*
  * struct rkisp1_pipeline - An ISP hardware pipeline
@@ -90,6 +94,7 @@ struct rkisp1_device {
 	struct rkisp1_isp_params_vdev params_vdev;
 	struct rkisp1_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
+	struct phy *dphy;
 };
 
 #endif

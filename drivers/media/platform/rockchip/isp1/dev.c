@@ -13,6 +13,8 @@
 #include <linux/of_platform.h>
 #include <linux/pm_runtime.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/phy/phy.h>
+#include <linux/phy/phy-mipi-dphy.h>
 #include "common.h"
 #include "regs.h"
 
@@ -190,7 +192,7 @@ err_stream_off:
 /***************************** media controller *******************************/
 /* See http://opensource.rock-chips.com/wiki_Rockchip-isp1 for Topology */
 
-static int rkisp1_create_links(struct rkisp1_device *dev)
+int rkisp1_create_links(struct rkisp1_device *dev)
 {
 	struct media_entity *source, *sink;
 	unsigned int flags, s, pad;
@@ -356,7 +358,7 @@ static int isp_subdev_notifier(struct rkisp1_device *isp_dev)
 	return v4l2_async_notifier_register(&isp_dev->v4l2_dev, ntf);
 }
 
-/***************************** platform deive *******************************/
+/***************************** platform device *******************************/
 
 static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 {
@@ -379,12 +381,17 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 	if (ret < 0)
 		goto err_unreg_stats_vdev;
 
-	ret = isp_subdev_notifier(dev);
-	if (ret < 0) {
-		v4l2_err(&dev->v4l2_dev,
-			 "Failed to register subdev notifier(%d)\n", ret);
-		goto err_unreg_params_vdev;
-	}
+	// TODO: check what to do in case of error
+	ret = rkisp1_register_csi2_subdev(dev, &dev->v4l2_dev);
+	if (ret < 0)
+		return ret;
+
+	//ret = isp_subdev_notifier(dev);
+	//if (ret < 0) {
+	//	v4l2_err(&dev->v4l2_dev,
+	//		 "Failed to register subdev notifier(%d)\n", ret);
+	//	goto err_unreg_params_vdev;
+	//}
 
 	return 0;
 err_unreg_params_vdev:
@@ -476,6 +483,13 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	isp_dev = devm_kzalloc(dev, sizeof(*isp_dev), GFP_KERNEL);
 	if (!isp_dev)
 		return -ENOMEM;
+
+	isp_dev->dphy = devm_phy_get(dev, "dphy");
+	if (IS_ERR(isp_dev->dphy)) {
+		dev_err(dev, "Couldn't get the MIPI D-PHY\n");
+		return PTR_ERR(isp_dev->dphy);
+	}
+	/* TODO: we only support CSI2 bus for now */
 
 	dev_set_drvdata(dev, isp_dev);
 	isp_dev->dev = dev;

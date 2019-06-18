@@ -19,6 +19,8 @@
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-subdev.h>
 
+#include "dev.h"
+
 enum mipi_dphy_sy_pads {
 	MIPI_DPHY_SY_PAD_SINK = 0,
 	MIPI_DPHY_SY_PAD_SOURCE,
@@ -46,6 +48,8 @@ struct mipi_csi2_priv {
 	struct phy *dphy;
 	struct list_head sensors;
 	bool is_streaming;
+	/* TODO: Fix this */
+	struct rkisp1_device *isp_dev;
 };
 
 static inline struct mipi_csi2_priv *to_csi2_priv(struct v4l2_subdev *subdev)
@@ -214,7 +218,10 @@ rockchip_mipi_csi2_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct sensor_async_subdev *s_asd = container_of(asd,
 					struct sensor_async_subdev, asd);
 	struct mipi_csi2_sensor *sensor;
+	struct rkisp1_device *isp_dev = priv->isp_dev;
 	unsigned int pad, ret;
+
+	pr_err("koike: %s\n", __func__);
 
 	sensor = devm_kzalloc(priv->dev, sizeof(*sensor), GFP_KERNEL);
 	list_add(&sensor->list, &priv->sensors);
@@ -247,6 +254,15 @@ rockchip_mipi_csi2_notifier_bound(struct v4l2_async_notifier *notifier,
 		return ret;
 	}
 
+	// TODO: fix this
+	if (isp_dev->num_sensors == ARRAY_SIZE(isp_dev->sensors))
+		return -EBUSY;
+
+	pr_err("koike: %s\n", __func__);
+	isp_dev->sensors[isp_dev->num_sensors].mbus = s_asd->mbus;
+	isp_dev->sensors[isp_dev->num_sensors].sd = &priv->sd;
+	++isp_dev->num_sensors;
+
 	return 0;
 }
 
@@ -264,10 +280,37 @@ rockchip_mipi_csi2_notifier_unbind(struct v4l2_async_notifier *notifier,
 	sensor->sd = NULL;
 }
 
+// TODO: fix this - move all binding and link creation to dev
+static int rockchip_mipi_csi2_subdev_notifier_complete(struct v4l2_async_notifier *notifier)
+{
+	struct mipi_csi2_priv *priv = container_of(notifier,
+						  struct mipi_csi2_priv,
+						  notifier);
+	struct rkisp1_device *dev = priv->isp_dev;
+	int ret;
+
+	pr_err("koike: %s\n", __func__);
+
+	mutex_lock(&dev->media_dev.graph_mutex);
+	ret = rkisp1_create_links(dev);
+	if (ret < 0)
+		goto unlock;
+	ret = v4l2_device_register_subdev_nodes(&dev->v4l2_dev);
+	if (ret < 0)
+		goto unlock;
+
+	v4l2_info(&dev->v4l2_dev, "Async subdev notifier completed\n");
+
+unlock:
+	mutex_unlock(&dev->media_dev.graph_mutex);
+	return ret;
+}
+
 static const struct
 v4l2_async_notifier_operations rockchip_mipi_csi2_async_ops = {
 	.bound = rockchip_mipi_csi2_notifier_bound,
 	.unbind = rockchip_mipi_csi2_notifier_unbind,
+	.complete = rockchip_mipi_csi2_subdev_notifier_complete,
 };
 
 static int rockchip_mipi_csi2_fwnode_parse(struct device *dev,
@@ -312,7 +355,8 @@ static int rockchip_mipi_csi2_fwnode_parse(struct device *dev,
 	return 0;
 }
 
-static int rockchip_mipi_csi2_media_init(struct mipi_csi2_priv *priv)
+static int rockchip_mipi_csi2_media_init(struct v4l2_device *v4l2_dev,
+					 struct mipi_csi2_priv *priv)
 {
 	int ret;
 
@@ -324,6 +368,11 @@ static int rockchip_mipi_csi2_media_init(struct mipi_csi2_priv *priv)
 	priv->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE;
 	ret = media_entity_pads_init(&priv->sd.entity,
 				MIPI_DPHY_SY_PADS_NUM, priv->pads);
+	if (ret < 0)
+		return ret;
+
+	// TODO: fix return here
+	ret = v4l2_device_register_subdev(v4l2_dev, &priv->sd);
 	if (ret < 0)
 		return ret;
 
@@ -339,9 +388,9 @@ static int rockchip_mipi_csi2_media_init(struct mipi_csi2_priv *priv)
 	if (list_empty(&priv->notifier.asd_list))
 		return -ENODEV;	/* no endpoint */
 
-	priv->sd.subdev_notifier = &priv->notifier;
+	//priv->sd.subdev_notifier = &priv->notifier;
 	priv->notifier.ops = &rockchip_mipi_csi2_async_ops;
-	ret = v4l2_async_subdev_notifier_register(&priv->sd, &priv->notifier);
+	ret = v4l2_async_notifier_register(v4l2_dev, &priv->notifier);
 	if (ret) {
 		dev_err(priv->dev,
 			"failed to register async notifier : %d\n", ret);
@@ -349,73 +398,51 @@ static int rockchip_mipi_csi2_media_init(struct mipi_csi2_priv *priv)
 		return ret;
 	}
 
-	return v4l2_async_register_subdev(&priv->sd);
+	return 0;
 }
 
-static int rockchip_mipi_csi2_probe(struct platform_device *pdev)
+int rkisp1_register_csi2_subdev(struct rkisp1_device *isp_dev,
+				struct v4l2_device *v4l2_dev)
 {
-	struct device *dev = &pdev->dev;
-	struct v4l2_subdev *sd;
 	struct mipi_csi2_priv *priv;
+	struct v4l2_subdev *sd;
+	struct device *dev = isp_dev->dev;
 	int ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 	INIT_LIST_HEAD(&priv->sensors);
-	priv->dev = dev;
-	priv->dphy = devm_phy_get(dev, "dphy");
-	if (IS_ERR(priv->dphy)) {
-		dev_err(dev, "Couldn't get the MIPI D-PHY\n");
-		return PTR_ERR(priv->dphy);
-	}
+	// TODO: cleanup this
+	priv->dev = isp_dev->dev;
+	priv->dphy = isp_dev->dphy;
+	priv->isp_dev = isp_dev;
 
 	sd = &priv->sd;
 	v4l2_subdev_init(sd, &mipi_csi2_subdev_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 	snprintf(sd->name, sizeof(sd->name), "rockchip-mipi-csi-2");
-	sd->dev = dev;
+	sd->dev = isp_dev->dev;
 
-	platform_set_drvdata(pdev, &sd->entity);
+	// TODO: fix the exit
+	//platform_set_drvdata(pdev, &sd->entity);
 
-	ret = rockchip_mipi_csi2_media_init(priv);
+	ret = rockchip_mipi_csi2_media_init(v4l2_dev, priv);
 	if (ret < 0)
 		return ret;
 
 	return 0;
 }
 
-static int rockchip_mipi_csi2_remove(struct platform_device *pdev)
+#if 0
+static int rockchip_mipi_csi2_exit(struct platform_device *pdev)
 {
 	struct media_entity *me = platform_get_drvdata(pdev);
 	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(me);
 
+	// TODO: I don't think all the subdevs should be calling entity cleanup
 	media_entity_cleanup(&sd->entity);
 
 	return 0;
 }
-
-static const struct of_device_id rockchip_mipi_csi2_match_id[] = {
-       {
-               .compatible = "rockchip,rk3399-mipi-csi-2",
-       },
-       {
-               .compatible = "rockchip,rk3288-mipi-csi-2",
-       },
-       {}
-};
-MODULE_DEVICE_TABLE(of, rockchip_mipi_csi2_match_id);
-
-static struct platform_driver rockchip_isp_mipi_csi2_driver = {
-	.probe = rockchip_mipi_csi2_probe,
-	.remove = rockchip_mipi_csi2_remove,
-	.driver = {
-			.name = "rockchip-mipi-csi-2",
-			.of_match_table = rockchip_mipi_csi2_match_id,
-	},
-};
-
-module_platform_driver(rockchip_isp_mipi_csi2_driver);
-MODULE_AUTHOR("Rockchip Camera/ISP team");
-MODULE_DESCRIPTION("Rockchip MIPI DPHY driver");
-MODULE_LICENSE("Dual BSD/GPL");
+#endif
