@@ -397,14 +397,6 @@ camera: &i2c7 {
 	gpio1830-supply = <&pp1800_s0>;		/* APIO4_VDD;  4c 4d */
 };
 
-&isp0 {
-	status = "okay";
-};
-
-&isp0_mmu {
-	status = "okay";
-};
-
 &max98357a {
 	sdmode-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
 };
@@ -413,7 +405,7 @@ camera: &i2c7 {
 	status = "okay";
 };
 
-&isp0 {
+&isp1 {
 	status = "okay";
 
 	ports {
