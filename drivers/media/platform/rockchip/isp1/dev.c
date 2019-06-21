@@ -23,6 +23,12 @@ struct isp_match_data {
 	int size;
 };
 
+struct sensor_async_subdev {
+	struct v4l2_async_subdev asd;
+	struct v4l2_mbus_config mbus;
+	unsigned int lanes;
+};
+
 int rkisp1_debug;
 module_param_named(debug, rkisp1_debug, int, 0644);
 MODULE_PARM_DESC(debug, "Debug level (0-1)");
@@ -195,13 +201,12 @@ err_stream_off:
 int rkisp1_create_links(struct rkisp1_device *dev)
 {
 	struct media_entity *source, *sink;
-	unsigned int flags, s, pad;
+	struct rkisp1_sensor *sensor;
+	unsigned int flags, pad, s = 0;
 	int ret;
 
 	/* sensor links(or mipi-phy) */
-	for (s = 0; s < dev->num_sensors; ++s) {
-		struct rkisp1_sensor_info *sensor = &dev->sensors[s];
-
+	list_for_each_entry(sensor, &dev->sensors, list) {
 		for (pad = 0; pad < sensor->sd->entity.num_pads; pad++)
 			if (sensor->sd->entity.pads[pad].flags &
 				MEDIA_PAD_FL_SOURCE)
@@ -226,6 +231,7 @@ int rkisp1_create_links(struct rkisp1_device *dev)
 				sensor->sd->name);
 			return ret;
 		}
+		s++;
 	}
 
 	/* params links */
@@ -261,12 +267,66 @@ int rkisp1_create_links(struct rkisp1_device *dev)
 					sink, 0, flags);
 }
 
+static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
+				 struct v4l2_subdev *sd,
+				 struct v4l2_async_subdev *asd)
+{
+	struct rkisp1_device *isp_dev = container_of(notifier,
+						     struct rkisp1_device,
+						     notifier);
+	struct sensor_async_subdev *s_asd = container_of(asd,
+					struct sensor_async_subdev, asd);
+	struct rkisp1_sensor *sensor;
+
+	sensor = devm_kzalloc(isp_dev->dev, sizeof(*sensor), GFP_KERNEL);
+	if (!sensor)
+		return -ENOMEM;
+
+	sensor->lanes = s_asd->lanes;
+	sensor->mbus = s_asd->mbus;
+	sensor->sd = sd;
+	sensor->dphy = devm_phy_get(isp_dev->dev, "dphy");
+	if (IS_ERR(sensor->dphy)) {
+		dev_err(isp_dev->dev, "Couldn't get the MIPI D-PHY\n");
+		return PTR_ERR(sensor->dphy);
+	}
+
+	list_add(&sensor->list, &isp_dev->sensors);
+
+	return 0;
+}
+
+// TODO: expose this func
+static struct rkisp1_sensor *sd_to_sensor(struct rkisp1_device *dev,
+					       struct v4l2_subdev *sd)
+{
+	struct rkisp1_sensor *sensor;
+
+	list_for_each_entry(sensor, &dev->sensors, list)
+		if (sensor->sd == sd)
+			return sensor;
+
+	return NULL;
+}
+
+static void subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
+				   struct v4l2_subdev *sd,
+				   struct v4l2_async_subdev *asd)
+{
+	struct rkisp1_device *isp_dev = container_of(notifier,
+						     struct rkisp1_device,
+						     notifier);
+	struct rkisp1_sensor *sensor = sd_to_sensor(isp_dev, sd);
+
+	// TODO: check if a lock is needed here
+	list_del(&sensor->list);
+}
+
 static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 {
-	struct rkisp1_device *dev;
+	struct rkisp1_device *dev = container_of(notifier, struct rkisp1_device,
+						 notifier);
 	int ret;
-
-	dev = container_of(notifier, struct rkisp1_device, notifier);
 
 	mutex_lock(&dev->media_dev.graph_mutex);
 	ret = rkisp1_create_links(dev);
@@ -283,56 +343,50 @@ unlock:
 	return ret;
 }
 
-struct rkisp1_async_subdev {
-	struct v4l2_async_subdev asd;
-	struct v4l2_mbus_config mbus;
-};
-
-static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
-				 struct v4l2_subdev *subdev,
-				 struct v4l2_async_subdev *asd)
-{
-	struct rkisp1_device *isp_dev = container_of(notifier,
-					struct rkisp1_device, notifier);
-	struct rkisp1_async_subdev *s_asd = container_of(asd,
-					struct rkisp1_async_subdev, asd);
-
-	if (isp_dev->num_sensors == ARRAY_SIZE(isp_dev->sensors))
-		return -EBUSY;
-
-	isp_dev->sensors[isp_dev->num_sensors].mbus = s_asd->mbus;
-	isp_dev->sensors[isp_dev->num_sensors].sd = subdev;
-	++isp_dev->num_sensors;
-
-	v4l2_dbg(1, rkisp1_debug, subdev, "Async registered subdev\n");
-
-	return 0;
-}
-
 static int rkisp1_fwnode_parse(struct device *dev,
 			       struct v4l2_fwnode_endpoint *vep,
 			       struct v4l2_async_subdev *asd)
 {
-	struct rkisp1_async_subdev *rk_asd =
-			container_of(asd, struct rkisp1_async_subdev, asd);
-	struct v4l2_fwnode_bus_parallel *bus = &vep->bus.parallel;
+	struct sensor_async_subdev *s_asd =
+			container_of(asd, struct sensor_async_subdev, asd);
 
-	/*
-	 * MIPI sensor is linked with a mipi dphy and its media bus config can
-	 * not be get in here
-	 */
-	if (vep->bus_type != V4L2_MBUS_BT656 &&
-		vep->bus_type != V4L2_MBUS_PARALLEL)
-		return 0;
+	if (vep->bus_type != V4L2_MBUS_CSI2_DPHY) {
+		dev_err(dev, "Only CSI2 bus type is currently supported\n");
+		return -EINVAL;
+	}
 
-	rk_asd->mbus.flags = bus->flags;
-	rk_asd->mbus.type = vep->bus_type;
+	if (vep->base.port != 0) {
+		dev_err(dev, "The ISP has only port 0\n");
+		return -EINVAL;
+	}
+
+	s_asd->mbus.type = vep->bus_type;
+	s_asd->mbus.flags = vep->bus.mipi_csi2.flags;
+	s_asd->lanes = vep->bus.mipi_csi2.num_data_lanes;
+
+	switch (vep->bus.mipi_csi2.num_data_lanes) {
+	case 1:
+		s_asd->mbus.flags |= V4L2_MBUS_CSI2_1_LANE;
+		break;
+	case 2:
+		s_asd->mbus.flags |= V4L2_MBUS_CSI2_2_LANE;
+		break;
+	case 3:
+		s_asd->mbus.flags |= V4L2_MBUS_CSI2_3_LANE;
+		break;
+	case 4:
+		s_asd->mbus.flags |= V4L2_MBUS_CSI2_4_LANE;
+		break;
+	default:
+		return -EINVAL;
+	}
 
 	return 0;
 }
 
 static const struct v4l2_async_notifier_operations subdev_notifier_ops = {
 	.bound = subdev_notifier_bound,
+	.unbind = subdev_notifier_unbind,
 	.complete = subdev_notifier_complete,
 };
 
@@ -344,8 +398,8 @@ static int isp_subdev_notifier(struct rkisp1_device *isp_dev)
 
 	v4l2_async_notifier_init(ntf);
 
-	ret = v4l2_async_notifier_parse_fwnode_endpoints(
-		dev, ntf, sizeof(struct rkisp1_async_subdev),
+	ret = v4l2_async_notifier_parse_fwnode_endpoints_by_port(
+		dev, ntf, sizeof(struct sensor_async_subdev), 0,
 		rkisp1_fwnode_parse);
 	if (ret < 0)
 		return ret;
@@ -381,17 +435,12 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 	if (ret < 0)
 		goto err_unreg_stats_vdev;
 
-	// TODO: check what to do in case of error
-	ret = rkisp1_register_csi2_subdev(dev, &dev->v4l2_dev);
-	if (ret < 0)
-		return ret;
-
-	//ret = isp_subdev_notifier(dev);
-	//if (ret < 0) {
-	//	v4l2_err(&dev->v4l2_dev,
-	//		 "Failed to register subdev notifier(%d)\n", ret);
-	//	goto err_unreg_params_vdev;
-	//}
+	ret = isp_subdev_notifier(dev);
+	if (ret < 0) {
+		v4l2_err(&dev->v4l2_dev,
+			 "Failed to register subdev notifier(%d)\n", ret);
+		goto err_unreg_params_vdev;
+	}
 
 	return 0;
 err_unreg_params_vdev:
@@ -484,12 +533,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	if (!isp_dev)
 		return -ENOMEM;
 
-	isp_dev->dphy = devm_phy_get(dev, "dphy");
-	if (IS_ERR(isp_dev->dphy)) {
-		dev_err(dev, "Couldn't get the MIPI D-PHY\n");
-		return PTR_ERR(isp_dev->dphy);
-	}
-	/* TODO: we only support CSI2 bus for now */
+	INIT_LIST_HEAD(&isp_dev->sensors);
 
 	dev_set_drvdata(dev, isp_dev);
 	isp_dev->dev = dev;

@@ -6,6 +6,8 @@
  */
 
 #include <linux/iopoll.h>
+#include <linux/phy/phy.h>
+#include <linux/phy/phy-mipi-dphy.h>
 #include <linux/pm_runtime.h>
 #include <linux/videodev2.h>
 #include <linux/vmalloc.h>
@@ -60,23 +62,28 @@ static inline struct rkisp1_device *sd_to_isp_dev(struct v4l2_subdev *sd)
 /* Get sensor by enabled media link */
 static struct v4l2_subdev *get_remote_sensor(struct v4l2_subdev *sd)
 {
-	struct media_pad *local;
+	struct media_pad *local, *remote;
 	struct media_entity *sensor_me;
 
 	local = &sd->entity.pads[RKISP1_ISP_PAD_SINK];
-	sensor_me = media_entity_remote_pad(local)->entity;
+	remote = media_entity_remote_pad(local);
+	if (!remote) {
+		v4l2_warn(sd, "No link between isp and sensor\n");
+		return NULL;
+	}
 
+	sensor_me = media_entity_remote_pad(local)->entity;
 	return media_entity_to_v4l2_subdev(sensor_me);
 }
 
-static struct rkisp1_sensor_info *sd_to_sensor(struct rkisp1_device *dev,
+static struct rkisp1_sensor *sd_to_sensor(struct rkisp1_device *dev,
 					       struct v4l2_subdev *sd)
 {
-	int i;
+	struct rkisp1_sensor *sensor;
 
-	for (i = 0; i < dev->num_sensors; ++i)
-		if (dev->sensors[i].sd == sd)
-			return &dev->sensors[i];
+	list_for_each_entry(sensor, &dev->sensors, list)
+		if (sensor->sd == sd)
+			return sensor;
 
 	return NULL;
 }
@@ -119,7 +126,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	struct ispsd_out_fmt *out_fmt;
 	struct v4l2_mbus_framefmt *in_frm;
 	struct v4l2_rect *out_crop, *in_crop;
-	struct rkisp1_sensor_info *sensor;
+	struct rkisp1_sensor *sensor;
 	void __iomem *base = dev->base_addr;
 	u32 isp_ctrl = 0;
 	u32 irq_mask = 0;
@@ -246,7 +253,7 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 	u32 mipi_ctrl;
 	void __iomem *base = dev->base_addr;
 	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
-	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	struct rkisp1_sensor *sensor = dev->active_sensor;
 	int lanes;
 
 	/*
@@ -306,7 +313,7 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 static int rkisp1_config_path(struct rkisp1_device *dev)
 {
 	int ret = 0;
-	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	struct rkisp1_sensor *sensor = dev->active_sensor;
 	u32 dpcl = readl(dev->base_addr + CIF_VI_DPCL);
 
 	if (sensor->mbus.type == V4L2_MBUS_BT656 ||
@@ -401,7 +408,7 @@ static int rkisp1_isp_stop(struct rkisp1_device *dev)
 /* Mess register operations to start isp */
 static int rkisp1_isp_start(struct rkisp1_device *dev)
 {
-	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	struct rkisp1_sensor *sensor = dev->active_sensor;
 	void __iomem *base = dev->base_addr;
 	u32 val;
 
@@ -914,37 +921,80 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int mipi_csi2_s_stream_start(struct rkisp1_sensor *sensor)
+{
+	union phy_configure_opts opts = { 0 };
+	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
+	struct v4l2_ctrl *pixel_rate;
+	s64 pixel_clock;
+
+	pixel_rate = v4l2_ctrl_find(sensor->sd->ctrl_handler,
+				    V4L2_CID_PIXEL_RATE);
+	if (!pixel_rate) {
+		v4l2_warn(sensor->sd, "No pixel rate control in subdev\n");
+		return -EPIPE;
+	}
+
+	pixel_clock = v4l2_ctrl_g_ctrl_int64(pixel_rate);
+	if (!pixel_clock) {
+		v4l2_err(sensor->sd, "Invalid pixel rate value\n");
+		return -EINVAL;
+	}
+
+	phy_init(sensor->dphy);
+
+	/* TODO: Get bpp from somehere */
+	phy_mipi_dphy_get_default_config(pixel_clock, 8, sensor->lanes, cfg);
+	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
+	phy_configure(sensor->dphy, &opts);
+	phy_power_on(sensor->dphy);
+
+	return 0;
+}
+
+static void mipi_csi2_s_stream_stop(struct rkisp1_sensor *sensor)
+{
+	phy_power_off(sensor->dphy);
+	phy_exit(sensor->dphy);
+}
+
 static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 {
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
-	struct rkisp1_sensor_info *sensor;
 	struct v4l2_subdev *sensor_sd;
 	int ret = 0;
 
-	if (!on)
-		return rkisp1_isp_stop(isp_dev);
+	if (!on) {
+		ret = rkisp1_isp_stop(isp_dev);
+		if (ret < 0)
+			return ret;
+		mipi_csi2_s_stream_stop(isp_dev->active_sensor);
+	}
 
 	sensor_sd = get_remote_sensor(sd);
 	if (!sensor_sd)
 		return -ENODEV;
 
-	sensor = sd_to_sensor(isp_dev, sensor_sd);
-	/*
-	 * Update sensor bus configuration. This is only effective
-	 * for sensors chained off an external CSI2 PHY.
-	 */
-	ret = v4l2_subdev_call(sensor->sd, video, g_mbus_config,
-			       &sensor->mbus);
-	if (ret && ret != -ENOIOCTLCMD)
-		return ret;
-	isp_dev->active_sensor = sensor;
+	isp_dev->active_sensor = sd_to_sensor(isp_dev, sensor_sd);
 
 	atomic_set(&isp_dev->isp_sdev.frm_sync_seq, 0);
 	ret = rkisp1_config_cif(isp_dev);
 	if (ret < 0)
 		return ret;
 
-	return rkisp1_isp_start(isp_dev);
+	/* TODO: support other interfaces */
+	if (isp_dev->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
+		return -EINVAL;
+
+	ret = mipi_csi2_s_stream_start(isp_dev->active_sensor);
+	if (ret < 0)
+		return ret;
+
+	ret = rkisp1_isp_start(isp_dev);
+	if (ret)
+		mipi_csi2_s_stream_stop(isp_dev->active_sensor);
+
+	return ret;
 }
 
 static int rkisp1_isp_sd_s_power(struct v4l2_subdev *sd, int on)

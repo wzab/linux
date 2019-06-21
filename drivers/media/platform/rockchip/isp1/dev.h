@@ -12,7 +12,6 @@
 
 #include "capture.h"
 #include "rkisp1.h"
-#include "mipi_csi2.h"
 #include "isp_params.h"
 #include "isp_stats.h"
 
@@ -57,12 +56,15 @@ struct rkisp1_pipeline {
 };
 
 /*
- * struct rkisp1_sensor_info - Sensor information
+ * struct rkisp1_sensor - Sensor information
  * @mbus: media bus configuration
  */
-struct rkisp1_sensor_info {
+struct rkisp1_sensor {
 	struct v4l2_subdev *sd;
 	struct v4l2_mbus_config mbus;
+	unsigned int lanes;
+	struct phy *dphy;
+	struct list_head list;
 };
 
 /*
@@ -85,16 +87,14 @@ struct rkisp1_device {
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
 	struct v4l2_subdev *subdevs[RKISP1_SD_MAX];
-	struct rkisp1_sensor_info *active_sensor;
-	struct rkisp1_sensor_info sensors[RKISP1_MAX_SENSOR];
-	int num_sensors;
+	struct rkisp1_sensor *active_sensor;
+	struct list_head sensors;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream stream[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;
 	struct rkisp1_isp_params_vdev params_vdev;
 	struct rkisp1_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
-	struct phy *dphy;
 };
 
 #endif
