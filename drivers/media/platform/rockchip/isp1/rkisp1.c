@@ -976,6 +976,8 @@ static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 		return -ENODEV;
 
 	isp_dev->active_sensor = sd_to_sensor(isp_dev, sensor_sd);
+	if (!isp_dev->active_sensor)
+		return -ENODEV;
 
 	atomic_set(&isp_dev->isp_sdev.frm_sync_seq, 0);
 	ret = rkisp1_config_cif(isp_dev);

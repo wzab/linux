@@ -31,9 +31,6 @@
 #define RKISP1_MAX_SENSOR	2
 #define RKISP1_MAX_PIPELINE	4
 
-// TODO: fixme
-int rkisp1_create_links(struct rkisp1_device *dev);
-
 /*
  * struct rkisp1_pipeline - An ISP hardware pipeline
  *

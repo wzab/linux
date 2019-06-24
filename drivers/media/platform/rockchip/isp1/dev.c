@@ -198,7 +198,7 @@ err_stream_off:
 /***************************** media controller *******************************/
 /* See http://opensource.rock-chips.com/wiki_Rockchip-isp1 for Topology */
 
-int rkisp1_create_links(struct rkisp1_device *dev)
+static int rkisp1_create_links(struct rkisp1_device *dev)
 {
 	struct media_entity *source, *sink;
 	struct rkisp1_sensor *sensor;
@@ -296,9 +296,8 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	return 0;
 }
 
-// TODO: expose this func
 static struct rkisp1_sensor *sd_to_sensor(struct rkisp1_device *dev,
-					       struct v4l2_subdev *sd)
+					  struct v4l2_subdev *sd)
 {
 	struct rkisp1_sensor *sensor;
 
