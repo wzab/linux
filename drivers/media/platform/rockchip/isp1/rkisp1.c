@@ -241,6 +241,88 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 	return 0;
 }
 
+static int rkisp1_config_mipi(struct rkisp1_device *dev)
+{
+	u32 mipi_ctrl;
+	void __iomem *base = dev->base_addr;
+	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	int lanes;
+
+	/*
+	 * sensor->mbus is set in isp or d-phy notifier_bound function
+	 */
+	switch (sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
+	case V4L2_MBUS_CSI2_4_LANE:
+		lanes = 4;
+		break;
+	case V4L2_MBUS_CSI2_3_LANE:
+		lanes = 3;
+		break;
+	case V4L2_MBUS_CSI2_2_LANE:
+		lanes = 2;
+		break;
+	case V4L2_MBUS_CSI2_1_LANE:
+		lanes = 1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	mipi_ctrl = CIF_MIPI_CTRL_NUM_LANES(lanes - 1) |
+		    CIF_MIPI_CTRL_SHUTDOWNLANES(0xf) |
+		    CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP |
+		    CIF_MIPI_CTRL_CLOCKLANE_ENA;
+
+	writel(mipi_ctrl, base + CIF_MIPI_CTRL);
+
+	/* Configure Data Type and Virtual Channel */
+	writel(CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) | CIF_MIPI_DATA_SEL_VC(0),
+	       base + CIF_MIPI_IMG_DATA_SEL);
+
+	/* Clear MIPI interrupts */
+	writel(~0, base + CIF_MIPI_ICR);
+	/*
+	 * Disable CIF_MIPI_ERR_DPHY interrupt here temporary for
+	 * isp bus may be dead when switch isp.
+	 */
+	writel(CIF_MIPI_FRAME_END | CIF_MIPI_ERR_CSI | CIF_MIPI_ERR_DPHY |
+	       CIF_MIPI_SYNC_FIFO_OVFLW(0x03) | CIF_MIPI_ADD_DATA_OVFLW,
+	       base + CIF_MIPI_IMSC);
+
+	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "\n  MIPI_CTRL 0x%08x\n"
+		 "  MIPI_IMG_DATA_SEL 0x%08x\n"
+		 "  MIPI_STATUS 0x%08x\n"
+		 "  MIPI_IMSC 0x%08x\n",
+		 readl(base + CIF_MIPI_CTRL),
+		 readl(base + CIF_MIPI_IMG_DATA_SEL),
+		 readl(base + CIF_MIPI_STATUS),
+		 readl(base + CIF_MIPI_IMSC));
+
+	return 0;
+}
+
+/* Configure MUX */
+static int rkisp1_config_path(struct rkisp1_device *dev)
+{
+	int ret = 0;
+	struct rkisp1_sensor_info *sensor = dev->active_sensor;
+	u32 dpcl = readl(dev->base_addr + CIF_VI_DPCL);
+
+	if (sensor->mbus.type == V4L2_MBUS_BT656 ||
+	    sensor->mbus.type == V4L2_MBUS_PARALLEL) {
+		ret = rkisp1_config_dvp(dev);
+		dpcl |= CIF_VI_DPCL_IF_SEL_PARALLEL;
+	} else if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
+		ret = rkisp1_config_mipi(dev);
+		dpcl |= CIF_VI_DPCL_IF_SEL_MIPI;
+	}
+
+	writel(dpcl, dev->base_addr + CIF_VI_DPCL);
+
+	return ret;
+}
+
 /* Hareware configure Entry */
 static int rkisp1_config_cif(struct rkisp1_device *dev)
 {
@@ -256,6 +338,9 @@ static int rkisp1_config_cif(struct rkisp1_device *dev)
 	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "CIF_ID 0x%08x\n", cif_id);
 
 	ret = rkisp1_config_isp(dev);
+	if (ret < 0)
+		return ret;
+	ret = rkisp1_config_path(dev);
 	if (ret < 0)
 		return ret;
 	rkisp1_config_ism(dev);
@@ -325,6 +410,11 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 		 dev->stream[RKISP1_STREAM_SP].state,
 		 dev->stream[RKISP1_STREAM_MP].state);
 
+	/* Activate MIPI */
+	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
+		val = readl(base + CIF_MIPI_CTRL);
+		writel(val | CIF_MIPI_CTRL_OUTPUT_ENA, base + CIF_MIPI_CTRL);
+	}
 	/* Activate ISP */
 	val = readl(base + CIF_ISP_CTRL);
 	val |= CIF_ISP_CTRL_ISP_CFG_UPD | CIF_ISP_CTRL_ISP_ENABLE |
