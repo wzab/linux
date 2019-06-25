@@ -414,9 +414,65 @@
 };
 
 &i2c4 {
-	i2c-scl-rising-time-ns = <600>;
-	i2c-scl-falling-time-ns = <20>;
+///	i2c-scl-rising-time-ns = <600>;
+///	i2c-scl-falling-time-ns = <20>;
+	clock-frequency = <400000>;
+
 	status = "okay";
+
+/*
+	rpicamv2: camera@10 {
+		compatible = "sony,imx219";
+		reg = <0x10>;
+		clocks = <&rpicamclk2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&enable>;
+		status = "disabled";
+
+		rpicamclk2: camera-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <25000000>;
+		};
+
+		port {
+			csi1_out_2: endpoint {
+				remote-endpoint = <&csi1_ep1>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+*/
+
+	rpicamv1: camera@36 {
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+		clocks = <&rpicamclk1>;
+		pinctrl-names = "default";
+		status = "okay";
+
+		/* CAM_GPIO is an enable GPIO and
+		 * CAM_MCLK is actually controlling the red LED
+		 */
+		pinctrl-0 = <&enable>, <&camled>;
+		enable-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+
+		/* The camera module has an internal clock */
+		rpicamclk1: camera-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <25000000>;
+		};
+
+		port {
+			csi1_out_1: endpoint {
+				remote-endpoint = <&csi1_ep1>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
 
 &i2s0 {
@@ -480,6 +536,17 @@
 	usb2 {
 		vcc5v0_host_en: vcc5v0-host-en {
 			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	cam_pins {
+		enable: enable-pins {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		camled: cam_led_pins {
+			rockchip,pins =
+				<2 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };
@@ -609,4 +676,29 @@
 
 &vopl_mmu {
 	status = "okay";
+};
+
+&i2c6 {
+	status = "okay";
+};
+
+&i2c4 {
+};
+
+&dphy {
+	status = "okay";
+};
+
+&isp0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			csi1_ep1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csi1_out_1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
