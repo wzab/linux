@@ -35,6 +35,5 @@ grf: syscon@ff770000 {
 		clock-names = "dphy-ref", "dphy-cfg", "grf";
 		power-domains = <&power RK3399_PD_VIO>;
 		#phy-cells = <0>;
-		status = "disabled";
 	};
 };
