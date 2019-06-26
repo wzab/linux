@@ -15,7 +15,6 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
-#include <media/videobuf2-dma-contig.h>
 #include "common.h"
 #include "regs.h"
 
@@ -421,11 +420,9 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 {
 	int ret;
 
-	dev->alloc_ctx = vb2_dma_contig_init_ctx(dev->v4l2_dev.dev);
-
 	ret = rkisp1_register_isp_subdev(dev, &dev->v4l2_dev);
 	if (ret < 0)
-		goto err_cleanup_ctx;
+		return ret;
 
 	ret = rkisp1_register_stream_vdevs(dev);
 	if (ret < 0)
@@ -456,9 +453,6 @@ err_unreg_stream_vdev:
 	rkisp1_unregister_stream_vdevs(dev);
 err_unreg_isp_subdev:
 	rkisp1_unregister_isp_subdev(dev);
-err_cleanup_ctx:
-	vb2_dma_contig_cleanup_ctx(dev->alloc_ctx);
-
 	return ret;
 }
 
@@ -633,7 +627,6 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	rkisp1_unregister_stats_vdev(&isp_dev->stats_vdev);
 	rkisp1_unregister_stream_vdevs(isp_dev);
 	rkisp1_unregister_isp_subdev(isp_dev);
-	vb2_dma_contig_cleanup_ctx(isp_dev->alloc_ctx);
 
 	return 0;
 }
