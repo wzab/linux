@@ -55,10 +55,16 @@ Device node example
 			#size-cells = <0>;
 
 			port@0 {
-				csi1_ep1: endpoint@1 {
-					reg = <1>;
-					remote-endpoint = <&csi1_out_1>;
+				mipi_in_wcam: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&wcam_out>;
 					data-lanes = <1 2>;
+				};
+
+				mipi_in_ucam: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&ucam_out>;
+					data-lanes = <1>;
 				};
 			};
 		};
