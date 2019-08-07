@@ -24,12 +24,6 @@ struct isp_match_data {
 	unsigned int size;
 };
 
-struct sensor_async_subdev {
-	struct v4l2_async_subdev asd;
-	struct v4l2_mbus_config mbus;
-	unsigned int lanes;
-};
-
 /**************************** pipeline operations******************************/
 
 static int __isp_pipeline_prepare(struct rkisp1_pipeline *p,
@@ -199,24 +193,33 @@ err_stream_off:
 static int rkisp1_create_links(struct rkisp1_device *dev)
 {
 	struct media_entity *source, *sink;
-	struct rkisp1_sensor *sensor;
-	unsigned int flags;
+	unsigned int flags, source_pad;
+	struct v4l2_subdev *sd;
 	int ret;
 
-	/* sensor links(or mipi-phy) */
-	list_for_each_entry(sensor, &dev->sensors, list) {
-		ret = media_create_pad_link(
-				&sensor->sd->entity, sensor->source_pad,
-				&dev->isp_sdev.sd.entity,
-				RKISP1_ISP_PAD_SINK,
-				list_is_first(&sensor->list, &dev->sensors) ?
-				MEDIA_LNK_FL_ENABLED : 0);
-		if (ret) {
-			dev_err(dev->dev,
-				"failed to create link for %s\n",
-				sensor->sd->name);
+	/* sensor links */
+	list_for_each_entry(sd, &dev->v4l2_dev.subdevs, list) {
+		if (sd == &dev->isp_sdev.sd)
+			continue;
+
+		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,
+						  MEDIA_PAD_FL_SOURCE);
+		if (ret < 0) {
+			dev_err(sd->dev, "failed to find src pad for %s\n",
+				sd->name);
 			return ret;
 		}
+		source_pad = ret;
+
+		ret = media_create_pad_link(
+				&sd->entity, source_pad,
+				&dev->isp_sdev.sd.entity,
+				RKISP1_ISP_PAD_SINK,
+				list_is_first(&sd->list,
+					      &dev->v4l2_dev.subdevs) ?
+				MEDIA_LNK_FL_ENABLED : 0);
+		if (ret < 0)
+			return ret;
 	}
 
 	/* params links */
@@ -253,74 +256,35 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 }
 
 static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
-				 struct v4l2_subdev *sd,
-				 struct v4l2_async_subdev *asd)
+                                struct v4l2_subdev *sd,
+                                struct v4l2_async_subdev *asd)
 {
 	struct rkisp1_device *isp_dev = container_of(notifier,
 						     struct rkisp1_device,
 						     notifier);
 	struct sensor_async_subdev *s_asd = container_of(asd,
 					struct sensor_async_subdev, asd);
-	struct rkisp1_sensor *sensor;
-	struct phy *dphy;
-	int source_pad;
 
-	source_pad = media_entity_get_fwnode_pad(&sd->entity,
-						 asd->match.fwnode,
-						 MEDIA_PAD_FL_SOURCE);
-	if (source_pad < 0) {
-		dev_err(sd->dev, "failed to find src pad for %s\n", sd->name);
-		return source_pad;
-	}
-
-	dphy = devm_phy_get(isp_dev->dev, "dphy");
-	if (IS_ERR(dphy)) {
-		if (PTR_ERR(dphy) != -EPROBE_DEFER)
+	s_asd->dphy = devm_phy_get(isp_dev->dev, "dphy");
+	if (IS_ERR(s_asd->dphy)) {
+		if (PTR_ERR(s_asd->dphy) != -EPROBE_DEFER)
 			dev_err(isp_dev->dev, "Couldn't get the MIPI D-PHY\n");
-		return PTR_ERR(dphy);
+		return PTR_ERR(s_asd->dphy);
 	}
 
-	sensor = devm_kzalloc(isp_dev->dev, sizeof(*sensor), GFP_KERNEL);
-	if (!sensor)
-		return -ENOMEM;
-
-	sensor->lanes = s_asd->lanes;
-	sensor->mbus = s_asd->mbus;
-	sensor->sd = sd;
-	sensor->source_pad = source_pad;
-	sensor->dphy = dphy;
-	phy_init(sensor->dphy);
-
-	list_add(&sensor->list, &isp_dev->sensors);
+	phy_init(s_asd->dphy);
 
 	return 0;
-}
-
-static struct rkisp1_sensor *sd_to_sensor(struct rkisp1_device *dev,
-					  struct v4l2_subdev *sd)
-{
-	struct rkisp1_sensor *sensor;
-
-	list_for_each_entry(sensor, &dev->sensors, list)
-		if (sensor->sd == sd)
-			return sensor;
-
-	return NULL;
 }
 
 static void subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
 				   struct v4l2_subdev *sd,
 				   struct v4l2_async_subdev *asd)
 {
-	struct rkisp1_device *isp_dev = container_of(notifier,
-						     struct rkisp1_device,
-						     notifier);
-	struct rkisp1_sensor *sensor = sd_to_sensor(isp_dev, sd);
+	struct sensor_async_subdev *s_asd = container_of(asd,
+					struct sensor_async_subdev, asd);
 
-	/* TODO: check if a lock is required here */
-	list_del(&sensor->list);
-
-	phy_exit(sensor->dphy);
+	phy_exit(s_asd->dphy);
 }
 
 static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
@@ -529,8 +493,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	isp_dev = devm_kzalloc(dev, sizeof(*isp_dev), GFP_KERNEL);
 	if (!isp_dev)
 		return -ENOMEM;
-
-	INIT_LIST_HEAD(&isp_dev->sensors);
 
 	dev_set_drvdata(dev, isp_dev);
 	isp_dev->dev = dev;

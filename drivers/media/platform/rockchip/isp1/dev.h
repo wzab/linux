@@ -53,17 +53,20 @@ struct rkisp1_pipeline {
 };
 
 /*
- * struct rkisp1_sensor - Sensor information
+ * struct sensor_async_subdev - Sensor information
  * @mbus: media bus configuration
  */
-struct rkisp1_sensor {
-	struct v4l2_subdev *sd;
+struct sensor_async_subdev {
+	struct v4l2_async_subdev asd;
 	struct v4l2_mbus_config mbus;
-	unsigned int source_pad;
 	unsigned int lanes;
 	struct phy *dphy;
-	struct list_head list;
 };
+
+static inline struct sensor_async_subdev *sd_to_sensor(struct v4l2_subdev *sd)
+{
+	return container_of(sd->asd, struct sensor_async_subdev, asd);
+}
 
 /*
  * struct rkisp1_device - ISP platform device
@@ -84,8 +87,7 @@ struct rkisp1_device {
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
-	struct rkisp1_sensor *active_sensor;
-	struct list_head sensors;
+	struct v4l2_subdev *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream stream[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;
