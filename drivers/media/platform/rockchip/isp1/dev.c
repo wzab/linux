@@ -21,7 +21,7 @@
 
 struct isp_match_data {
 	const char * const *clks;
-	int size;
+	unsigned int size;
 };
 
 struct sensor_async_subdev {
@@ -29,10 +29,6 @@ struct sensor_async_subdev {
 	struct v4l2_mbus_config mbus;
 	unsigned int lanes;
 };
-
-int rkisp1_debug;
-module_param_named(debug, rkisp1_debug, int, 0644);
-MODULE_PARM_DESC(debug, "Debug level (0-1)");
 
 /**************************** pipeline operations******************************/
 
@@ -204,26 +200,13 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 {
 	struct media_entity *source, *sink;
 	struct rkisp1_sensor *sensor;
-	unsigned int flags, pad;
+	unsigned int flags;
 	int ret;
 
 	/* sensor links(or mipi-phy) */
 	list_for_each_entry(sensor, &dev->sensors, list) {
-		for (pad = 0; pad < sensor->sd->entity.num_pads; pad++)
-			if (sensor->sd->entity.pads[pad].flags &
-				MEDIA_PAD_FL_SOURCE)
-				break;
-
-		if (pad == sensor->sd->entity.num_pads) {
-			dev_err(dev->dev,
-				"failed to find src pad for %s\n",
-				sensor->sd->name);
-
-			return -ENXIO;
-		}
-
 		ret = media_create_pad_link(
-				&sensor->sd->entity, pad,
+				&sensor->sd->entity, sensor->source_pad,
 				&dev->isp_sdev.sd.entity,
 				RKISP1_ISP_PAD_SINK,
 				list_is_first(&sensor->list, &dev->sensors) ?
@@ -241,7 +224,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	sink = &dev->isp_sdev.sd.entity;
 	flags = MEDIA_LNK_FL_ENABLED;
 	ret = media_create_pad_link(source, 0, sink,
-				       RKISP1_ISP_PAD_SINK_PARAMS, flags);
+				    RKISP1_ISP_PAD_SINK_PARAMS, flags);
 	if (ret < 0)
 		return ret;
 
@@ -250,7 +233,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	source = &dev->isp_sdev.sd.entity;
 	sink = &dev->stream[RKISP1_STREAM_SP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_PATH,
-				       sink, 0, flags);
+				    sink, 0, flags);
 	if (ret < 0)
 		return ret;
 
@@ -258,7 +241,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	source = &dev->isp_sdev.sd.entity;
 	sink = &dev->stream[RKISP1_STREAM_MP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_PATH,
-				       sink, 0, flags);
+				    sink, 0, flags);
 	if (ret < 0)
 		return ret;
 
@@ -266,7 +249,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	source = &dev->isp_sdev.sd.entity;
 	sink = &dev->stats_vdev.vnode.vdev.entity;
 	return media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_STATS,
-					sink, 0, flags);
+				     sink, 0, flags);
 }
 
 static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
@@ -279,6 +262,23 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct sensor_async_subdev *s_asd = container_of(asd,
 					struct sensor_async_subdev, asd);
 	struct rkisp1_sensor *sensor;
+	struct phy *dphy;
+	int source_pad;
+
+	source_pad = media_entity_get_fwnode_pad(&sd->entity,
+						 asd->match.fwnode,
+						 MEDIA_PAD_FL_SOURCE);
+	if (source_pad < 0) {
+		dev_err(sd->dev, "failed to find src pad for %s\n", sd->name);
+		return source_pad;
+	}
+
+	dphy = devm_phy_get(isp_dev->dev, "dphy");
+	if (IS_ERR(dphy)) {
+		if (PTR_ERR(dphy) != -EPROBE_DEFER)
+			dev_err(isp_dev->dev, "Couldn't get the MIPI D-PHY\n");
+		return PTR_ERR(dphy);
+	}
 
 	sensor = devm_kzalloc(isp_dev->dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
@@ -287,12 +287,8 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	sensor->lanes = s_asd->lanes;
 	sensor->mbus = s_asd->mbus;
 	sensor->sd = sd;
-	sensor->dphy = devm_phy_get(isp_dev->dev, "dphy");
-	if (IS_ERR(sensor->dphy)) {
-		if (PTR_ERR(sensor->dphy) != -EPROBE_DEFER)
-			dev_err(isp_dev->dev, "Couldn't get the MIPI D-PHY\n");
-		return PTR_ERR(sensor->dphy);
-	}
+	sensor->source_pad = source_pad;
+	sensor->dphy = dphy;
 	phy_init(sensor->dphy);
 
 	list_add(&sensor->list, &isp_dev->sensors);

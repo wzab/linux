@@ -26,14 +26,6 @@
 #define RKISP1_PLANE_CB			1
 #define RKISP1_PLANE_CR			2
 
-enum rkisp1_sd_type {
-	RKISP1_SD_SENSOR,
-	RKISP1_SD_PHY_CSI,
-	RKISP1_SD_VCM,
-	RKISP1_SD_FLASH,
-	RKISP1_SD_MAX,
-};
-
 /* One structure per video node */
 struct rkisp1_vdev_node {
 	struct vb2_queue buf_queue;
@@ -72,8 +64,6 @@ struct rkisp1_dummy_buffer {
 	dma_addr_t dma_addr;
 	u32 size;
 };
-
-extern int rkisp1_debug;
 
 static inline
 struct rkisp1_vdev_node *vdev_to_node(struct video_device *vdev)

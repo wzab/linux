@@ -636,17 +636,15 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 	    dcrop->height == input_win->height &&
 	    dcrop->left == 0 && dcrop->top == 0) {
 		disable_dcrop(stream, async);
-		v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-			 "stream %d crop disabled\n", stream->id);
+		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
 		return 0;
 	}
 
 	config_dcrop(stream, dcrop, async);
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "stream %d crop: %dx%d -> %dx%d\n", stream->id,
-		 input_win->width, input_win->height,
-		 dcrop->width, dcrop->height);
+	dev_dbg(dev->dev, "stream %d crop: %dx%d -> %dx%d\n", stream->id,
+		input_win->width, input_win->height,
+		dcrop->width, dcrop->height);
 
 	return 0;
 }
@@ -692,19 +690,16 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 		goto disable;
 
 	/* set RSZ input and output */
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "stream %d rsz/scale: %dx%d -> %dx%d\n",
-		 stream->id, stream->dcrop.width, stream->dcrop.height,
-		 output_fmt.width, output_fmt.height);
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "chroma scaling %dx%d -> %dx%d\n",
-		 in_c.width, in_c.height, out_c.width, out_c.height);
+	dev_dbg(dev->dev, "stream %d rsz/scale: %dx%d -> %dx%d\n",
+		stream->id, stream->dcrop.width, stream->dcrop.height,
+		output_fmt.width, output_fmt.height);
+	dev_dbg(dev->dev, "chroma scaling %dx%d -> %dx%d\n",
+		in_c.width, in_c.height, out_c.width, out_c.height);
 
 	/* calculate and set scale */
 	config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
 
-	if (rkisp1_debug)
-		dump_rsz_regs(stream);
+	dump_rsz_regs(dev->dev, stream);
 
 	return 0;
 
@@ -836,8 +831,8 @@ static void update_mi(struct rkisp1_stream *stream)
 		mi_set_cr_addr(stream,
 			stream->next_buf->buff_addr[RKISP1_PLANE_CR]);
 	} else {
-		v4l2_dbg(1, rkisp1_debug, &stream->ispdev->v4l2_dev,
-			 "stream %d: to dummy buf\n", stream->id);
+		dev_dbg(stream->ispdev->dev,
+			"stream %d: to dummy buf\n", stream->id);
 		mi_set_y_addr(stream, dummy_buf->dma_addr);
 		mi_set_cb_addr(stream, dummy_buf->dma_addr);
 		mi_set_cr_addr(stream, dummy_buf->dma_addr);
@@ -1021,8 +1016,8 @@ static int rkisp1_queue_setup(struct vb2_queue *queue,
 			sizes[i] = pixm->plane_fmt[i].sizeimage;
 	}
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "%s count %d, size %d\n",
-		 v4l2_type_names[queue->type], *num_buffers, sizes[0]);
+	dev_dbg(dev->dev, "%s count %d, size %d\n",
+		v4l2_type_names[queue->type], *num_buffers, sizes[0]);
 
 	return 0;
 }
@@ -1375,10 +1370,10 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 		} else {
 			stream->u.mp.raw_enable = (fmt->fmt_type == FMT_BAYER);
 		}
-		v4l2_dbg(1, rkisp1_debug, &stream->ispdev->v4l2_dev,
-			 "%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
-			 stream->id, pixm->width, pixm->height,
-			 stream->out_fmt.width, stream->out_fmt.height);
+		dev_dbg(stream->ispdev->dev,
+			"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
+			stream->id, pixm->width, pixm->height,
+			stream->out_fmt.width, stream->out_fmt.height);
 	}
 }
 
@@ -1567,9 +1562,9 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 
 	if (sel->target == V4L2_SEL_TGT_CROP) {
 		*dcrop = *rkisp1_update_crop(stream, &sel->r, input_win);
-		v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-			 "stream %d crop(%d,%d)/%dx%d\n", stream->id,
-			 dcrop->left, dcrop->top, dcrop->width, dcrop->height);
+		dev_dbg(dev->dev,
+			"stream %d crop(%d,%d)/%dx%d\n", stream->id,
+			dcrop->left, dcrop->top, dcrop->width, dcrop->height);
 	}
 
 	return 0;

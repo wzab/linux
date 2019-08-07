@@ -1266,7 +1266,7 @@ void disable_dcrop(struct rkisp1_stream *stream, bool async);
 void config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect,
 		  bool async);
 
-void dump_rsz_regs(struct rkisp1_stream *stream);
+void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream);
 void disable_rsz(struct rkisp1_stream *stream, bool async);
 void config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 		struct v4l2_rect *in_c, struct v4l2_rect *out_y,

@@ -11,7 +11,7 @@ config PHY_ROCKCHIP_DP
 
 config PHY_ROCKCHIP_DPHY
 	tristate "Rockchip MIPI Synopsys DPHY driver"
-	depends on ARCH_ROCKCHIP && OF
+	depends on (ARCH_ROCKCHIP || COMPILE_TEST) && OF
 	select GENERIC_PHY_MIPI_DPHY
 	select GENERIC_PHY
 	help

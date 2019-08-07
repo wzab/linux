@@ -262,7 +262,7 @@ static int rockchip_dphy_configure(struct phy *phy, union phy_configure_opts *op
 	if (ret)
 		return ret;
 
-	memcpy(&priv->config, opts, sizeof(priv->config));
+	priv->config = opts->mipi_dphy;
 
 	return 0;
 }
@@ -290,12 +290,8 @@ static int rockchip_dphy_power_off(struct phy *phy)
 static int rockchip_dphy_init(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
-	int ret;
 
-	ret = clk_bulk_prepare(priv->drv_data->num_clks, priv->clks);
-	if (ret)
-		return ret;
-	return 0;
+	return clk_bulk_prepare(priv->drv_data->num_clks, priv->clks);
 }
 
 static int rockchip_dphy_exit(struct phy *phy)

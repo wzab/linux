@@ -44,11 +44,12 @@ config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect, bool async)
 	writel(dc_ctrl, dc_ctrl_addr);
 }
 
-void dump_rsz_regs(struct rkisp1_stream *stream)
+void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 
-	pr_info("RSZ_CTRL 0x%08x/0x%08x\n"
+	dev_dbg(dev,
+		"RSZ_CTRL 0x%08x/0x%08x\n"
 		"RSZ_SCALE_HY %d/%d\n"
 		"RSZ_SCALE_HCB %d/%d\n"
 		"RSZ_SCALE_HCR %d/%d\n"

@@ -293,14 +293,14 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 	       CIF_MIPI_SYNC_FIFO_OVFLW(0x03) | CIF_MIPI_ADD_DATA_OVFLW,
 	       base + CIF_MIPI_IMSC);
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "\n  MIPI_CTRL 0x%08x\n"
-		 "  MIPI_IMG_DATA_SEL 0x%08x\n"
-		 "  MIPI_STATUS 0x%08x\n"
-		 "  MIPI_IMSC 0x%08x\n",
-		 readl(base + CIF_MIPI_CTRL),
-		 readl(base + CIF_MIPI_IMG_DATA_SEL),
-		 readl(base + CIF_MIPI_STATUS),
-		 readl(base + CIF_MIPI_IMSC));
+	dev_dbg(dev->dev, "\n  MIPI_CTRL 0x%08x\n"
+		"  MIPI_IMG_DATA_SEL 0x%08x\n"
+		"  MIPI_STATUS 0x%08x\n"
+		"  MIPI_IMSC 0x%08x\n",
+		readl(base + CIF_MIPI_CTRL),
+		readl(base + CIF_MIPI_IMG_DATA_SEL),
+		readl(base + CIF_MIPI_STATUS),
+		readl(base + CIF_MIPI_IMSC));
 
 	return 0;
 }
@@ -332,13 +332,12 @@ static int rkisp1_config_cif(struct rkisp1_device *dev)
 	u32 cif_id;
 	int ret;
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "SP streaming = %d, MP streaming = %d\n",
-		 dev->stream[RKISP1_STREAM_SP].streaming,
-		 dev->stream[RKISP1_STREAM_MP].streaming);
+	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
+		dev->stream[RKISP1_STREAM_SP].streaming,
+		dev->stream[RKISP1_STREAM_MP].streaming);
 
 	cif_id = readl(dev->base_addr + CIF_VI_ID);
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "CIF_ID 0x%08x\n", cif_id);
+	dev_dbg(dev->dev, "CIF_ID 0x%08x\n", cif_id);
 
 	ret = rkisp1_config_isp(dev);
 	if (ret < 0)
@@ -357,10 +356,9 @@ static int rkisp1_isp_stop(struct rkisp1_device *dev)
 	void __iomem *base = dev->base_addr;
 	u32 val;
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "SP streaming = %d, MP streaming = %d\n",
-		 dev->stream[RKISP1_STREAM_SP].streaming,
-		 dev->stream[RKISP1_STREAM_MP].streaming);
+	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
+		dev->stream[RKISP1_STREAM_SP].streaming,
+		dev->stream[RKISP1_STREAM_MP].streaming);
 
 	/*
 	 * ISP(mi) stop in mi frame end -> Stop ISP(mipi) ->
@@ -387,13 +385,13 @@ static int rkisp1_isp_stop(struct rkisp1_device *dev)
 
 	readx_poll_timeout(readl, base + CIF_ISP_RIS,
 			   val, val & CIF_ISP_OFF, 20, 100);
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
+	dev_dbg(dev->dev,
 		"streaming(MP:%d, SP:%d), MI_CTRL:%x, ISP_CTRL:%x, MIPI_CTRL:%x\n",
-		 dev->stream[RKISP1_STREAM_SP].streaming,
-		 dev->stream[RKISP1_STREAM_MP].streaming,
-		 readl(base + CIF_MI_CTRL),
-		 readl(base + CIF_ISP_CTRL),
-		 readl(base + CIF_MIPI_CTRL));
+		dev->stream[RKISP1_STREAM_SP].streaming,
+		dev->stream[RKISP1_STREAM_MP].streaming,
+		readl(base + CIF_MI_CTRL),
+		readl(base + CIF_ISP_CTRL),
+		readl(base + CIF_MIPI_CTRL));
 
 	writel(CIF_IRCL_MIPI_SW_RST | CIF_IRCL_ISP_SW_RST, base + CIF_IRCL);
 	writel(0x0, base + CIF_IRCL);
@@ -408,10 +406,9 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 	void __iomem *base = dev->base_addr;
 	u32 val;
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "SP streaming = %d, MP streaming = %d\n",
-		 dev->stream[RKISP1_STREAM_SP].streaming,
-		 dev->stream[RKISP1_STREAM_MP].streaming);
+	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
+		dev->stream[RKISP1_STREAM_SP].streaming,
+		dev->stream[RKISP1_STREAM_MP].streaming);
 
 	/* Activate MIPI */
 	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
@@ -430,14 +427,14 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 	 */
 	usleep_range(1000, 1200);
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "SP streaming = %d, MP streaming = %d MI_CTRL 0x%08x\n"
-		 "  ISP_CTRL 0x%08x MIPI_CTRL 0x%08x\n",
-		 dev->stream[RKISP1_STREAM_SP].streaming,
-		 dev->stream[RKISP1_STREAM_MP].streaming,
-		 readl(base + CIF_MI_CTRL),
-		 readl(base + CIF_ISP_CTRL),
-		 readl(base + CIF_MIPI_CTRL));
+	dev_dbg(dev->dev,
+		"SP streaming = %d, MP streaming = %d MI_CTRL 0x%08x\n"
+		"  ISP_CTRL 0x%08x MIPI_CTRL 0x%08x\n",
+		dev->stream[RKISP1_STREAM_SP].streaming,
+		dev->stream[RKISP1_STREAM_MP].streaming,
+		readl(base + CIF_MI_CTRL),
+		readl(base + CIF_ISP_CTRL),
+		readl(base + CIF_MIPI_CTRL));
 
 	return 0;
 }
@@ -908,9 +905,8 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;
 
-	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev,
-		 "%s: pad: %d sel(%d,%d)/%dx%d\n", __func__, sel->pad,
-		 sel->r.left, sel->r.top, sel->r.width, sel->r.height);
+	dev_dbg(dev->dev, "%s: pad: %d sel(%d,%d)/%dx%d\n", __func__, sel->pad,
+		sel->r.left, sel->r.top, sel->r.width, sel->r.height);
 	rkisp1_isp_sd_try_crop(sd, cfg, sel);
 
 	if (sel->which == V4L2_SUBDEV_FORMAT_TRY) {
@@ -1012,7 +1008,7 @@ static int rkisp1_isp_sd_s_power(struct v4l2_subdev *sd, int on)
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
 	int ret;
 
-	v4l2_dbg(1, rkisp1_debug, &isp_dev->v4l2_dev, "s_power: %d\n", on);
+	dev_dbg(isp_dev->dev, "s_power: %d\n", on);
 
 	if (on) {
 		ret = pm_runtime_get_sync(isp_dev->dev);

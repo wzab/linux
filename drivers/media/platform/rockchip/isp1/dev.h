@@ -59,6 +59,7 @@ struct rkisp1_pipeline {
 struct rkisp1_sensor {
 	struct v4l2_subdev *sd;
 	struct v4l2_mbus_config mbus;
+	unsigned int source_pad;
 	unsigned int lanes;
 	struct phy *dphy;
 	struct list_head list;
@@ -83,7 +84,6 @@ struct rkisp1_device {
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
-	struct v4l2_subdev *subdevs[RKISP1_SD_MAX];
 	struct rkisp1_sensor *active_sensor;
 	struct list_head sensors;
 	struct rkisp1_isp_subdev isp_sdev;
