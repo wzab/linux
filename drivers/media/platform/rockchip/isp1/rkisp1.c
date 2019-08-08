@@ -118,7 +118,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	struct sensor_async_subdev *sensor;
 	struct ispsd_in_fmt *in_fmt;
 
-	sensor = sd_to_sensor(dev->active_sensor);
+	sensor = dev->active_sensor;
 	in_frm = &dev->isp_sdev.in_frm;
 	in_fmt = &dev->isp_sdev.in_fmt;
 	out_fmt = &dev->isp_sdev.out_fmt;
@@ -235,15 +235,14 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 static int rkisp1_config_mipi(struct rkisp1_device *dev)
 {
 	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
-	struct sensor_async_subdev *sensor = sd_to_sensor(dev->active_sensor);
 	void __iomem *base = dev->base_addr;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
 	/*
-	 * sensor->mbus is set in isp or d-phy notifier_bound function
+	 * dev->active_sensor->mbus is set in isp or d-phy notifier_bound function
 	 */
-	switch (sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
+	switch (dev->active_sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
 	case V4L2_MBUS_CSI2_4_LANE:
 		lanes = 4;
 		break;
@@ -296,7 +295,7 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 /* Configure MUX */
 static int rkisp1_config_path(struct rkisp1_device *dev)
 {
-	struct sensor_async_subdev *sensor = sd_to_sensor(dev->active_sensor);
+	struct sensor_async_subdev *sensor = dev->active_sensor;
 	u32 dpcl = readl(dev->base_addr + CIF_VI_DPCL);
 	int ret = 0;
 
@@ -390,7 +389,7 @@ static int rkisp1_isp_stop(struct rkisp1_device *dev)
 /* Mess register operations to start isp */
 static int rkisp1_isp_start(struct rkisp1_device *dev)
 {
-	struct sensor_async_subdev *sensor = sd_to_sensor(dev->active_sensor);
+	struct sensor_async_subdev *sensor = dev->active_sensor;
 	void __iomem *base = dev->base_addr;
 	u32 val;
 
@@ -914,28 +913,26 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 }
 
 static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
-				    struct v4l2_subdev *sd)
+				    struct sensor_async_subdev *sensor)
 {
 	union phy_configure_opts opts = { 0 };
 	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
-	struct sensor_async_subdev *sensor;
 	struct v4l2_ctrl *pixel_rate;
 	s64 pixel_clock;
 
-	pixel_rate = v4l2_ctrl_find(sd->ctrl_handler,
+	pixel_rate = v4l2_ctrl_find(sensor->sd->ctrl_handler,
 				    V4L2_CID_PIXEL_RATE);
 	if (!pixel_rate) {
-		v4l2_warn(sd, "No pixel rate control in subdev\n");
+		v4l2_warn(sensor->sd, "No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
 
 	pixel_clock = v4l2_ctrl_g_ctrl_int64(pixel_rate);
 	if (!pixel_clock) {
-		v4l2_err(sd, "Invalid pixel rate value\n");
+		v4l2_err(sensor->sd, "Invalid pixel rate value\n");
 		return -EINVAL;
 	}
 
-	sensor = sd_to_sensor(sd);
 	phy_mipi_dphy_get_default_config(pixel_clock, isp_sd->in_fmt.bus_width,
 					 sensor->lanes, cfg);
 	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
@@ -945,17 +942,15 @@ static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 	return 0;
 }
 
-static void mipi_csi2_s_stream_stop(struct v4l2_subdev *sd)
+static void mipi_csi2_s_stream_stop(struct sensor_async_subdev *sensor)
 {
-	struct sensor_async_subdev *sensor = sd_to_sensor(sd);
-
 	phy_power_off(sensor->dphy);
 }
 
 static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 {
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
-	struct sensor_async_subdev *sensor;
+	struct v4l2_subdev *sensor_sd;
 	int ret = 0;
 
 	if (!on) {
@@ -966,9 +961,11 @@ static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 		return 0;
 	}
 
-	isp_dev->active_sensor = get_remote_sensor(sd);
-	if (!isp_dev->active_sensor)
+	sensor_sd = get_remote_sensor(sd);
+	if (!sensor_sd)
 		return -ENODEV;
+	isp_dev->active_sensor = container_of(sensor_sd->asd,
+					      struct sensor_async_subdev, asd);
 
 	atomic_set(&isp_dev->isp_sdev.frm_sync_seq, 0);
 	ret = rkisp1_config_cif(isp_dev);
@@ -976,8 +973,7 @@ static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 		return ret;
 
 	/* TODO: support other interfaces */
-	sensor = sd_to_sensor(isp_dev->active_sensor);
-	if (sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
+	if (isp_dev->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
 	ret = mipi_csi2_s_stream_start(&isp_dev->isp_sdev,

@@ -60,13 +60,9 @@ struct sensor_async_subdev {
 	struct v4l2_async_subdev asd;
 	struct v4l2_mbus_config mbus;
 	unsigned int lanes;
+	struct v4l2_subdev *sd;
 	struct phy *dphy;
 };
-
-static inline struct sensor_async_subdev *sd_to_sensor(struct v4l2_subdev *sd)
-{
-	return container_of(sd->asd, struct sensor_async_subdev, asd);
-}
 
 /*
  * struct rkisp1_device - ISP platform device
@@ -87,7 +83,7 @@ struct rkisp1_device {
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
-	struct v4l2_subdev *active_sensor;
+	struct sensor_async_subdev *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream stream[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;

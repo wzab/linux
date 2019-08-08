@@ -265,6 +265,7 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct sensor_async_subdev *s_asd = container_of(asd,
 					struct sensor_async_subdev, asd);
 
+	s_asd->sd = sd;
 	s_asd->dphy = devm_phy_get(isp_dev->dev, "dphy");
 	if (IS_ERR(s_asd->dphy)) {
 		if (PTR_ERR(s_asd->dphy) != -EPROBE_DEFER)
