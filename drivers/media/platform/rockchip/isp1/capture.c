@@ -671,7 +671,7 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 
 	/* The size of Cb,Cr are related to the format */
 	if (mbus_code_xysubs(input_isp_fmt->mbus_code, &xsubs_in, &ysubs_in)) {
-		v4l2_err(&dev->v4l2_dev, "Not xsubs/ysubs found\n");
+		dev_err(dev->dev, "Not xsubs/ysubs found\n");
 		return -EINVAL;
 	}
 	in_c.width = in_y.width / xsubs_in;
@@ -753,7 +753,7 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 	u32 sp_in_fmt;
 
 	if (mbus_code_sp_in_fmt(input_isp_fmt->mbus_code, &sp_in_fmt)) {
-		v4l2_err(&dev->v4l2_dev, "Can't find the input format\n");
+		dev_err(dev->dev, "Can't find the input format\n");
 		return -EINVAL;
 	}
        /*
@@ -935,7 +935,6 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
 	int ret;
 
 	stream->stopping = true;
@@ -943,7 +942,7 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 				 !stream->streaming,
 				 msecs_to_jiffies(1000));
 	if (!ret) {
-		v4l2_warn(v4l2_dev, "waiting on event return error %d\n", ret);
+		dev_warn(dev->dev, "waiting on event return error %d\n", ret);
 		stream->ops->stop_mi(stream);
 		stream->stopping = false;
 		stream->streaming = false;
@@ -1080,9 +1079,9 @@ static int rkisp1_buf_prepare(struct vb2_buffer *vb)
 				stream->out_fmt.height;
 
 		if (vb2_plane_size(vb, i) < size) {
-			v4l2_err(&dev->v4l2_dev,
-				 "User buffer too small (%ld < %ld)\n",
-				 vb2_plane_size(vb, i), size);
+			dev_err(dev->dev,
+				"User buffer too small (%ld < %ld)\n",
+				vb2_plane_size(vb, i), size);
 			return -EINVAL;
 		}
 		vb2_set_plane_payload(vb, i, size);
@@ -1106,8 +1105,8 @@ static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 					      &dummy_buf->dma_addr,
 					      GFP_KERNEL);
 	if (!dummy_buf->vaddr) {
-		v4l2_err(&dev->v4l2_dev,
-			 "Failed to allocate the memory for dummy buffer\n");
+		dev_err(dev->dev,
+			"Failed to allocate the memory for dummy buffer\n");
 		return -ENOMEM;
 	}
 
@@ -1152,7 +1151,6 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	struct rkisp1_stream *stream = queue->drv_priv;
 	struct rkisp1_vdev_node *node = &stream->vnode;
 	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
 	int ret;
 
 	rkisp1_stream_stop(stream);
@@ -1160,22 +1158,21 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	media_pipeline_stop(&node->vdev.entity);
 	ret = dev->pipe.set_stream(&dev->pipe, false);
 	if (ret < 0)
-		v4l2_err(v4l2_dev, "pipeline stream-off failed error:%d\n",
-			 ret);
+		dev_err(dev->dev, "pipeline stream-off failed error:%d\n",
+			ret);
 
 	/* release buffers */
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_ERROR);
 
 	ret = dev->pipe.close(&dev->pipe);
 	if (ret < 0)
-		v4l2_err(v4l2_dev, "pipeline close failed error:%d\n", ret);
+		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
 
 	rkisp1_destroy_dummy_buf(stream);
 }
 
 static int rkisp1_stream_start(struct rkisp1_stream *stream)
 {
-	struct v4l2_device *v4l2_dev = &stream->ispdev->v4l2_dev;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct rkisp1_stream *other = &dev->stream[stream->id ^ 1];
 	bool async = false;
@@ -1186,7 +1183,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 
 	ret = rkisp1_config_rsz(stream, async);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev, "config rsz failed with error %d\n", ret);
+		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
 	}
 
@@ -1196,7 +1193,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	 */
 	ret = rkisp1_config_dcrop(stream, false);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev, "config dcrop failed with error %d\n", ret);
+		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
 		return ret;
 	}
 
@@ -1209,7 +1206,6 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	struct rkisp1_stream *stream = queue->drv_priv;
 	struct rkisp1_vdev_node *node = &stream->vnode;
 	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
 	int ret = -EINVAL;
 
 	if (WARN_ON(stream->streaming))
@@ -1222,14 +1218,14 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	/* enable clocks/power-domains */
 	ret = dev->pipe.open(&dev->pipe, &node->vdev.entity, true);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev, "open cif pipeline failed %d\n", ret);
+		dev_err(dev->dev, "open cif pipeline failed %d\n", ret);
 		goto destroy_dummy_buf;
 	}
 
 	/* configure stream hardware to start */
 	ret = rkisp1_stream_start(stream);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev, "start streaming failed\n");
+		dev_err(dev->dev, "start streaming failed\n");
 		goto close_pipe;
 	}
 
@@ -1240,7 +1236,7 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 
 	ret = media_pipeline_start(&node->vdev.entity, &dev->pipe.pipe);
 	if (ret < 0) {
-		v4l2_err(&dev->v4l2_dev, "start pipeline failed %d\n", ret);
+		dev_err(dev->dev, "start pipeline failed %d\n", ret);
 		goto pipe_stream_off;
 	}
 
@@ -1458,7 +1454,7 @@ static int rkisp1_s_fmt_vid_cap_mplane(struct file *file,
 	struct rkisp1_device *dev = stream->ispdev;
 
 	if (vb2_is_busy(&node->buf_queue)) {
-		v4l2_err(&dev->v4l2_dev, "%s queue busy\n", __func__);
+		dev_err(dev->dev, "%s queue busy\n", __func__);
 		return -EBUSY;
 	}
 
@@ -1548,7 +1544,7 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 		return -EINVAL;
 
 	if (vb2_is_busy(&node->buf_queue)) {
-		v4l2_err(&dev->v4l2_dev, "%s queue busy\n", __func__);
+		dev_err(dev->dev, "%s queue busy\n", __func__);
 		return -EBUSY;
 	}
 
@@ -1593,10 +1589,10 @@ static int rkisp1_vdev_link_validate(struct media_link *link)
 	struct rkisp1_stream *stream = video_get_drvdata(vdev);
 
 	if (stream->out_isp_fmt.fmt_type != isp_sd->out_fmt.fmt_type) {
-		v4l2_err(vdev->v4l2_dev,
-			 "format type mismatch in link '%s:%d->%s:%d'\n",
-			 link->source->entity->name, link->source->index,
-			 link->sink->entity->name, link->sink->index);
+		dev_err(sd->dev,
+			"format type mismatch in link '%s:%d->%s:%d'\n",
+			link->source->entity->name, link->source->index,
+			link->sink->entity->name, link->sink->index);
 		return -EPIPE;
 	}
 	return 0;
@@ -1675,8 +1671,8 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev,
-			 "video_register_device failed with error %d\n", ret);
+		dev_err(dev->dev,
+			"video_register_device failed with error %d\n", ret);
 		return ret;
 	}
 

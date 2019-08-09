@@ -68,7 +68,7 @@ static struct v4l2_subdev *get_remote_sensor(struct v4l2_subdev *sd)
 	local = &sd->entity.pads[RKISP1_ISP_PAD_SINK];
 	remote = media_entity_remote_pad(local);
 	if (!remote) {
-		v4l2_warn(sd, "No link between isp and sensor\n");
+		dev_warn(sd->dev, "No link between isp and sensor\n");
 		return NULL;
 	}
 
@@ -222,7 +222,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 		input_sel = CIF_ISP_ACQ_PROP_IN_SEL_12B;
 		break;
 	default:
-		v4l2_err(&dev->v4l2_dev, "Invalid bus width\n");
+		dev_err(dev->dev, "Invalid bus width\n");
 		return -EINVAL;
 	}
 
@@ -923,13 +923,13 @@ static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 	pixel_rate = v4l2_ctrl_find(sensor->sd->ctrl_handler,
 				    V4L2_CID_PIXEL_RATE);
 	if (!pixel_rate) {
-		v4l2_warn(sensor->sd, "No pixel rate control in subdev\n");
+		dev_warn(sensor->sd->dev, "No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
 
 	pixel_clock = v4l2_ctrl_g_ctrl_int64(pixel_rate);
 	if (!pixel_clock) {
-		v4l2_err(sensor->sd, "Invalid pixel rate value\n");
+		dev_err(sensor->sd->dev, "Invalid pixel rate value\n");
 		return -EINVAL;
 	}
 
@@ -1140,7 +1140,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	sd->grp_id = GRP_ID_ISP;
 	ret = v4l2_device_register_subdev(v4l2_dev, sd);
 	if (ret < 0) {
-		v4l2_err(sd, "Failed to register isp subdev\n");
+		dev_err(sd->dev, "Failed to register isp subdev\n");
 		goto err_cleanup_media_entity;
 	}
 
@@ -1164,7 +1164,6 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 
 void rkisp1_mipi_isr(unsigned int mis, struct rkisp1_device *dev)
 {
-	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
 	void __iomem *base = dev->base_addr;
 	u32 val;
 
@@ -1198,7 +1197,7 @@ void rkisp1_mipi_isr(unsigned int mis, struct rkisp1_device *dev)
 			dev->isp_sdev.dphy_errctrl_disabled = false;
 		}
 	} else {
-		v4l2_warn(v4l2_dev, "MIPI mis error: 0x%08x\n", mis);
+		dev_warn(dev->dev, "MIPI mis error: 0x%08x\n", mis);
 	}
 }
 
@@ -1215,21 +1214,20 @@ void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev)
 		writel(CIF_ISP_V_START, base + CIF_ISP_ICR);
 		isp_mis_tmp = readl(base + CIF_ISP_MIS);
 		if (isp_mis_tmp & CIF_ISP_V_START)
-			v4l2_err(&dev->v4l2_dev, "isp icr v_statr err: 0x%x\n",
-				 isp_mis_tmp);
+			dev_err(dev->dev, "isp icr v_statr err: 0x%x\n",
+				isp_mis_tmp);
 	}
 
 	if (isp_mis & CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
 		writel(CIF_ISP_PIC_SIZE_ERROR, base + CIF_ISP_ICR);
 		isp_err = readl(base + CIF_ISP_ERR);
-		v4l2_err(&dev->v4l2_dev,
-			 "CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
+		dev_err(dev->dev, "CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
 		writel(isp_err, base + CIF_ISP_ERR_CLR);
 	} else if (isp_mis & CIF_ISP_DATA_LOSS) {
 		/* Clear data_loss */
 		writel(CIF_ISP_DATA_LOSS, base + CIF_ISP_ICR);
-		v4l2_err(&dev->v4l2_dev, "CIF_ISP_DATA_LOSS\n");
+		dev_err(dev->dev, "CIF_ISP_DATA_LOSS\n");
 		writel(CIF_ISP_DATA_LOSS, base + CIF_ISP_ICR);
 	}
 
@@ -1238,8 +1236,8 @@ void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev)
 		writel(CIF_ISP_FRAME_IN, base + CIF_ISP_ICR);
 		isp_mis_tmp = readl(base + CIF_ISP_MIS);
 		if (isp_mis_tmp & CIF_ISP_FRAME_IN)
-			v4l2_err(&dev->v4l2_dev, "isp icr frame_in err: 0x%x\n",
-				 isp_mis_tmp);
+			dev_err(dev->dev, "isp icr frame_in err: 0x%x\n",
+				isp_mis_tmp);
 	}
 
 	/* frame was completely put out */
@@ -1249,8 +1247,8 @@ void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev)
 		writel(CIF_ISP_FRAME, base + CIF_ISP_ICR);
 		isp_mis_tmp = readl(base + CIF_ISP_MIS);
 		if (isp_mis_tmp & CIF_ISP_FRAME)
-			v4l2_err(&dev->v4l2_dev,
-				 "isp icr frame end err: 0x%x\n", isp_mis_tmp);
+			dev_err(dev->dev,
+				"isp icr frame end err: 0x%x\n", isp_mis_tmp);
 
 		isp_ris = readl(base + CIF_ISP_RIS);
 		if (isp_ris & (CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN |

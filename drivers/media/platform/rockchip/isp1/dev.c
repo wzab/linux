@@ -158,10 +158,10 @@ static int rkisp1_pipeline_set_stream(struct rkisp1_pipeline *p, bool on)
 		ret = v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream,
 				       true);
 		if (ret && ret != -ENOIOCTLCMD && ret != -ENODEV) {
-			v4l2_err(&dev->v4l2_dev,
-				 "s_stream failed on subdevice %s (%d)\n",
-				 dev->isp_sdev.sd.name,
-				 ret);
+			dev_err(dev->dev,
+				"s_stream failed on subdevice %s (%d)\n",
+				dev->isp_sdev.sd.name,
+				ret);
 			atomic_dec(&p->stream_cnt);
 			return ret;
 		}
@@ -302,7 +302,7 @@ static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 	if (ret < 0)
 		goto unlock;
 
-	v4l2_info(&dev->v4l2_dev, "Async subdev notifier completed\n");
+	dev_info(dev->dev, "Async subdev notifier completed\n");
 
 unlock:
 	mutex_unlock(&dev->media_dev.graph_mutex);
@@ -403,8 +403,8 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 
 	ret = isp_subdev_notifier(dev);
 	if (ret < 0) {
-		v4l2_err(&dev->v4l2_dev,
-			 "Failed to register subdev notifier(%d)\n", ret);
+		dev_err(dev->dev,
+			"Failed to register subdev notifier(%d)\n", ret);
 		goto err_unreg_params_vdev;
 	}
 
@@ -549,8 +549,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 
 	ret = media_device_register(&isp_dev->media_dev);
 	if (ret < 0) {
-		v4l2_err(v4l2_dev, "Failed to register media device: %d\n",
-			 ret);
+		dev_err(dev, "Failed to register media device: %d\n", ret);
 		goto err_unreg_v4l2_dev;
 	}
 

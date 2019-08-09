@@ -299,9 +299,9 @@ rkisp1_stats_send_measurement(struct rkisp1_isp_stats_vdev *stats_vdev,
 
 	cur_frame_id = atomic_read(&stats_vdev->dev->isp_sdev.frm_sync_seq) - 1;
 	if (cur_frame_id != meas_work->frame_id) {
-		v4l2_warn(stats_vdev->vnode.vdev.v4l2_dev,
-			  "Measurement late(%d, %d)\n",
-			  cur_frame_id, meas_work->frame_id);
+		dev_warn(stats_vdev->dev->dev,
+			 "Measurement late(%d, %d)\n",
+			 cur_frame_id, meas_work->frame_id);
 		cur_frame_id = meas_work->frame_id;
 	}
 
@@ -381,9 +381,8 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 	if (isp_mis_tmp &
 		(CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN |
 		 CIF_ISP_EXP_END | CIF_ISP_HIST_MEASURE_RDY))
-		v4l2_err(stats_vdev->vnode.vdev.v4l2_dev,
-			 "isp icr 3A info err: 0x%x\n",
-			 isp_mis_tmp);
+		dev_err(stats_vdev->dev->dev, "isp icr 3A info err: 0x%x\n",
+			isp_mis_tmp);
 
 	if (!stats_vdev->streamon)
 		goto unlock;
@@ -403,8 +402,8 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 					&work->work))
 				kfree(work);
 		} else {
-			v4l2_err(stats_vdev->vnode.vdev.v4l2_dev,
-				 "Could not allocate work\n");
+			dev_err(stats_vdev->dev->dev,
+				"Could not allocate work\n");
 		}
 	}
 
@@ -417,8 +416,8 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 		if (diff_us > g_longest_isr_time)
 			g_longest_isr_time = diff_us;
 
-		v4l2_info(stats_vdev->vnode.vdev.v4l2_dev,
-			  "isp_isr time %d %d\n", diff_us, g_longest_isr_time);
+		dbg_info(stats_vdev->dev->dev,
+			 "isp_isr time %d %d\n", diff_us, g_longest_isr_time);
 	}
 #endif
 
