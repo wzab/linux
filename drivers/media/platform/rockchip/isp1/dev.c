@@ -11,10 +11,10 @@
 #include <linux/of.h>
 #include <linux/of_graph.h>
 #include <linux/of_platform.h>
-#include <linux/pm_runtime.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
+#include <media/v4l2-mc.h>
 
 #include "common.h"
 #include "regs.h"
@@ -64,47 +64,6 @@ static int __isp_pipeline_prepare(struct rkisp1_pipeline *p,
 	return 0;
 }
 
-static int __subdev_set_power(struct v4l2_subdev *sd, int on)
-{
-	int ret;
-
-	if (!sd)
-		return -ENXIO;
-
-	ret = v4l2_subdev_call(sd, core, s_power, on);
-
-	return ret != -ENOIOCTLCMD ? ret : 0;
-}
-
-static int __isp_pipeline_s_power(struct rkisp1_pipeline *p, bool on)
-{
-	struct rkisp1_device *dev = container_of(p, struct rkisp1_device, pipe);
-	int i, ret;
-
-	if (on) {
-		__subdev_set_power(&dev->isp_sdev.sd, true);
-
-		for (i = p->num_subdevs - 1; i >= 0; --i) {
-			ret = __subdev_set_power(p->subdevs[i], true);
-			if (ret < 0 && ret != -ENXIO)
-				goto err_power_off;
-		}
-	} else {
-		for (i = 0; i < p->num_subdevs; ++i)
-			__subdev_set_power(p->subdevs[i], false);
-
-		__subdev_set_power(&dev->isp_sdev.sd, false);
-	}
-
-	return 0;
-
-err_power_off:
-	for (++i; i < p->num_subdevs; ++i)
-		__subdev_set_power(p->subdevs[i], false);
-	__subdev_set_power(&dev->isp_sdev.sd, true);
-	return ret;
-}
-
 static int rkisp1_pipeline_open(struct rkisp1_pipeline *p,
 				struct media_entity *me,
 				bool prepare)
@@ -123,22 +82,20 @@ static int rkisp1_pipeline_open(struct rkisp1_pipeline *p,
 	if (!p->num_subdevs)
 		return -EINVAL;
 
-	ret = __isp_pipeline_s_power(p, 1);
+	ret = v4l2_pipeline_pm_use(me, 1);
 	if (ret < 0)
 		return ret;
 
 	return 0;
 }
 
-static int rkisp1_pipeline_close(struct rkisp1_pipeline *p)
+static int rkisp1_pipeline_close(struct rkisp1_pipeline *p,
+				 struct media_entity *me)
 {
-	int ret;
-
 	if (atomic_dec_return(&p->power_cnt) > 0)
 		return 0;
-	ret = __isp_pipeline_s_power(p, 0);
 
-	return ret == -ENXIO ? 0 : ret;
+	return v4l2_pipeline_pm_use(me, 0);
 }
 
 /*

@@ -48,7 +48,7 @@ struct rkisp1_pipeline {
 	struct v4l2_subdev *subdevs[RKISP1_MAX_PIPELINE];
 	int (*open)(struct rkisp1_pipeline *p,
 		    struct media_entity *me, bool prepare);
-	int (*close)(struct rkisp1_pipeline *p);
+	int (*close)(struct rkisp1_pipeline *p, struct media_entity *me);
 	int (*set_stream)(struct rkisp1_pipeline *p, bool on);
 };
 

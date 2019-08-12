@@ -1164,7 +1164,7 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	/* release buffers */
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_ERROR);
 
-	ret = dev->pipe.close(&dev->pipe);
+	ret = dev->pipe.close(&dev->pipe, &node->vdev.entity);
 	if (ret < 0)
 		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
 
@@ -1247,7 +1247,7 @@ pipe_stream_off:
 stop_stream:
 	rkisp1_stream_stop(stream);
 close_pipe:
-	dev->pipe.close(&dev->pipe);
+	dev->pipe.close(&dev->pipe, &node->vdev.entity);
 destroy_dummy_buf:
 	rkisp1_destroy_dummy_buf(stream);
 return_queued_buf:
