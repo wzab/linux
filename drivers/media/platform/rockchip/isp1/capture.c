@@ -1148,23 +1148,24 @@ static void rkisp1_return_all_buffers(struct rkisp1_stream *stream,
 }
 
 /*
- * rkisp1_pipeline_disable - Walk through the pipeline and call s_stream
+ * rkisp1_pipeline_sink_walk - Walk through the pipeline and call cb
  * @from: entity at which to start pipeline walk
  * @until: entity at which to stop pipeline walk
  *
- * Walk the entities chain starting at the pipeline output video node and stop
+ * Walk the entities chain starting at the pipeline video node and stop
  * all subdevices in the chain.
  *
  * If the until argument isn't NULL, stop the pipeline walk when reaching the
  * until entity. This is used to disable a partially started pipeline due to a
  * subdev start error.
  */
-static int rkisp1_pipeline_disable(struct media_entity *from,
-				   struct media_entity *until)
+static int rkisp1_pipeline_sink_walk(struct media_entity *from,
+				     struct media_entity *until,
+				     int (*cb)(struct media_entity *from,
+					       struct media_entity *curr))
 {
 	struct media_entity *entity = from;
 	struct media_pad *pad;
-	struct v4l2_subdev *subdev;
 	unsigned int i;
 	int ret;
 
@@ -1187,62 +1188,41 @@ static int rkisp1_pipeline_disable(struct media_entity *from,
 		if (entity == until)
 			break;
 
-		subdev = media_entity_to_v4l2_subdev(entity);
-		ret = v4l2_subdev_call(subdev, video, s_stream, false);
-		if (ret < 0) {
-			dev_err(subdev->dev, "%s: could not disable stream.\n",
-				 subdev->name);
+		ret = cb(from, entity);
+		if (ret < 0)
 			return ret;
-		}
 	}
 
 	return 0;
 }
 
-/*
- * rkisp1_pipeline_enable - Walk through the pipeline and call s_stream
- * @from: entity at which to start pipeline walk
- *
- * Walk the entities chain starting at the pipeline output video node and start
- * all subdevices in the chain.
- *
- * TODO: this function is really similar to rkisp1_pipeline_disable(), check if
- * we can manage to merge them.
- */
-static int rkisp1_pipeline_enable(struct media_entity *from)
+static int rkisp1_pipeline_disable_cb(struct media_entity *from,
+				      struct media_entity *curr)
 {
-	struct media_entity *entity = from;
-	struct media_pad *pad;
-	struct v4l2_subdev *subdev;
-	unsigned int i;
+	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(curr);
 	int ret;
 
-	while (1) {
-		pad = NULL;
-		/* Find remote source pad */
-		for (i = 0; i < entity->num_pads; i++) {
-			struct media_pad *spad = &entity->pads[i];
-
-			if (!(spad->flags & MEDIA_PAD_FL_SINK))
-				continue;
-			pad = media_entity_remote_pad(spad);
-			if (pad && is_media_entity_v4l2_subdev(pad->entity))
-				break;
-		}
-		if (!pad || !is_media_entity_v4l2_subdev(pad->entity))
-			break;
-
-		entity = pad->entity;
-		subdev = media_entity_to_v4l2_subdev(entity);
-		ret = v4l2_subdev_call(subdev, video, s_stream, true);
-		if (ret < 0) {
-			dev_err(subdev->dev, "%s: could not enable stream.\n",
-				 subdev->name);
-			rkisp1_pipeline_disable(from, entity);
-			return ret;
-		}
+	ret = v4l2_subdev_call(sd, video, s_stream, false);
+	if (ret < 0) {
+		dev_err(sd->dev, "%s: could not disable stream.\n", sd->name);
+		return ret;
 	}
+	return 0;
+}
 
+static int rkisp1_pipeline_enable_cb(struct media_entity *from,
+				     struct media_entity *curr)
+{
+	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(curr);
+	int ret;
+
+	ret = v4l2_subdev_call(sd, video, s_stream, true);
+	if (ret < 0) {
+		dev_err(sd->dev, "%s: could not enable stream.\n", sd->name);
+		rkisp1_pipeline_sink_walk(from, curr,
+					  rkisp1_pipeline_disable_cb);
+		return ret;
+	}
 	return 0;
 }
 
@@ -1256,7 +1236,8 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	rkisp1_stream_stop(stream);
 	/* call to the other devices */
 	media_pipeline_stop(&node->vdev.entity);
-	ret = rkisp1_pipeline_disable(&node->vdev.entity, NULL);
+	ret = rkisp1_pipeline_sink_walk(&node->vdev.entity, NULL,
+					rkisp1_pipeline_disable_cb);
 	if (ret < 0)
 		dev_err(dev->dev, "pipeline stream-off failed error:%d\n", ret);
 
@@ -1329,7 +1310,8 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	}
 
 	/* start sub-devices */
-	ret = rkisp1_pipeline_enable(entity);
+	ret = rkisp1_pipeline_sink_walk(entity, NULL,
+					rkisp1_pipeline_enable_cb);
 	if (ret < 0)
 		goto stop_stream;
 
@@ -1342,7 +1324,7 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	return 0;
 
 pipe_stream_off:
-	rkisp1_pipeline_disable(entity, NULL);
+	rkisp1_pipeline_sink_walk(entity, NULL, rkisp1_pipeline_disable_cb);
 stop_stream:
 	rkisp1_stream_stop(stream);
 close_pipe:
