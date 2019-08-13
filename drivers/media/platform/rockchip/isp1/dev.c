@@ -14,7 +14,6 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
-#include <media/v4l2-mc.h>
 
 #include "common.h"
 #include "regs.h"
@@ -23,126 +22,6 @@ struct isp_match_data {
 	const char * const *clks;
 	unsigned int size;
 };
-
-/**************************** pipeline operations******************************/
-
-static int __isp_pipeline_prepare(struct rkisp1_pipeline *p,
-				  struct media_entity *me)
-{
-	struct rkisp1_device *dev = container_of(p, struct rkisp1_device, pipe);
-	struct v4l2_subdev *sd;
-	unsigned int i;
-
-	p->num_subdevs = 0;
-	memset(p->subdevs, 0, sizeof(p->subdevs));
-
-	while (1) {
-		struct media_pad *pad = NULL;
-
-		/* Find remote source pad */
-		for (i = 0; i < me->num_pads; i++) {
-			struct media_pad *spad = &me->pads[i];
-
-			if (!(spad->flags & MEDIA_PAD_FL_SINK))
-				continue;
-			pad = media_entity_remote_pad(spad);
-			if (pad)
-				break;
-		}
-
-		if (!pad)
-			break;
-
-		sd = media_entity_to_v4l2_subdev(pad->entity);
-		if (sd != &dev->isp_sdev.sd)
-			p->subdevs[p->num_subdevs++] = sd;
-
-		me = &sd->entity;
-		if (me->num_pads == 1)
-			break;
-	}
-	return 0;
-}
-
-static int rkisp1_pipeline_open(struct rkisp1_pipeline *p,
-				struct media_entity *me,
-				bool prepare)
-{
-	int ret;
-
-	if (WARN_ON(!p || !me))
-		return -EINVAL;
-	if (atomic_inc_return(&p->power_cnt) > 1)
-		return 0;
-
-	/* go through media graphic and get subdevs */
-	if (prepare)
-		__isp_pipeline_prepare(p, me);
-
-	if (!p->num_subdevs)
-		return -EINVAL;
-
-	ret = v4l2_pipeline_pm_use(me, 1);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-static int rkisp1_pipeline_close(struct rkisp1_pipeline *p,
-				 struct media_entity *me)
-{
-	if (atomic_dec_return(&p->power_cnt) > 0)
-		return 0;
-
-	return v4l2_pipeline_pm_use(me, 0);
-}
-
-/*
- * stream-on order: isp_subdev, mipi dphy, sensor
- * stream-off order: mipi dphy, sensor, isp_subdev
- */
-static int rkisp1_pipeline_set_stream(struct rkisp1_pipeline *p, bool on)
-{
-	struct rkisp1_device *dev = container_of(p, struct rkisp1_device, pipe);
-	int i, ret;
-
-	if ((on && atomic_inc_return(&p->stream_cnt) > 1) ||
-	    (!on && atomic_dec_return(&p->stream_cnt) > 0))
-		return 0;
-
-	if (on) {
-		ret = v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream,
-				       true);
-		if (ret && ret != -ENOIOCTLCMD && ret != -ENODEV) {
-			dev_err(dev->dev,
-				"s_stream failed on subdevice %s (%d)\n",
-				dev->isp_sdev.sd.name,
-				ret);
-			atomic_dec(&p->stream_cnt);
-			return ret;
-		}
-	}
-
-	/* phy -> sensor */
-	for (i = 0; i < p->num_subdevs; ++i) {
-		ret = v4l2_subdev_call(p->subdevs[i], video, s_stream, on);
-		if (on && ret < 0 && ret != -ENOIOCTLCMD && ret != -ENODEV)
-			goto err_stream_off;
-	}
-
-	if (!on)
-		v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream, false);
-
-	return 0;
-
-err_stream_off:
-	for (--i; i >= 0; --i)
-		v4l2_subdev_call(p->subdevs[i], video, s_stream, false);
-	v4l2_subdev_call(&dev->isp_sdev.sd, video, s_stream, false);
-	atomic_dec(&p->stream_cnt);
-	return ret;
-}
 
 /***************************** media controller *******************************/
 /* See http://opensource.rock-chips.com/wiki_Rockchip-isp1 for Topology */
@@ -479,12 +358,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 	isp_dev->clk_size = clk_data->size;
-
-	atomic_set(&isp_dev->pipe.power_cnt, 0);
-	atomic_set(&isp_dev->pipe.stream_cnt, 0);
-	isp_dev->pipe.open = rkisp1_pipeline_open;
-	isp_dev->pipe.close = rkisp1_pipeline_close;
-	isp_dev->pipe.set_stream = rkisp1_pipeline_set_stream;
 
 	rkisp1_stream_init(isp_dev, RKISP1_STREAM_SP);
 	rkisp1_stream_init(isp_dev, RKISP1_STREAM_MP);

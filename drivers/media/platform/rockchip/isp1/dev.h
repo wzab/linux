@@ -28,29 +28,6 @@
 #define GRP_ID_ISP_SP			BIT(4)
 
 #define RKISP1_MAX_BUS_CLK	8
-#define RKISP1_MAX_SENSOR	2
-#define RKISP1_MAX_PIPELINE	4
-
-/*
- * struct rkisp1_pipeline - An ISP hardware pipeline
- *
- * Capture device call other devices via pipeline
- *
- * @num_subdevs: number of linked subdevs
- * @power_cnt: pipeline power count
- * @stream_cnt: stream power count
- */
-struct rkisp1_pipeline {
-	struct media_pipeline pipe;
-	int num_subdevs;
-	atomic_t power_cnt;
-	atomic_t stream_cnt;
-	struct v4l2_subdev *subdevs[RKISP1_MAX_PIPELINE];
-	int (*open)(struct rkisp1_pipeline *p,
-		    struct media_entity *me, bool prepare);
-	int (*close)(struct rkisp1_pipeline *p, struct media_entity *me);
-	int (*set_stream)(struct rkisp1_pipeline *p, bool on);
-};
 
 /*
  * struct sensor_async_subdev - Sensor information
@@ -88,7 +65,7 @@ struct rkisp1_device {
 	struct rkisp1_stream stream[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;
 	struct rkisp1_isp_params_vdev params_vdev;
-	struct rkisp1_pipeline pipe;
+	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
 };
 
