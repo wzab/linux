@@ -631,7 +631,7 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 	struct v4l2_rect *input_win;
 
 	/* dual-crop unit get data from isp */
-	input_win = rkisp1_get_isp_sd_win(&dev->isp_sdev);
+	input_win = &dev->isp_sdev.out_crop;
 
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
@@ -1565,7 +1565,7 @@ static int rkisp1_g_selection(struct file *file, void *prv,
 	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
-	input_win = rkisp1_get_isp_sd_win(&dev->isp_sdev);
+	input_win = &dev->isp_sdev.out_crop;
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP_BOUNDS:
@@ -1629,7 +1629,7 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 		return -EBUSY;
 	}
 
-	input_win = rkisp1_get_isp_sd_win(&dev->isp_sdev);
+	input_win = &dev->isp_sdev.out_crop;
 
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;

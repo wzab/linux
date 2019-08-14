@@ -582,10 +582,10 @@ static const struct ispsd_out_fmt rkisp1_isp_output_formats[] = {
 
 static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
 {
-	unsigned int i, array_size = ARRAY_SIZE(rkisp1_isp_input_formats);
 	const struct ispsd_in_fmt *fmt;
+	unsigned int i;
 
-	for (i = 0; i < array_size; i++) {
+	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_input_formats); i++) {
 		fmt = &rkisp1_isp_input_formats[i];
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
@@ -596,10 +596,10 @@ static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
 
 static const struct ispsd_out_fmt *find_out_fmt(u32 mbus_code)
 {
-	unsigned int i, array_size = ARRAY_SIZE(rkisp1_isp_output_formats);
 	const struct ispsd_out_fmt *fmt;
+	unsigned int i;
 
-	for (i = 0; i < array_size; i++) {
+	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_output_formats); i++) {
 		fmt = &rkisp1_isp_output_formats[i];
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
@@ -1081,7 +1081,7 @@ static const struct v4l2_subdev_core_ops rkisp1_isp_core_ops = {
 	.s_power = rkisp1_isp_sd_s_power,
 };
 
-static struct v4l2_subdev_ops rkisp1_isp_sd_ops = {
+static const struct v4l2_subdev_ops rkisp1_isp_sd_ops = {
 	.core = &rkisp1_isp_core_ops,
 	.video = &rkisp1_isp_sd_video_ops,
 	.pad = &rkisp1_isp_sd_pad_ops,
@@ -1121,7 +1121,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	v4l2_subdev_init(sd, &rkisp1_isp_sd_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_sd_media_ops;
-	snprintf(sd->name, sizeof(sd->name), "rkisp1-isp-subdev");
+	strscpy(sd->name, "rkisp1-isp-subdev", sizeof(sd->name));
 
 	isp_sdev->pads[RKISP1_ISP_PAD_SINK].flags =
 		MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;
@@ -1147,8 +1147,10 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	rkisp1_isp_sd_init_default_fmt(isp_sdev);
 
 	return 0;
+
 err_cleanup_media_entity:
 	media_entity_cleanup(&sd->entity);
+
 	return ret;
 }
 

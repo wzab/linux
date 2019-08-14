@@ -96,12 +96,6 @@ struct ispsd_in_fmt *rkisp1_get_ispsd_in_fmt(struct rkisp1_isp_subdev *isp_sdev)
 	return &isp_sdev->in_fmt;
 }
 
-static inline
-struct v4l2_rect *rkisp1_get_isp_sd_win(struct rkisp1_isp_subdev *isp_sdev)
-{
-	return &isp_sdev->out_crop;
-}
-
 static inline struct rkisp1_isp_subdev *sd_to_isp_sd(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct rkisp1_isp_subdev, sd);
