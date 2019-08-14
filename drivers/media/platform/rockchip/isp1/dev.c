@@ -264,19 +264,6 @@ static const char * const rk3399_isp_clks[] = {
 	"hclk_isp_wrap",
 };
 
-static const char * const rk3288_isp_clks[] = {
-	"clk_isp",
-	"aclk_isp",
-	"hclk_isp",
-	"pclk_isp_in",
-	"sclk_isp_jpe",
-};
-
-static const struct isp_match_data rk3288_isp_clk_data = {
-	.clks = rk3288_isp_clks,
-	.size = ARRAY_SIZE(rk3288_isp_clks),
-};
-
 static const struct isp_match_data rk3399_isp_clk_data = {
 	.clks = rk3399_isp_clks,
 	.size = ARRAY_SIZE(rk3399_isp_clks),
@@ -284,9 +271,6 @@ static const struct isp_match_data rk3399_isp_clk_data = {
 
 static const struct of_device_id rkisp1_plat_of_match[] = {
 	{
-		.compatible = "rockchip,rk3288-cif-isp",
-		.data = &rk3288_isp_clk_data,
-	}, {
 		.compatible = "rockchip,rk3399-cif-isp",
 		.data = &rk3399_isp_clk_data,
 	},
