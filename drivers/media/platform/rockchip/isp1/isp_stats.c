@@ -79,7 +79,7 @@ static const struct v4l2_ioctl_ops rkisp1_stats_ioctl = {
 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
 };
 
-struct v4l2_file_operations rkisp1_stats_fops = {
+static const struct v4l2_file_operations rkisp1_stats_fops = {
 	.mmap = vb2_fop_mmap,
 	.unlocked_ioctl = video_ioctl2,
 	.poll = vb2_fop_poll,
@@ -168,7 +168,7 @@ rkisp1_stats_vb2_start_streaming(struct vb2_queue *queue,
 	return 0;
 }
 
-static struct vb2_ops rkisp1_stats_vb2_ops = {
+static const struct vb2_ops rkisp1_stats_vb2_ops = {
 	.queue_setup = rkisp1_stats_vb2_queue_setup,
 	.buf_queue = rkisp1_stats_vb2_buf_queue,
 	.buf_prepare = rkisp1_stats_vb2_buf_prepare,
@@ -296,6 +296,7 @@ rkisp1_stats_send_measurement(struct rkisp1_isp_stats_vdev *stats_vdev,
 	struct rkisp1_stat_buffer *cur_stat_buf;
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
+	u64 timestamp = ktime_get_ns();
 
 	cur_frame_id = atomic_read(&stats_vdev->dev->isp_sdev.frm_sync_seq) - 1;
 	if (cur_frame_id != meas_work->frame_id) {
@@ -344,7 +345,7 @@ rkisp1_stats_send_measurement(struct rkisp1_isp_stats_vdev *stats_vdev,
 	vb2_set_plane_payload(&cur_buf->vb.vb2_buf, 0,
 			      sizeof(struct rkisp1_stat_buffer));
 	cur_buf->vb.sequence = cur_frame_id;
-	cur_buf->vb.vb2_buf.timestamp = ktime_get_ns();
+	cur_buf->vb.vb2_buf.timestamp = timestamp;
 	vb2_buffer_done(&cur_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 }
 
@@ -367,9 +368,6 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 		atomic_read(&stats_vdev->dev->isp_sdev.frm_sync_seq) - 1;
 	struct rkisp1_isp_readout_work *work;
 	unsigned int isp_mis_tmp = 0;
-#ifdef LOG_ISR_EXE_TIME
-	ktime_t in_t = ktime_get();
-#endif
 
 	spin_lock(&stats_vdev->irq_lock);
 
@@ -407,20 +405,6 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 		}
 	}
 
-#ifdef LOG_ISR_EXE_TIME
-	if (isp_ris & (CIF_ISP_EXP_END | CIF_ISP_AWB_DONE |
-		       CIF_ISP_FRAME | CIF_ISP_HIST_MEASURE_RDY)) {
-		unsigned int diff_us =
-				ktime_to_us(ktime_sub(ktime_get(), in_t));
-
-		if (diff_us > g_longest_isr_time)
-			g_longest_isr_time = diff_us;
-
-		dbg_info(stats_vdev->dev->dev,
-			 "isp_isr time %d %d\n", diff_us, g_longest_isr_time);
-	}
-#endif
-
 unlock:
 	spin_unlock(&stats_vdev->irq_lock);
 
@@ -449,7 +433,7 @@ int rkisp1_register_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev,
 	INIT_LIST_HEAD(&stats_vdev->stat);
 	spin_lock_init(&stats_vdev->irq_lock);
 
-	strlcpy(vdev->name, "rkisp1-statistics", sizeof(vdev->name));
+	strscpy(vdev->name, "rkisp1-statistics", sizeof(vdev->name));
 
 	video_set_drvdata(vdev, stats_vdev);
 	vdev->ioctl_ops = &rkisp1_stats_ioctl;
@@ -476,22 +460,24 @@ int rkisp1_register_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev,
 		goto err_cleanup_media_entity;
 	}
 
-	stats_vdev->readout_wq =
-	    alloc_workqueue("measurement_queue",
-			    WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
+	stats_vdev->readout_wq = alloc_workqueue("measurement_queue",
+					        WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
 
 	if (!stats_vdev->readout_wq) {
 		ret = -ENOMEM;
-			goto err_unreg_vdev;
+		goto err_unreg_vdev;
 	}
 
 	return 0;
+
 err_unreg_vdev:
 	video_unregister_device(vdev);
 err_cleanup_media_entity:
 	media_entity_cleanup(&vdev->entity);
 err_release_queue:
 	vb2_queue_release(vdev->queue);
+	mutex_destroy(&node->vlock);
+	mutex_destroy(&stats_vdev->wq_lock);
 	return ret;
 }
 
@@ -504,4 +490,6 @@ void rkisp1_unregister_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev)
 	video_unregister_device(vdev);
 	media_entity_cleanup(&vdev->entity);
 	vb2_queue_release(vdev->queue);
+	mutex_destroy(&node->vlock);
+	mutex_destroy(&stats_vdev->wq_lock);
 }
