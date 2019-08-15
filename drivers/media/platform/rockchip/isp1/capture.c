@@ -6,7 +6,6 @@
  */
 
 #include <linux/delay.h>
-#include <linux/pm_runtime.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-fh.h>

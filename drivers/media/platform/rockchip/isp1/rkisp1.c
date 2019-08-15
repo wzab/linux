@@ -8,7 +8,7 @@
 #include <linux/iopoll.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
-#include <linux/pm_runtime.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/videodev2.h>
 #include <linux/vmalloc.h>
 #include <media/v4l2-event.h>
@@ -996,15 +996,17 @@ static int rkisp1_isp_sd_s_power(struct v4l2_subdev *sd, int on)
 	dev_dbg(isp_dev->dev, "s_power: %d\n", on);
 
 	if (on) {
-		ret = pm_runtime_get_sync(isp_dev->dev);
+		ret = pinctrl_pm_select_default_state(isp_dev->dev);
 		if (ret < 0)
 			return ret;
-
+		ret = clk_bulk_prepare_enable(isp_dev->clk_size, isp_dev->clks);
+		if (ret < 0)
+			return ret;
 		rkisp1_config_clk(isp_dev);
 	} else {
-		ret = pm_runtime_put(isp_dev->dev);
-		if (ret < 0)
-			return ret;
+		clk_bulk_disable_unprepare(isp_dev->clk_size, isp_dev->clks);
+
+		return pinctrl_pm_select_sleep_state(isp_dev->dev);
 	}
 
 	return 0;

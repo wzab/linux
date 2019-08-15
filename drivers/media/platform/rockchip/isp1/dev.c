@@ -11,7 +11,6 @@
 #include <linux/of.h>
 #include <linux/of_graph.h>
 #include <linux/of_platform.h>
-#include <linux/pinctrl/consumer.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
 
@@ -372,8 +371,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err_unreg_media_dev;
 
-	pm_runtime_enable(&pdev->dev);
-
 	return 0;
 
 err_unreg_media_dev:
@@ -387,7 +384,6 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 {
 	struct rkisp1_device *isp_dev = platform_get_drvdata(pdev);
 
-	pm_runtime_disable(&pdev->dev);
 	media_device_unregister(&isp_dev->media_dev);
 	v4l2_async_notifier_unregister(&isp_dev->notifier);
 	v4l2_async_notifier_cleanup(&isp_dev->notifier);
@@ -400,40 +396,10 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int __maybe_unused rkisp1_runtime_suspend(struct device *dev)
-{
-	struct rkisp1_device *isp_dev = dev_get_drvdata(dev);
-
-	clk_bulk_disable_unprepare(isp_dev->clk_size, isp_dev->clks);
-	return pinctrl_pm_select_sleep_state(dev);
-}
-
-static int __maybe_unused rkisp1_runtime_resume(struct device *dev)
-{
-	struct rkisp1_device *isp_dev = dev_get_drvdata(dev);
-	int ret;
-
-	ret = pinctrl_pm_select_default_state(dev);
-	if (ret < 0)
-		return ret;
-	ret = clk_bulk_prepare_enable(isp_dev->clk_size, isp_dev->clks);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-static const struct dev_pm_ops rkisp1_plat_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
-				pm_runtime_force_resume)
-	SET_RUNTIME_PM_OPS(rkisp1_runtime_suspend, rkisp1_runtime_resume, NULL)
-};
-
 static struct platform_driver rkisp1_plat_drv = {
 	.driver = {
 		.name = DRIVER_NAME,
 		.of_match_table = of_match_ptr(rkisp1_plat_of_match),
-		.pm = &rkisp1_plat_pm_ops,
 	},
 	.probe = rkisp1_plat_probe,
 	.remove = rkisp1_plat_remove,
