@@ -1014,7 +1014,7 @@ static int rkisp1_isp_sd_s_power(struct v4l2_subdev *sd, int on)
 
 static int rkisp1_subdev_link_validate(struct media_link *link)
 {
-	if (link->source->index == RKISP1_ISP_PAD_SINK_PARAMS)
+	if (link->sink->index == RKISP1_ISP_PAD_SINK_PARAMS)
 		return 0;
 
 	return v4l2_subdev_link_validate(link);
@@ -1026,12 +1026,12 @@ static int rkisp1_subdev_fmt_link_validate(struct v4l2_subdev *sd,
 					struct v4l2_subdev_format *sink_fmt)
 {
 	if (source_fmt->format.code != sink_fmt->format.code)
-		return -EINVAL;
+		return -EPIPE;
 
 	/* Crop is available */
 	if (source_fmt->format.width < sink_fmt->format.width ||
 	    source_fmt->format.height < sink_fmt->format.height)
-		return -EINVAL;
+		return -EPIPE;
 
 	return 0;
 }
