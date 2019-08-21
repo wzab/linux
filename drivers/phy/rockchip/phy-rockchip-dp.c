@@ -16,12 +16,12 @@
 
 #define GRF_SOC_CON12                           0x0274
 
-#define GRF_EDP_REF_CLK_SEL_INTER_HIWORD_MASK   BIT(20)
-#define GRF_EDP_REF_CLK_SEL_INTER               BIT(4)
+#define GRF_EDP_REF_CLK_SEL_INTER_HIWORD_MASK	BIT(20)
+#define GRF_EDP_REF_CLK_SEL_INTER		BIT(4)
 
-#define GRF_EDP_PHY_SIDDQ_HIWORD_MASK           BIT(21)
-#define GRF_EDP_PHY_SIDDQ_ON                    0
-#define GRF_EDP_PHY_SIDDQ_OFF                   BIT(5)
+#define GRF_EDP_PHY_SIDDQ_HIWORD_MASK		BIT(21)
+#define GRF_EDP_PHY_SIDDQ_ON			0
+#define GRF_EDP_PHY_SIDDQ_OFF			BIT(5)
 
 struct rockchip_dp_phy {
 	struct device  *dev;

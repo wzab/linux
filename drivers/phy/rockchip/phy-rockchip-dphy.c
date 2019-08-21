@@ -36,14 +36,11 @@
 
 #define MAX_DPHY_CLK 8
 
-#define PHY_TESTEN_ADDR			(0x1 << 16)
-#define PHY_TESTEN_DATA			(0x0 << 16)
-#define PHY_TESTCLK			(0x1 << 1)
-#define PHY_TESTCLR			(0x1 << 0)
+#define PHY_TESTEN_ADDR			(1 << 16)
+#define PHY_TESTEN_DATA			(0 << 16)
+#define PHY_TESTCLK			(1 << 1)
+#define PHY_TESTCLR			(1 << 0)
 #define THS_SETTLE_COUNTER_THRESHOLD	0x04
-
-#define HIWORD_UPDATE(val, mask, shift) \
-	((val) << (shift) | (mask) << ((shift) + 16))
 
 #define GRF_SOC_CON12                           0x0274
 
@@ -55,22 +52,22 @@
 #define GRF_EDP_PHY_SIDDQ_OFF                   BIT(5)
 
 struct hsfreq_range {
-	u32 range_h;
+	u16 range_h;
 	u8 cfg_bit;
 };
 
 static const struct hsfreq_range rk3399_mipidphy_hsfreq_ranges[] = {
-	{  89, 0x00}, {  99, 0x10}, { 109, 0x20}, { 129, 0x01},
-	{ 139, 0x11}, { 149, 0x21}, { 169, 0x02}, { 179, 0x12},
-	{ 199, 0x22}, { 219, 0x03}, { 239, 0x13}, { 249, 0x23},
-	{ 269, 0x04}, { 299, 0x14}, { 329, 0x05}, { 359, 0x15},
-	{ 399, 0x25}, { 449, 0x06}, { 499, 0x16}, { 549, 0x07},
-	{ 599, 0x17}, { 649, 0x08}, { 699, 0x18}, { 749, 0x09},
-	{ 799, 0x19}, { 849, 0x29}, { 899, 0x39}, { 949, 0x0a},
-	{ 999, 0x1a}, {1049, 0x2a}, {1099, 0x3a}, {1149, 0x0b},
-	{1199, 0x1b}, {1249, 0x2b}, {1299, 0x3b}, {1349, 0x0c},
-	{1399, 0x1c}, {1449, 0x2c}, {1500, 0x3c}
-};
+	{   89, 0x00 }, {   99, 0x10 }, {  109, 0x20 }, {  129, 0x01 },
+	{  139, 0x11 }, {  149, 0x21 }, {  169, 0x02 }, {  179, 0x12 },
+	{  199, 0x22 }, {  219, 0x03 }, {  239, 0x13 }, {  249, 0x23 },
+	{  269, 0x04 }, {  299, 0x14 }, {  329, 0x05 }, {  359, 0x15 },
+	{  399, 0x25 }, {  449, 0x06 }, {  499, 0x16 }, {  549, 0x07 },
+	{  599, 0x17 }, {  649, 0x08 }, {  699, 0x18 }, {  749, 0x09 },
+	{  799, 0x19 }, {  849, 0x29 }, {  899, 0x39 }, {  949, 0x0a },
+	{  999, 0x1a }, { 1049, 0x2a }, { 1099, 0x3a }, { 1149, 0x0b },
+	{ 1199, 0x1b }, { 1249, 0x2b }, { 1299, 0x3b }, { 1349, 0x0c },
+	{ 1399, 0x1c }, { 1449, 0x2c }, { 1500, 0x3c }
+ };
 
 static const char * const rk3399_mipidphy_clks[] = {
 	"dphy-ref",
@@ -113,9 +110,9 @@ enum dphy_reg_id {
 };
 
 struct dphy_reg {
-	u32 offset;
-	u32 mask;
-	u32 shift;
+	u16 offset;
+	u8 mask;
+	u8 shift;
 };
 
 #define PHY_REG(_offset, _width, _shift) \
@@ -151,9 +148,9 @@ static const struct dphy_reg rk3399_grf_dphy_regs[] = {
 
 struct dphy_drv_data {
 	const char * const *clks;
-	int num_clks;
+	unsigned int num_clks;
 	const struct hsfreq_range *hsfreq_ranges;
-	int num_hsfreq_ranges;
+	unsigned int num_hsfreq_ranges;
 	const struct dphy_reg *regs;
 };
 
@@ -168,10 +165,13 @@ struct rockchip_dphy {
 };
 
 static inline void write_grf_reg(struct rockchip_dphy *priv,
-				 int index, u8 value)
+				 unsigned int index, u8 value)
 {
 	const struct dphy_reg *reg = &priv->grf_regs[index];
-	unsigned int val = HIWORD_UPDATE(value, reg->mask, reg->shift);
+	/* Update high word */
+	unsigned int val = (value << reg->shift) |
+			   (reg->mask << (reg->shift + 16));
+
 
 	WARN_ON(!reg->offset);
 	regmap_write(priv->grf, reg->offset, val);
