@@ -176,8 +176,8 @@ static inline void rk_dphy_write_grf(struct rockchip_dphy *priv,
 	regmap_write(priv->grf, reg->offset, val);
 }
 
-static void rk_dphy_write_dphy0(struct rockchip_dphy *priv,
-				u8 test_code, u8 test_data)
+static void rk_dphy_write_rx(struct rockchip_dphy *priv,
+			     u8 test_code, u8 test_data)
 {
 	/*
 	 * With the falling edge on TESTCLK, the TESTDIN[7:0] signal content
@@ -231,21 +231,21 @@ static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 
 	/* set clock lane */
 	/* HS hsfreq_range & lane 0  settle bypass */
-	rk_dphy_write_dphy0(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane0 */
-	rk_dphy_write_dphy0(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write_rx(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Control of lane1 */
-	rk_dphy_write_dphy0(priv, LANE1_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE1_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane2 */
-	rk_dphy_write_dphy0(priv, LANE2_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE2_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane3 */
-	rk_dphy_write_dphy0(priv, LANE3_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE3_HS_RX_CONTROL, 0);
 	/* HS RX Data Lanes Settle State Time Control */
-	rk_dphy_write_dphy0(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
+	rk_dphy_write_rx(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
 			 THS_SETTLE_COUNTER_THRESHOLD);
 
 	/* Normal operation */
-	rk_dphy_write_dphy0(priv, 0x0, 0);
+	rk_dphy_write_rx(priv, 0x0, 0);
 
 	return 0;
 }
