@@ -1,38 +1,37 @@
 /* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
 /*
- * Rockchip isp1 driver
+ * Rockchip ISP1 userspace API
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
 /*
  * TODO: Improve documentation, mostly regarding abbreviation and hardware
- * specificities.
+ * specificities. Reference: "REF_01 - ISP_user_manual, Rev 2.57" (not public)
  */
 
 #ifndef _UAPI_RKISP1_CONFIG_H
 #define _UAPI_RKISP1_CONFIG_H
 
 #include <linux/types.h>
-#include <linux/v4l2-controls.h>
 
-#define CIFISP_MODULE_DPCC              (1 << 0)
-#define CIFISP_MODULE_BLS               (1 << 1)
-#define CIFISP_MODULE_SDG               (1 << 2)
-#define CIFISP_MODULE_HST               (1 << 3)
-#define CIFISP_MODULE_LSC               (1 << 4)
-#define CIFISP_MODULE_AWB_GAIN          (1 << 5)
-#define CIFISP_MODULE_FLT               (1 << 6)
-#define CIFISP_MODULE_BDM               (1 << 7)
-#define CIFISP_MODULE_CTK               (1 << 8)
-#define CIFISP_MODULE_GOC               (1 << 9)
-#define CIFISP_MODULE_CPROC             (1 << 10)
-#define CIFISP_MODULE_AFC               (1 << 11)
-#define CIFISP_MODULE_AWB               (1 << 12)
-#define CIFISP_MODULE_IE                (1 << 13)
-#define CIFISP_MODULE_AEC               (1 << 14)
-#define CIFISP_MODULE_WDR               (1 << 15)
-#define CIFISP_MODULE_DPF               (1 << 16)
-#define CIFISP_MODULE_DPF_STRENGTH      (1 << 17)
+#define CIFISP_MODULE_DPCC		BIT(0)
+#define CIFISP_MODULE_BLS		BIT(1)
+#define CIFISP_MODULE_SDG		BIT(2)
+#define CIFISP_MODULE_HST		BIT(3)
+#define CIFISP_MODULE_LSC		BIT(4)
+#define CIFISP_MODULE_AWB_GAIN		BIT(5)
+#define CIFISP_MODULE_FLT		BIT(6)
+#define CIFISP_MODULE_BDM		BIT(7)
+#define CIFISP_MODULE_CTK		BIT(8)
+#define CIFISP_MODULE_GOC		BIT(9)
+#define CIFISP_MODULE_CPROC		BIT(10)
+#define CIFISP_MODULE_AFC		BIT(11)
+#define CIFISP_MODULE_AWB		BIT(12)
+#define CIFISP_MODULE_IE		BIT(13)
+#define CIFISP_MODULE_AEC		BIT(14)
+#define CIFISP_MODULE_WDR		BIT(15)
+#define CIFISP_MODULE_DPF		BIT(16)
+#define CIFISP_MODULE_DPF_STRENGTH	BIT(17)
 
 #define CIFISP_CTK_COEFF_MAX            0x100
 #define CIFISP_CTK_OFFSET_MAX           0x800
@@ -42,27 +41,27 @@
 #define CIFISP_AFM_MAX_WINDOWS          3
 #define CIFISP_DEGAMMA_CURVE_SIZE       17
 
-#define CIFISP_BDM_MAX_TH               0xFF
+#define CIFISP_BDM_MAX_TH               0xff
 
 /*
  * Black level compensation
  */
 /* maximum value for horizontal start address */
-#define CIFISP_BLS_START_H_MAX             0x00000FFF
+#define CIFISP_BLS_START_H_MAX             0x00000fff
 /* maximum value for horizontal stop address */
-#define CIFISP_BLS_STOP_H_MAX              0x00000FFF
+#define CIFISP_BLS_STOP_H_MAX              0x00000fff
 /* maximum value for vertical start address */
-#define CIFISP_BLS_START_V_MAX             0x00000FFF
+#define CIFISP_BLS_START_V_MAX             0x00000fff
 /* maximum value for vertical stop address */
-#define CIFISP_BLS_STOP_V_MAX              0x00000FFF
+#define CIFISP_BLS_STOP_V_MAX              0x00000fff
 /* maximum is 2^18 = 262144*/
 #define CIFISP_BLS_SAMPLES_MAX             0x00000012
 /* maximum value for fixed black level */
-#define CIFISP_BLS_FIX_SUB_MAX             0x00000FFF
+#define CIFISP_BLS_FIX_SUB_MAX             0x00000fff
 /* minimum value for fixed black level */
-#define CIFISP_BLS_FIX_SUB_MIN             0xFFFFF000
+#define CIFISP_BLS_FIX_SUB_MIN             0xfffff000
 /* 13 bit range (signed)*/
-#define CIFISP_BLS_FIX_MASK                0x00001FFF
+#define CIFISP_BLS_FIX_MASK                0x00001fff
 
 /*
  * Automatic white balance measurments
@@ -224,7 +223,7 @@ struct cifisp_dpcc_methods_config {
 } __attribute__ ((packed));
 
 /**
- * struct cifisp_dpcc_methods_config - Configuration used by DPCC
+ * struct cifisp_dpcc_config - Configuration used by DPCC
  *
  * Configuration used by Defect Pixel Cluster Correction
  *
@@ -254,7 +253,7 @@ struct cifisp_gamma_curve_x_axis_pnts {
 } __attribute__ ((packed));
 
 /**
- * struct cifisp_gamma_corr_curve - Configuration used by sensor degamma
+ * struct cifisp_sdg_config - Configuration used by sensor degamma
  *
  * @curve_x: gamma curve point definition axis for x
  * @xa_pnts: x increments
@@ -516,7 +515,7 @@ enum cifisp_dpf_gain_usage {
 };
 
 /**
- * enum cifisp_dpf_gain_usage - dpf gain usage
+ * enum cifisp_dpf_rb_filtersize - Red and blue filter sizes
  * @CIFISP_DPF_RB_FILTERSIZE_13x9: red and blue filter kernel size 13x9
  *				   (means 7x5 active pixel)
  * @CIFISP_DPF_RB_FILTERSIZE_9x9: red and blue filter kernel size 9x9
@@ -695,9 +694,9 @@ struct rkisp1_isp_params_cfg {
 /*---------- PART2: Measurement Statistics ------------*/
 
 /**
- * struct cifisp_bls_meas_val - AWB measured values
+ * struct cifisp_awb_meas - AWB measured values
  *
- * @cnt: White pixel count, number of "white pixels" found during laster
+ * @cnt: White pixel count, number of "white pixels" found during last
  *	 measurement
  * @mean_y_or_g: Mean value of Y within window and frames,
  *		 Green if RGB is selected.
