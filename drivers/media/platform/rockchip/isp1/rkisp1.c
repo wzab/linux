@@ -386,6 +386,15 @@ static int rkisp1_isp_stop(struct rkisp1_device *dev)
 	return 0;
 }
 
+static void rkisp1_config_clk(struct rkisp1_device *dev)
+{
+	u32 val = CIF_ICCL_ISP_CLK | CIF_ICCL_CP_CLK | CIF_ICCL_MRSZ_CLK |
+		  CIF_ICCL_SRSZ_CLK | CIF_ICCL_JPEG_CLK | CIF_ICCL_MI_CLK |
+		  CIF_ICCL_IE_CLK | CIF_ICCL_MIPI_CLK | CIF_ICCL_DCROP_CLK;
+
+	writel(val, dev->base_addr + CIF_ICCL);
+}
+
 /* Mess register operations to start isp */
 static int rkisp1_isp_start(struct rkisp1_device *dev)
 {
@@ -396,6 +405,8 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
 		dev->stream[RKISP1_STREAM_SP].streaming,
 		dev->stream[RKISP1_STREAM_MP].streaming);
+
+	rkisp1_config_clk(dev);
 
 	/* Activate MIPI */
 	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
@@ -424,15 +435,6 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 		readl(base + CIF_MIPI_CTRL));
 
 	return 0;
-}
-
-static void rkisp1_config_clk(struct rkisp1_device *dev)
-{
-	u32 val = CIF_ICCL_ISP_CLK | CIF_ICCL_CP_CLK | CIF_ICCL_MRSZ_CLK |
-		  CIF_ICCL_SRSZ_CLK | CIF_ICCL_JPEG_CLK | CIF_ICCL_MI_CLK |
-		  CIF_ICCL_IE_CLK | CIF_ICCL_MIPI_CLK | CIF_ICCL_DCROP_CLK;
-
-	writel(val, dev->base_addr + CIF_ICCL);
 }
 
 /***************************** isp sub-devs *******************************/
@@ -988,28 +990,6 @@ static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 	return ret;
 }
 
-static int rkisp1_isp_sd_s_power(struct v4l2_subdev *sd, int on)
-{
-	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
-	int ret;
-
-	dev_dbg(isp_dev->dev, "s_power: %d\n", on);
-
-	if (on) {
-		ret = pm_runtime_get_sync(isp_dev->dev);
-		if (ret < 0)
-			return ret;
-
-		rkisp1_config_clk(isp_dev);
-	} else {
-		ret = pm_runtime_put(isp_dev->dev);
-		if (ret < 0)
-			return ret;
-	}
-
-	return 0;
-}
-
 static int rkisp1_subdev_link_validate(struct media_link *link)
 {
 	if (link->sink->index == RKISP1_ISP_PAD_SINK_PARAMS)
@@ -1078,7 +1058,6 @@ static const struct v4l2_subdev_video_ops rkisp1_isp_sd_video_ops = {
 static const struct v4l2_subdev_core_ops rkisp1_isp_core_ops = {
 	.subscribe_event = rkisp1_isp_sd_subs_evt,
 	.unsubscribe_event = v4l2_event_subdev_unsubscribe,
-	.s_power = rkisp1_isp_sd_s_power,
 };
 
 static const struct v4l2_subdev_ops rkisp1_isp_sd_ops = {

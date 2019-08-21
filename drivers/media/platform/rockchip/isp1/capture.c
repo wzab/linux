@@ -1244,6 +1244,10 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	/* release buffers */
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_ERROR);
 
+	ret = pm_runtime_put(dev->dev);
+	if (ret < 0)
+		dev_err(dev->dev, "power down failed error:%d\n", ret);
+
 	ret = v4l2_pipeline_pm_use(&node->vdev.entity, 0);
 	if (ret < 0)
 		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
@@ -1296,17 +1300,22 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 		goto return_queued_buf;
 
 	/* power up */
+	ret = pm_runtime_get_sync(dev->dev);
+	if (ret < 0) {
+		dev_err(dev->dev, "power up failed %d\n", ret);
+		goto destroy_dummy_buf;
+	}
 	ret = v4l2_pipeline_pm_use(entity, 1);
 	if (ret < 0) {
 		dev_err(dev->dev, "open cif pipeline failed %d\n", ret);
-		goto destroy_dummy_buf;
+		goto close_pipe;
 	}
 
 	/* configure stream hardware to start */
 	ret = rkisp1_stream_start(stream);
 	if (ret < 0) {
 		dev_err(dev->dev, "start streaming failed\n");
-		goto close_pipe;
+		goto power_down;
 	}
 
 	/* start sub-devices */
@@ -1327,6 +1336,8 @@ pipe_stream_off:
 	rkisp1_pipeline_sink_walk(entity, NULL, rkisp1_pipeline_disable_cb);
 stop_stream:
 	rkisp1_stream_stop(stream);
+power_down:
+	pm_runtime_put(dev->dev);
 close_pipe:
 	v4l2_pipeline_pm_use(entity, 0);
 destroy_dummy_buf:
