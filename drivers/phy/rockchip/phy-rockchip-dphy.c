@@ -157,7 +157,6 @@ struct dphy_drv_data {
 struct rockchip_dphy {
 	struct device *dev;
 	struct regmap *grf;
-	const struct dphy_reg *grf_regs;
 	struct clk_bulk_data clks[MAX_DPHY_CLK];
 
 	const struct dphy_drv_data *drv_data;
@@ -167,7 +166,7 @@ struct rockchip_dphy {
 static inline void rk_dphy_write_grf(struct rockchip_dphy *priv,
 				     unsigned int index, u8 value)
 {
-	const struct dphy_reg *reg = &priv->grf_regs[index];
+	const struct dphy_reg *reg = &priv->drv_data->regs[index];
 	/* Update high word */
 	unsigned int val = (value << reg->shift) |
 			   (reg->mask << (reg->shift + 16));
@@ -193,7 +192,7 @@ static void rk_dphy_write_rx(struct rockchip_dphy *priv,
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
 }
 
-static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
+static void rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 {
 	const struct dphy_drv_data *drv_data = priv->drv_data;
 	struct phy_configure_opts_mipi_dphy *config = &priv->config;
@@ -244,8 +243,6 @@ static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 
 	/* Normal operation */
 	rk_dphy_write_rx(priv, 0x0, 0);
-
-	return 0;
 }
 
 static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
@@ -345,7 +342,7 @@ static int rk_dphy_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	if (platform_get_resource(pdev, IORESOURCE_MEM, 0)) {
-		dev_err(&pdev->dev, "Rockchip DPHY driver only suports rx\n");
+		dev_err(dev, "Rockchip DPHY driver only suports RX mode\n");
 		return -EINVAL;
 	}
 
@@ -370,7 +367,6 @@ static int rk_dphy_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	drv_data = of_id->data;
-	priv->grf_regs = drv_data->regs;
 	priv->drv_data = drv_data;
 	for (i = 0; i < drv_data->num_clks; i++)
 		priv->clks[i].id = drv_data->clks[i];
