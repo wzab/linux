@@ -233,11 +233,11 @@ static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 	/* HS RX Control of lane0 */
 	rk_dphy_write_rx(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Control of lane1 */
-	rk_dphy_write_rx(priv, LANE1_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE1_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Control of lane2 */
-	rk_dphy_write_rx(priv, LANE2_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE2_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Control of lane3 */
-	rk_dphy_write_rx(priv, LANE3_HS_RX_CONTROL, 0);
+	rk_dphy_write_rx(priv, LANE3_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Data Lanes Settle State Time Control */
 	rk_dphy_write_rx(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
 			 THS_SETTLE_COUNTER_THRESHOLD);
