@@ -193,7 +193,6 @@ static void rk_dphy_write_dphy0(struct rockchip_dphy *priv,
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
 }
 
-/* should be move to power_on */
 static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 {
 	const struct dphy_drv_data *drv_data = priv->drv_data;
