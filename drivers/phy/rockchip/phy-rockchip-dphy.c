@@ -164,38 +164,37 @@ struct rockchip_dphy {
 	struct phy_configure_opts_mipi_dphy config;
 };
 
-static inline void write_grf_reg(struct rockchip_dphy *priv,
-				 unsigned int index, u8 value)
+static inline void rk_dphy_write_grf(struct rockchip_dphy *priv,
+				     unsigned int index, u8 value)
 {
 	const struct dphy_reg *reg = &priv->grf_regs[index];
 	/* Update high word */
 	unsigned int val = (value << reg->shift) |
 			   (reg->mask << (reg->shift + 16));
 
-
 	WARN_ON(!reg->offset);
 	regmap_write(priv->grf, reg->offset, val);
 }
 
-static void mipidphy0_wr_reg(struct rockchip_dphy *priv,
-			     u8 test_code, u8 test_data)
+static void rk_dphy_write_dphy0(struct rockchip_dphy *priv,
+				u8 test_code, u8 test_data)
 {
 	/*
 	 * With the falling edge on TESTCLK, the TESTDIN[7:0] signal content
 	 * is latched internally as the current test code. Test data is
 	 * programmed internally by rising edge on TESTCLK.
 	 */
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLK, 1);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTDIN, test_code);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTEN, 1);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLK, 0);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTEN, 0);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTDIN, test_data);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLK, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTDIN, test_code);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTEN, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTEN, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTDIN, test_data);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
 }
 
 /* should be move to power_on */
-static int mipidphy_rx_stream_on(struct rockchip_dphy *priv)
+static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 {
 	const struct dphy_drv_data *drv_data = priv->drv_data;
 	const struct hsfreq_range *hsfreq_ranges = drv_data->hsfreq_ranges;
@@ -215,44 +214,44 @@ static int mipidphy_rx_stream_on(struct rockchip_dphy *priv)
 		}
 	}
 
-	write_grf_reg(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
-	write_grf_reg(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
 
 	/* Disable lan turn around, which is ignored in receive mode */
-	write_grf_reg(priv, GRF_DPHY_RX0_TURNREQUEST, 0);
-	write_grf_reg(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNREQUEST, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
 
-	write_grf_reg(priv, GRF_DPHY_RX0_ENABLE, GENMASK(config->lanes - 1, 0));
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_ENABLE, GENMASK(config->lanes - 1, 0));
 
 	/* dphy start */
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLK, 1);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLR, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLR, 1);
 	usleep_range(100, 150);
-	write_grf_reg(priv, GRF_DPHY_RX0_TESTCLR, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLR, 0);
 	usleep_range(100, 150);
 
 	/* set clock lane */
 	/* HS hsfreq_range & lane 0  settle bypass */
-	mipidphy0_wr_reg(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
+	rk_dphy_write_dphy0(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane0 */
-	mipidphy0_wr_reg(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write_dphy0(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
 	/* HS RX Control of lane1 */
-	mipidphy0_wr_reg(priv, LANE1_HS_RX_CONTROL, 0);
+	rk_dphy_write_dphy0(priv, LANE1_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane2 */
-	mipidphy0_wr_reg(priv, LANE2_HS_RX_CONTROL, 0);
+	rk_dphy_write_dphy0(priv, LANE2_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane3 */
-	mipidphy0_wr_reg(priv, LANE3_HS_RX_CONTROL, 0);
+	rk_dphy_write_dphy0(priv, LANE3_HS_RX_CONTROL, 0);
 	/* HS RX Data Lanes Settle State Time Control */
-	mipidphy0_wr_reg(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
+	rk_dphy_write_dphy0(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
 			 THS_SETTLE_COUNTER_THRESHOLD);
 
 	/* Normal operation */
-	mipidphy0_wr_reg(priv, 0x0, 0);
+	rk_dphy_write_dphy0(priv, 0x0, 0);
 
 	return 0;
 }
 
-static int rockchip_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
+static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
 	int ret;
@@ -267,7 +266,7 @@ static int rockchip_dphy_configure(struct phy *phy, union phy_configure_opts *op
 	return 0;
 }
 
-static int rockchip_dphy_power_on(struct phy *phy)
+static int rk_dphy_power_on(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
 	int ret;
@@ -276,10 +275,10 @@ static int rockchip_dphy_power_on(struct phy *phy)
 	if (ret)
 		return ret;
 
-	return mipidphy_rx_stream_on(priv);
+	return rk_dphy_rx_stream_on(priv);
 }
 
-static int rockchip_dphy_power_off(struct phy *phy)
+static int rk_dphy_power_off(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
 
@@ -287,14 +286,14 @@ static int rockchip_dphy_power_off(struct phy *phy)
 	return 0;
 }
 
-static int rockchip_dphy_init(struct phy *phy)
+static int rk_dphy_init(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
 
 	return clk_bulk_prepare(priv->drv_data->num_clks, priv->clks);
 }
 
-static int rockchip_dphy_exit(struct phy *phy)
+static int rk_dphy_exit(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
 
@@ -302,12 +301,12 @@ static int rockchip_dphy_exit(struct phy *phy)
 	return 0;
 }
 
-static const struct phy_ops rockchip_dphy_ops = {
-	.power_on	= rockchip_dphy_power_on,
-	.power_off	= rockchip_dphy_power_off,
-	.init		= rockchip_dphy_init,
-	.exit		= rockchip_dphy_exit,
-	.configure	= rockchip_dphy_configure,
+static const struct phy_ops rk_dphy_ops = {
+	.power_on	= rk_dphy_power_on,
+	.power_off	= rk_dphy_power_off,
+	.init		= rk_dphy_init,
+	.exit		= rk_dphy_exit,
+	.configure	= rk_dphy_configure,
 	.owner		= THIS_MODULE,
 };
 
@@ -319,16 +318,16 @@ static const struct dphy_drv_data rk3399_mipidphy_drv_data = {
 	.regs = rk3399_grf_dphy_regs,
 };
 
-static const struct of_device_id rockchip_dphy_dt_ids[] = {
+static const struct of_device_id rk_dphy_dt_ids[] = {
 	{
 		.compatible = "rockchip,rk3399-mipi-dphy",
 		.data = &rk3399_mipidphy_drv_data,
 	},
 	{}
 };
-MODULE_DEVICE_TABLE(of, rockchip_dphy_dt_ids);
+MODULE_DEVICE_TABLE(of, rk_dphy_dt_ids);
 
-static int rockchip_dphy_probe(struct platform_device *pdev)
+static int rk_dphy_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
@@ -365,7 +364,7 @@ static int rockchip_dphy_probe(struct platform_device *pdev)
 	}
 	priv->grf = grf;
 
-	of_id = of_match_device(rockchip_dphy_dt_ids, dev);
+	of_id = of_match_device(rk_dphy_dt_ids, dev);
 	if (!of_id)
 		return -EINVAL;
 
@@ -378,7 +377,7 @@ static int rockchip_dphy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	phy = devm_phy_create(dev, np, &rockchip_dphy_ops);
+	phy = devm_phy_create(dev, np, &rk_dphy_ops);
 	if (IS_ERR(phy)) {
 		dev_err(dev, "failed to create phy\n");
 		return PTR_ERR(phy);
@@ -390,14 +389,14 @@ static int rockchip_dphy_probe(struct platform_device *pdev)
 	return PTR_ERR_OR_ZERO(phy_provider);
 }
 
-static struct platform_driver rockchip_dphy_driver = {
-	.probe = rockchip_dphy_probe,
+static struct platform_driver rk_dphy_driver = {
+	.probe = rk_dphy_probe,
 	.driver = {
 		.name	= "rockchip-mipi-dphy",
-		.of_match_table = rockchip_dphy_dt_ids,
+		.of_match_table = rk_dphy_dt_ids,
 	},
 };
-module_platform_driver(rockchip_dphy_driver);
+module_platform_driver(rk_dphy_driver);
 
 MODULE_AUTHOR("Ezequiel Garcia <ezequiel@collabora.com>");
 MODULE_DESCRIPTION("Rockchip MIPI Synopsys DPHY driver");
