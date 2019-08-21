@@ -272,12 +272,16 @@ static int rk_dphy_power_on(struct phy *phy)
 	if (ret)
 		return ret;
 
-	return rk_dphy_rx_stream_on(priv);
+	rk_dphy_rx_stream_on(priv);
+
+	return 0;
 }
 
 static int rk_dphy_power_off(struct phy *phy)
 {
 	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_ENABLE, 0);
 
 	clk_bulk_disable(priv->drv_data->num_clks, priv->clks);
 	return 0;
