@@ -116,7 +116,7 @@ static void rkisp1_config_ism(struct rkisp1_device *dev)
 }
 
 /*
- * configure isp blocks with input format, size......
+ * configure ISP blocks with input format, size......
  */
 static int rkisp1_config_isp(struct rkisp1_device *dev)
 {
@@ -322,7 +322,7 @@ static int rkisp1_config_path(struct rkisp1_device *dev)
 	return ret;
 }
 
-/* Hareware configure Entry */
+/* Hardware configure Entry */
 static int rkisp1_config_cif(struct rkisp1_device *dev)
 {
 	u32 cif_id;
@@ -346,7 +346,7 @@ static int rkisp1_config_cif(struct rkisp1_device *dev)
 	return 0;
 }
 
-/* Mess register operations to stop isp */
+/* Mess register operations to stop ISP */
 static int rkisp1_isp_stop(struct rkisp1_device *dev)
 {
 	u32 val;
@@ -403,7 +403,7 @@ static void rkisp1_config_clk(struct rkisp1_device *dev)
 	regwrite(dev, val, CIF_ICCL);
 }
 
-/* Mess register operations to start isp */
+/* Mess register operations to start ISP */
 static int rkisp1_isp_start(struct rkisp1_device *dev)
 {
 	struct sensor_async_subdev *sensor = dev->active_sensor;
@@ -444,7 +444,7 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 	return 0;
 }
 
-/***************************** isp sub-devs *******************************/
+/***************************** ISP sub-devs *******************************/
 
 static const struct ispsd_in_fmt rkisp1_isp_input_formats[] = {
 	{

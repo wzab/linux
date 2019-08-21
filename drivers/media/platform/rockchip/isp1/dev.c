@@ -67,7 +67,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	if (ret < 0)
 		return ret;
 
-	/* create isp internal links */
+	/* create ISP internal links */
 	/* SP links */
 	source = &dev->isp_sdev.sd.entity;
 	sink = &dev->stream[RKISP1_STREAM_SP].vnode.vdev.entity;

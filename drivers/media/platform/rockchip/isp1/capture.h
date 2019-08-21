@@ -121,7 +121,7 @@ struct streams_ops {
 /*
  * struct rkisp1_stream - ISP capture video device
  *
- * @out_isp_fmt: output isp format
+ * @out_isp_fmt: output ISP format
  * @out_fmt: output buffer size
  * @dcrop: coordinates of dual-crop
  *

@@ -630,7 +630,7 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 	struct v4l2_rect *dcrop = &stream->dcrop;
 	struct v4l2_rect *input_win;
 
-	/* dual-crop unit get data from isp */
+	/* dual-crop unit get data from ISP */
 	input_win = &dev->isp_sdev.out_crop;
 
 	if (dcrop->width == input_win->width &&
@@ -953,7 +953,7 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 }
 
 /*
- * Most of registers inside rockchip isp1 have shadow register since
+ * Most of registers inside rockchip ISP1 have shadow register since
  * they must be not changed during processing a frame.
  * Usually, each sub-module updates its shadow register after
  * processing the last pixel of a frame.
