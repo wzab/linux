@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
 /*
- * Rockchip isp1 driver
+ * Rockchip ISP1 Driver - ISP Subdevice header
  *
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
