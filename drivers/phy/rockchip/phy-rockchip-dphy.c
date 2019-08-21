@@ -196,19 +196,17 @@ static void rk_dphy_write_rx(struct rockchip_dphy *priv,
 static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 {
 	const struct dphy_drv_data *drv_data = priv->drv_data;
-	const struct hsfreq_range *hsfreq_ranges = drv_data->hsfreq_ranges;
 	struct phy_configure_opts_mipi_dphy *config = &priv->config;
 	unsigned int i, hsfreq = 0, data_rate_mbps = config->hs_clk_rate;
-	int num_hsfreq_ranges = drv_data->num_hsfreq_ranges;
 
 	do_div(data_rate_mbps, 1000 * 1000);
 
 	dev_dbg(priv->dev, "%s: lanes %d - data_rate_mbps %u\n",
 		__func__, config->lanes, data_rate_mbps);
 
-	for (i = 0; i < num_hsfreq_ranges; i++) {
-		if (hsfreq_ranges[i].range_h >= data_rate_mbps) {
-			hsfreq = hsfreq_ranges[i].cfg_bit;
+	for (i = 0; i < drv_data->num_hsfreq_ranges; i++) {
+		if (drv_data->hsfreq_ranges[i].range_h >= data_rate_mbps) {
+			hsfreq = drv_data->hsfreq_ranges[i].cfg_bit;
 			break;
 		}
 	}
@@ -216,7 +214,7 @@ static int rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
 
-	/* Disable lan turn around, which is ignored in receive mode */
+	/* Disable lane turn around, which is ignored in receive mode */
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNREQUEST, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
 
