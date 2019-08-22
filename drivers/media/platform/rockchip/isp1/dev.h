@@ -38,6 +38,7 @@ struct sensor_async_subdev {
 	struct v4l2_mbus_config mbus;
 	unsigned int lanes;
 	struct v4l2_subdev *sd;
+	struct v4l2_ctrl *pixel_rate_ctrl;
 	struct phy *dphy;
 };
 

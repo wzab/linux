@@ -929,17 +929,14 @@ static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 {
 	union phy_configure_opts opts = { 0 };
 	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
-	struct v4l2_ctrl *pixel_rate;
 	s64 pixel_clock;
 
-	pixel_rate = v4l2_ctrl_find(sensor->sd->ctrl_handler,
-				    V4L2_CID_PIXEL_RATE);
-	if (!pixel_rate) {
+	if (!sensor->pixel_rate_ctrl) {
 		dev_warn(sensor->sd->dev, "No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
 
-	pixel_clock = v4l2_ctrl_g_ctrl_int64(pixel_rate);
+	pixel_clock = v4l2_ctrl_g_ctrl_int64(sensor->pixel_rate_ctrl);
 	if (!pixel_clock) {
 		dev_err(sensor->sd->dev, "Invalid pixel rate value\n");
 		return -EINVAL;

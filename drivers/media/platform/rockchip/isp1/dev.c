@@ -101,6 +101,8 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct sensor_async_subdev *s_asd = container_of(asd,
 					struct sensor_async_subdev, asd);
 
+	s_asd->pixel_rate_ctrl = v4l2_ctrl_find(sd->ctrl_handler,
+						V4L2_CID_PIXEL_RATE);
 	s_asd->sd = sd;
 	s_asd->dphy = devm_phy_get(isp_dev->dev, "dphy");
 	if (IS_ERR(s_asd->dphy)) {
