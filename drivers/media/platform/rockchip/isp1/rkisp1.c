@@ -448,16 +448,16 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 
 static const struct ispsd_in_fmt rkisp1_isp_input_formats[] = {
 	{
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
-		.fmt_type	= FMT_BAYER,
-		.mipi_dt	= CIF_CSI2_DT_RAW10,
-		.bayer_pat	= RAW_BGGR,
-		.bus_width	= 10,
-	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RAW_RGGB,
+		.bus_width	= 10,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
+		.fmt_type	= FMT_BAYER,
+		.mipi_dt	= CIF_CSI2_DT_RAW10,
+		.bayer_pat	= RAW_BGGR,
 		.bus_width	= 10,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
@@ -591,11 +591,11 @@ static const struct ispsd_out_fmt rkisp1_isp_output_formats[] = {
 
 static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
 {
-	const struct ispsd_in_fmt *fmt;
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_input_formats); i++) {
-		fmt = &rkisp1_isp_input_formats[i];
+		const struct ispsd_in_fmt *fmt = &rkisp1_isp_input_formats[i];
+
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
 	}
