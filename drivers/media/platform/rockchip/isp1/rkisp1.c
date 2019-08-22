@@ -25,6 +25,9 @@
 #define CIF_ISP_OUTPUT_W_MIN		CIF_ISP_INPUT_W_MIN
 #define CIF_ISP_OUTPUT_H_MIN		CIF_ISP_INPUT_H_MIN
 
+#define RKISP1_DEF_SINK_PAD_FMT MEDIA_BUS_FMT_SRGGB10_1X10
+#define RKISP1_DEF_SRC_PAD_FMT MEDIA_BUS_FMT_YUYV8_2X8
+
 /*
  * NOTE: MIPI controller and input MUX are also configured in this file,
  * because ISP Subdev is not only describe ISP submodule(input size,format,
@@ -654,7 +657,7 @@ static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
 	mf_in->width = RKISP1_DEFAULT_WIDTH;
 	mf_in->height = RKISP1_DEFAULT_HEIGHT;
 	mf_in->field = V4L2_FIELD_NONE;
-	mf_in->code = rkisp1_isp_input_formats[0].mbus_code;
+	mf_in->code = RKISP1_DEF_SINK_PAD_FMT;
 
 	mf_in_crop = v4l2_subdev_get_try_crop(sd, cfg, RKISP1_ISP_PAD_SINK);
 	mf_in_crop->width = RKISP1_DEFAULT_WIDTH;
@@ -665,7 +668,7 @@ static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
 	mf_out = v4l2_subdev_get_try_format(sd, cfg,
 					    RKISP1_ISP_PAD_SOURCE_PATH);
 	*mf_out = *mf_in;
-	mf_out->code = rkisp1_isp_output_formats[0].mbus_code;
+	mf_out->code = RKISP1_DEF_SRC_PAD_FMT;
 	mf_out->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
 	mf_out_crop = v4l2_subdev_get_try_crop(sd, cfg,
@@ -732,7 +735,7 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 		if (in_fmt)
 			fmt->code = in_fmt->mbus_code;
 		else
-			fmt->code = MEDIA_BUS_FMT_SRGGB10_1X10;
+			fmt->code = RKISP1_DEF_SINK_PAD_FMT;
 		fmt->width  = clamp_t(u32, fmt->width, CIF_ISP_INPUT_W_MIN,
 				      CIF_ISP_INPUT_W_MAX);
 		fmt->height = clamp_t(u32, fmt->height, CIF_ISP_INPUT_H_MIN,
@@ -743,7 +746,7 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 		if (out_fmt)
 			fmt->code = out_fmt->mbus_code;
 		else
-			fmt->code = rkisp1_isp_output_formats[0].mbus_code;
+			fmt->code = RKISP1_DEF_SRC_PAD_FMT;
 		/* window size is set in s_selection */
 		fmt->width  = isp_sd->out_crop.width;
 		fmt->height = isp_sd->out_crop.height;
@@ -1081,7 +1084,7 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 	struct ispsd_in_fmt *in_fmt = &isp_sd->in_fmt;
 	struct ispsd_out_fmt *out_fmt = &isp_sd->out_fmt;
 
-	*in_fmt = rkisp1_isp_input_formats[0];
+	*in_fmt = *find_in_fmt(RKISP1_DEF_SINK_PAD_FMT);
 	in_frm->width = RKISP1_DEFAULT_WIDTH;
 	in_frm->height = RKISP1_DEFAULT_HEIGHT;
 	in_frm->code = in_fmt->mbus_code;
@@ -1093,7 +1096,7 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 
 	/* propagate to source */
 	*out_crop = *in_crop;
-	*out_fmt = rkisp1_isp_output_formats[0];
+	*out_fmt = *find_out_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	isp_sd->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 }
 
