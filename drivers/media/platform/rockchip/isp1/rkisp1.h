@@ -36,10 +36,6 @@ struct rkisp1_out_fmt {
 	u8 fmt_type;
 };
 
-struct rkisp1_ie_config {
-	unsigned int effect;
-};
-
 enum rkisp1_isp_pad {
 	RKISP1_ISP_PAD_SINK,
 	RKISP1_ISP_PAD_SINK_PARAMS,
