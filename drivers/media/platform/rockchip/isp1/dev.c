@@ -51,7 +51,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 		ret = media_create_pad_link(
 				&sd->entity, source_pad,
 				&dev->isp_sdev.sd.entity,
-				RKISP1_ISP_PAD_SINK,
+				RKISP1_ISP_PAD_SINK_VIDEO,
 				list_is_first(&sd->list,
 					      &dev->v4l2_dev.subdevs) ?
 				MEDIA_LNK_FL_ENABLED : 0);
