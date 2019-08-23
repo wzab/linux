@@ -1037,7 +1037,7 @@ static int rkisp1_isp_sd_subs_evt(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	if (sub->type != V4L2_EVENT_FRAME_SYNC)
 		return -EINVAL;
 
-	/* Line number. For now only zero accepted. */
+	/* V4L2_EVENT_FRAME_SYNC doesn't require an id, so zero should be set */
 	if (sub->id != 0)
 		return -EINVAL;
 
@@ -1123,7 +1123,6 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	sd->owner = THIS_MODULE;
 	v4l2_set_subdevdata(sd, isp_dev);
 
-	sd->grp_id = GRP_ID_ISP;
 	ret = v4l2_device_register_subdev(v4l2_dev, sd);
 	if (ret < 0) {
 		dev_err(sd->dev, "Failed to register isp subdev\n");
@@ -1148,9 +1147,9 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 	media_entity_cleanup(&sd->entity);
 }
 
-/****************  Interrupter Handler ****************/
+/****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr(unsigned int mis, struct rkisp1_device *dev)
+void rkisp1_mipi_isr(u32 mis, struct rkisp1_device *dev)
 {
 	u32 val;
 
@@ -1188,7 +1187,7 @@ void rkisp1_mipi_isr(unsigned int mis, struct rkisp1_device *dev)
 	}
 }
 
-void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev)
+void rkisp1_isp_isr(u32 isp_mis, struct rkisp1_device *dev)
 {
 	unsigned int isp_mis_tmp = 0;
 	unsigned int isp_err = 0;

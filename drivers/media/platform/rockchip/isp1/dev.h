@@ -21,12 +21,6 @@
 #define MP_VDEV_NAME DRIVER_NAME   "_mainpath"
 #define DMA_VDEV_NAME DRIVER_NAME  "_dmapath"
 
-#define GRP_ID_SENSOR			BIT(0)
-#define GRP_ID_MIPIPHY			BIT(1)
-#define GRP_ID_ISP			BIT(2)
-#define GRP_ID_ISP_MP			BIT(3)
-#define GRP_ID_ISP_SP			BIT(4)
-
 #define RKISP1_MAX_BUS_CLK	8
 
 /*
