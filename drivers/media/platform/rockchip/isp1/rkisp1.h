@@ -54,9 +54,11 @@ enum rkisp1_isp_pad {
  * @out_fmt: output format
  * @out_crop: output size
  *
- * @dphy_errctrl_disabled: if dphy errctrl is disabled(avoid endless interrupt)
+ * @dphy_errctrl_disabled : if dphy errctrl is disabled (avoid endless interrupt)
  * @frm_sync_seq: frame sequence, to sync frame_id between video devices.
  * @quantization: output quantization
+ *
+ * TODO: remember to document all the fields after refactoring
  */
 struct rkisp1_isp_subdev {
 	struct v4l2_subdev sd;
