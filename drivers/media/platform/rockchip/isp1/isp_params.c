@@ -1171,7 +1171,7 @@ void __isp_isr_meas_config(struct rkisp1_isp_params_vdev *params_vdev,
 
 void rkisp1_params_isr(struct rkisp1_device *dev, u32 isp_mis)
 {
-	struct rkisp1_isp_params_vdev *params_vdev = dev->params_vdev;
+	struct rkisp1_isp_params_vdev *params_vdev = &dev->params_vdev;
 	struct rkisp1_isp_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
@@ -1291,7 +1291,7 @@ void rkisp1_params_config_parameter(struct rkisp1_isp_params_vdev *params_vdev)
 
 /* Not called when the camera active, thus not isr protection. */
 void rkisp1_params_configure_isp(struct rkisp1_isp_params_vdev *params_vdev,
-			  struct ispsd_in_fmt *in_fmt,
+			  struct rkisp1_in_fmt *in_fmt,
 			  enum v4l2_quantization quantization)
 {
 	params_vdev->quantization = quantization;

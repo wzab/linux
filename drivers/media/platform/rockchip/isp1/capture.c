@@ -656,7 +656,7 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
 	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
-	struct ispsd_out_fmt *input_isp_fmt =
+	struct rkisp1_out_fmt *input_isp_fmt =
 			rkisp1_get_ispsd_out_fmt(&dev->isp_sdev);
 	struct v4l2_rect in_y, in_c, out_y, out_c;
 	u32 xsubs_in, ysubs_in, xsubs_out, ysubs_out;
@@ -749,7 +749,7 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 	void __iomem *base = stream->ispdev->base_addr;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
-	struct ispsd_out_fmt *input_isp_fmt =
+	struct rkisp1_out_fmt *input_isp_fmt =
 			rkisp1_get_ispsd_out_fmt(&dev->isp_sdev);
 	u32 sp_in_fmt;
 
@@ -1807,15 +1807,16 @@ err:
 void rkisp1_mi_isr(struct rkisp1_device *dev)
 {
 	unsigned int i;
+	u32 status;
 
-	mis_val = readl(rkisp1_dev->base_addr + CIF_MI_MIS);
-	if (!mis_val)
-		return 0;
+	status = readl(dev->base_addr + CIF_MI_MIS);
+	if (!status)
+		return;
 
 	for (i = 0; i < ARRAY_SIZE(dev->stream); ++i) {
 		struct rkisp1_stream *stream = &dev->stream[i];
 
-		if (!(mis_val & CIF_MI_FRAME(stream)))
+		if (!(status & CIF_MI_FRAME(stream)))
 			continue;
 
 		mi_frame_end_int_clear(stream);

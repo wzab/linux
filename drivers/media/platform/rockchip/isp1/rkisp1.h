@@ -16,13 +16,13 @@
 struct rkisp1_stream;
 
 /*
- * struct ispsd_in_fmt - ISP intput-pad format
+ * struct rkisp1_in_fmt - ISP intput-pad format
  *
  * Translate mbus_code to hardware format values
  *
  * @bus_width: used for parallel
  */
-struct ispsd_in_fmt {
+struct rkisp1_in_fmt {
 	u32 mbus_code;
 	u8 fmt_type;
 	u32 mipi_dt;
@@ -31,7 +31,7 @@ struct ispsd_in_fmt {
 	u8 bus_width;
 };
 
-struct ispsd_out_fmt {
+struct rkisp1_out_fmt {
 	u32 mbus_code;
 	u8 fmt_type;
 };
@@ -66,9 +66,9 @@ struct rkisp1_isp_subdev {
 	struct v4l2_subdev sd;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_mbus_framefmt in_frm;
-	struct ispsd_in_fmt in_fmt;
+	struct rkisp1_in_fmt in_fmt;
 	struct v4l2_rect in_crop;
-	struct ispsd_out_fmt out_fmt;
+	struct rkisp1_out_fmt out_fmt;
 	struct v4l2_rect out_crop;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
@@ -80,18 +80,18 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 
 void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev);
 
-void rkisp1_mipi_isr(unsigned int mipi_mis, struct rkisp1_device *dev);
+void rkisp1_mipi_isr(struct rkisp1_device *dev);
 
-void rkisp1_isp_isr(unsigned int isp_mis, struct rkisp1_device *dev);
+void rkisp1_isp_isr(struct rkisp1_device *dev);
 
 static inline
-struct ispsd_out_fmt *rkisp1_get_ispsd_out_fmt(struct rkisp1_isp_subdev *isp_sdev)
+struct rkisp1_out_fmt *rkisp1_get_ispsd_out_fmt(struct rkisp1_isp_subdev *isp_sdev)
 {
 	return &isp_sdev->out_fmt;
 }
 
 static inline
-struct ispsd_in_fmt *rkisp1_get_ispsd_in_fmt(struct rkisp1_isp_subdev *isp_sdev)
+struct rkisp1_in_fmt *rkisp1_get_ispsd_in_fmt(struct rkisp1_isp_subdev *isp_sdev)
 {
 	return &isp_sdev->in_fmt;
 }

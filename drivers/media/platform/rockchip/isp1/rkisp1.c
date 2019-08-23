@@ -126,9 +126,9 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
 	struct v4l2_rect *out_crop, *in_crop;
 	struct v4l2_mbus_framefmt *in_frm;
-	struct ispsd_out_fmt *out_fmt;
+	struct rkisp1_out_fmt *out_fmt;
 	struct sensor_async_subdev *sensor;
-	struct ispsd_in_fmt *in_fmt;
+	struct rkisp1_in_fmt *in_fmt;
 
 	sensor = dev->active_sensor;
 	in_frm = &dev->isp_sdev.in_frm;
@@ -219,7 +219,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 
 static int rkisp1_config_dvp(struct rkisp1_device *dev)
 {
-	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
 	u32 val, input_sel;
 
 	switch (in_fmt->bus_width) {
@@ -245,7 +245,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 
 static int rkisp1_config_mipi(struct rkisp1_device *dev)
 {
-	struct ispsd_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
@@ -449,7 +449,7 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 
 /***************************** ISP sub-devs *******************************/
 
-static const struct ispsd_in_fmt rkisp1_isp_input_formats[] = {
+static const struct rkisp1_in_fmt rkisp1_isp_input_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
 		.fmt_type	= FMT_BAYER,
@@ -549,7 +549,7 @@ static const struct ispsd_in_fmt rkisp1_isp_input_formats[] = {
 	},
 };
 
-static const struct ispsd_out_fmt rkisp1_isp_output_formats[] = {
+static const struct rkisp1_out_fmt rkisp1_isp_output_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_type	= FMT_YUV,
@@ -592,12 +592,12 @@ static const struct ispsd_out_fmt rkisp1_isp_output_formats[] = {
 	},
 };
 
-static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
+static const struct rkisp1_in_fmt *find_in_fmt(u32 mbus_code)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_input_formats); i++) {
-		const struct ispsd_in_fmt *fmt = &rkisp1_isp_input_formats[i];
+		const struct rkisp1_in_fmt *fmt = &rkisp1_isp_input_formats[i];
 
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
@@ -606,9 +606,9 @@ static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
 	return NULL;
 }
 
-static const struct ispsd_out_fmt *find_out_fmt(u32 mbus_code)
+static const struct rkisp1_out_fmt *find_out_fmt(u32 mbus_code)
 {
-	const struct ispsd_out_fmt *fmt;
+	const struct rkisp1_out_fmt *fmt;
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_output_formats); i++) {
@@ -726,8 +726,8 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 {
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
 	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
-	const struct ispsd_out_fmt *out_fmt;
-	const struct ispsd_in_fmt *in_fmt;
+	const struct rkisp1_out_fmt *out_fmt;
+	const struct rkisp1_in_fmt *in_fmt;
 
 	switch (pad) {
 	case RKISP1_ISP_PAD_SINK:
@@ -782,13 +782,13 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 	}
 
 	if (fmt->pad == RKISP1_ISP_PAD_SINK) {
-		const struct ispsd_in_fmt *in_fmt;
+		const struct rkisp1_in_fmt *in_fmt;
 
 		in_fmt = find_in_fmt(mf->code);
 		isp_sd->in_fmt = *in_fmt;
 		isp_sd->in_frm = *mf;
 	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_PATH) {
-		const struct ispsd_out_fmt *out_fmt;
+		const struct rkisp1_out_fmt *out_fmt;
 
 		/* Ignore width/height */
 		out_fmt = find_out_fmt(mf->code);
@@ -1078,8 +1078,8 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 	struct v4l2_mbus_framefmt *in_frm = &isp_sd->in_frm;
 	struct v4l2_rect *in_crop = &isp_sd->in_crop;
 	struct v4l2_rect *out_crop = &isp_sd->out_crop;
-	struct ispsd_in_fmt *in_fmt = &isp_sd->in_fmt;
-	struct ispsd_out_fmt *out_fmt = &isp_sd->out_fmt;
+	struct rkisp1_in_fmt *in_fmt = &isp_sd->in_fmt;
+	struct rkisp1_out_fmt *out_fmt = &isp_sd->out_fmt;
 
 	*in_fmt = *find_in_fmt(RKISP1_DEF_SINK_PAD_FMT);
 	in_frm->width = RKISP1_DEFAULT_WIDTH;

@@ -14,6 +14,7 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
+#include <media/v4l2-fwnode.h>
 
 #include "common.h"
 #include "regs.h"
