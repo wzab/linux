@@ -627,7 +627,7 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 	unsigned int i = code->index;
 
 	if ((code->pad != RKISP1_ISP_PAD_SINK_VIDEO) &&
-	    (code->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+	    (code->pad != RKISP1_ISP_PAD_SOURCE_VIDEO)) {
 		if (i > 0)
 			return -EINVAL;
 		code->code = MEDIA_BUS_FMT_FIXED;
@@ -666,13 +666,13 @@ static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
 	mf_in_crop->top = 0;
 
 	mf_out = v4l2_subdev_get_try_format(sd, cfg,
-					    RKISP1_ISP_PAD_SOURCE_PATH);
+					    RKISP1_ISP_PAD_SOURCE_VIDEO);
 	*mf_out = *mf_in;
 	mf_out->code = RKISP1_DEF_SRC_PAD_FMT;
 	mf_out->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
 	mf_out_crop = v4l2_subdev_get_try_crop(sd, cfg,
-					       RKISP1_ISP_PAD_SOURCE_PATH);
+					       RKISP1_ISP_PAD_SOURCE_VIDEO);
 	*mf_out_crop = *mf_in_crop;
 
 	return 0;
@@ -686,7 +686,7 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK_VIDEO) &&
-	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH)) {
+	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_VIDEO)) {
 		fmt->format.code = MEDIA_BUS_FMT_FIXED;
 		/*
 		 * NOTE: setting a format here doesn't make much sense
@@ -706,7 +706,7 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 
 	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
 		*mf = isp_sd->in_frm;
-	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_PATH) {
+	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
 		/* format of source pad */
 		*mf = isp_sd->in_frm;
 		mf->code = isp_sd->out_fmt.mbus_code;
@@ -741,7 +741,7 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 		fmt->height = clamp_t(u32, fmt->height, CIF_ISP_INPUT_H_MIN,
 				      CIF_ISP_INPUT_H_MAX);
 		break;
-	case RKISP1_ISP_PAD_SOURCE_PATH:
+	case RKISP1_ISP_PAD_SOURCE_VIDEO:
 		out_fmt = find_out_fmt(fmt->code);
 		if (out_fmt)
 			fmt->code = out_fmt->mbus_code;
@@ -768,7 +768,7 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK_VIDEO) &&
-	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_PATH))
+	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_VIDEO))
 		return rkisp1_isp_sd_get_fmt(sd, cfg, fmt);
 
 	rkisp1_isp_sd_try_fmt(sd, fmt->pad, mf);
@@ -787,7 +787,7 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 		in_fmt = find_in_fmt(mf->code);
 		isp_sd->in_fmt = *in_fmt;
 		isp_sd->in_frm = *mf;
-	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_PATH) {
+	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
 		const struct rkisp1_out_fmt *out_fmt;
 
 		/* Ignore width/height */
@@ -830,7 +830,7 @@ static void rkisp1_isp_sd_try_crop(struct v4l2_subdev *sd,
 		input->height = clamp_t(u32, input->height,
 					CIF_ISP_INPUT_H_MIN,
 					in_frm.height - input->top);
-	} else if (sel->pad == RKISP1_ISP_PAD_SOURCE_PATH) {
+	} else if (sel->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
 		input->left = clamp_t(u32, input->left, 0, in_crop.width);
 		input->top = clamp_t(u32, input->top, 0, in_crop.height);
 		input->width = clamp_t(u32, input->width, CIF_ISP_OUTPUT_W_MIN,
@@ -849,7 +849,7 @@ static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *frm;
 	struct v4l2_rect *rect;
 
-	if (sel->pad != RKISP1_ISP_PAD_SOURCE_PATH &&
+	if (sel->pad != RKISP1_ISP_PAD_SOURCE_VIDEO &&
 	    sel->pad != RKISP1_ISP_PAD_SINK_VIDEO)
 		return -EINVAL;
 
@@ -898,7 +898,7 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 	struct rkisp1_device *dev = sd_to_isp_dev(sd);
 
-	if (sel->pad != RKISP1_ISP_PAD_SOURCE_PATH &&
+	if (sel->pad != RKISP1_ISP_PAD_SOURCE_VIDEO &&
 	    sel->pad != RKISP1_ISP_PAD_SINK_VIDEO)
 		return -EINVAL;
 	if (sel->target != V4L2_SEL_TGT_CROP)
@@ -1112,7 +1112,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	isp_sdev->pads[RKISP1_ISP_PAD_SINK_VIDEO].flags =
 		MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;
 	isp_sdev->pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
-	isp_sdev->pads[RKISP1_ISP_PAD_SOURCE_PATH].flags = MEDIA_PAD_FL_SOURCE;
+	isp_sdev->pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	isp_sdev->pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX,
