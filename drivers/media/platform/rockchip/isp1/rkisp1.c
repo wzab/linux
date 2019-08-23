@@ -1149,9 +1149,13 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 
 /****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr(u32 mis, struct rkisp1_device *dev)
+void rkisp1_mipi_isr(struct rkisp1_device *dev)
 {
-	u32 val;
+	u32 val, status;
+
+	status = regread(dev, CIF_MIPI_MIS);
+	if (!status)
+		return;
 
 	regwrite(dev, ~0, CIF_MIPI_ICR);
 
@@ -1161,7 +1165,7 @@ void rkisp1_mipi_isr(u32 mis, struct rkisp1_device *dev)
 	 * of line state. This time is may be too long and cpu
 	 * is hold in this interrupt.
 	 */
-	if (mis & CIF_MIPI_ERR_CTRL(0x0f)) {
+	if (status & CIF_MIPI_ERR_CTRL(0x0f)) {
 		val = regread(dev, CIF_MIPI_IMSC);
 		regwrite(dev, val & ~CIF_MIPI_ERR_CTRL(0x0f), CIF_MIPI_IMSC);
 		dev->isp_sdev.dphy_errctrl_disabled = true;
@@ -1171,7 +1175,7 @@ void rkisp1_mipi_isr(u32 mis, struct rkisp1_device *dev)
 	 * Enable DPHY errctrl interrupt again, if mipi have receive
 	 * the whole frame without any error.
 	 */
-	if (mis == CIF_MIPI_FRAME_END) {
+	if (status == CIF_MIPI_FRAME_END) {
 		/*
 		 * Enable DPHY errctrl interrupt again, if mipi have receive
 		 * the whole frame without any error.
@@ -1183,33 +1187,36 @@ void rkisp1_mipi_isr(u32 mis, struct rkisp1_device *dev)
 			dev->isp_sdev.dphy_errctrl_disabled = false;
 		}
 	} else {
-		dev_warn(dev->dev, "MIPI mis error: 0x%08x\n", mis);
+		dev_warn(dev->dev, "MIPI status error: 0x%08x\n", status);
 	}
 }
 
-void rkisp1_isp_isr(u32 isp_mis, struct rkisp1_device *dev)
+void rkisp1_isp_isr(struct rkisp1_device *dev)
 {
-	unsigned int isp_mis_tmp = 0;
-	unsigned int isp_err = 0;
+	u32 status, status_aux, isp_err;
+
+	status = regread(dev, CIF_ISP_MIS);
+	if (!status)
+		return;
 
 	/* start edge of v_sync */
-	if (isp_mis & CIF_ISP_V_START) {
+	if (status & CIF_ISP_V_START) {
 		rkisp1_isp_queue_event_sof(&dev->isp_sdev);
 
 		regwrite(dev, CIF_ISP_V_START, CIF_ISP_ICR);
-		isp_mis_tmp = regread(dev, CIF_ISP_MIS);
-		if (isp_mis_tmp & CIF_ISP_V_START)
+		status_aux = regread(dev, CIF_ISP_MIS);
+		if (status_aux & CIF_ISP_V_START)
 			dev_err(dev->dev, "isp icr v_statr err: 0x%x\n",
-				isp_mis_tmp);
+				status_aux);
 	}
 
-	if (isp_mis & CIF_ISP_PIC_SIZE_ERROR) {
+	if (status & CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
 		regwrite(dev, CIF_ISP_PIC_SIZE_ERROR, CIF_ISP_ICR);
 		isp_err = regread(dev, CIF_ISP_ERR);
 		dev_err(dev->dev, "CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
 		regwrite(dev, isp_err, CIF_ISP_ERR_CLR);
-	} else if (isp_mis & CIF_ISP_DATA_LOSS) {
+	} else if (status & CIF_ISP_DATA_LOSS) {
 		/* Clear data_loss */
 		regwrite(dev, CIF_ISP_DATA_LOSS, CIF_ISP_ICR);
 		dev_err(dev->dev, "CIF_ISP_DATA_LOSS\n");
@@ -1217,23 +1224,23 @@ void rkisp1_isp_isr(u32 isp_mis, struct rkisp1_device *dev)
 	}
 
 	/* sampled input frame is complete */
-	if (isp_mis & CIF_ISP_FRAME_IN) {
+	if (status & CIF_ISP_FRAME_IN) {
 		regwrite(dev, CIF_ISP_FRAME_IN, CIF_ISP_ICR);
-		isp_mis_tmp = regread(dev, CIF_ISP_MIS);
-		if (isp_mis_tmp & CIF_ISP_FRAME_IN)
+		status_aux = regread(dev, CIF_ISP_MIS);
+		if (status_aux & CIF_ISP_FRAME_IN)
 			dev_err(dev->dev, "isp icr frame_in err: 0x%x\n",
-				isp_mis_tmp);
+				status_aux);
 	}
 
 	/* frame was completely put out */
-	if (isp_mis & CIF_ISP_FRAME) {
+	if (status & CIF_ISP_FRAME) {
 		u32 isp_ris = 0;
 		/* Clear Frame In (ISP) */
 		regwrite(dev, CIF_ISP_FRAME, CIF_ISP_ICR);
-		isp_mis_tmp = regread(dev, CIF_ISP_MIS);
-		if (isp_mis_tmp & CIF_ISP_FRAME)
+		status_aux = regread(dev, CIF_ISP_MIS);
+		if (status_aux & CIF_ISP_FRAME)
 			dev_err(dev->dev,
-				"isp icr frame end err: 0x%x\n", isp_mis_tmp);
+				"isp icr frame end err: 0x%x\n", status_aux);
 
 		isp_ris = regread(dev, CIF_ISP_RIS);
 		if (isp_ris & (CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN |
@@ -1246,5 +1253,5 @@ void rkisp1_isp_isr(u32 isp_mis, struct rkisp1_device *dev)
 	 * lot of register writes. Do those only one per frame.
 	 * Do the updates in the order of the processing flow.
 	 */
-	rkisp1_params_isr(&dev->params_vdev, isp_mis);
+	rkisp1_params_isr(&dev->params_vdev, status);
 }

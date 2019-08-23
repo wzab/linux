@@ -1804,9 +1804,13 @@ err:
 
 /****************  Interrupter Handler ****************/
 
-void rkisp1_mi_isr(u32 mis_val, struct rkisp1_device *dev)
+void rkisp1_mi_isr(struct rkisp1_device *dev)
 {
 	unsigned int i;
+
+	mis_val = readl(rkisp1_dev->base_addr + CIF_MI_MIS);
+	if (!mis_val)
+		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(dev->stream); ++i) {
 		struct rkisp1_stream *stream = &dev->stream[i];

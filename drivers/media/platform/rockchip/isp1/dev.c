@@ -284,19 +284,10 @@ static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
 {
 	struct device *dev = ctx;
 	struct rkisp1_device *rkisp1_dev = dev_get_drvdata(dev);
-	unsigned int mis_val;
 
-	mis_val = readl(rkisp1_dev->base_addr + CIF_ISP_MIS);
-	if (mis_val)
-		rkisp1_isp_isr(mis_val, rkisp1_dev);
-
-	mis_val = readl(rkisp1_dev->base_addr + CIF_MIPI_MIS);
-	if (mis_val)
-		rkisp1_mipi_isr(mis_val, rkisp1_dev);
-
-	mis_val = readl(rkisp1_dev->base_addr + CIF_MI_MIS);
-	if (mis_val)
-		rkisp1_mi_isr(mis_val, rkisp1_dev);
+	rkisp1_isp_isr(rkisp1_dev);
+	rkisp1_mipi_isr(rkisp1_dev);
+	rkisp1_mi_isr(rkisp1_dev);
 
 	return IRQ_HANDLED;
 }
