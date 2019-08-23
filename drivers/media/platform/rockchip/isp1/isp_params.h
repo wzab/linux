@@ -45,6 +45,6 @@ int rkisp1_register_params_vdev(struct rkisp1_isp_params_vdev *params_vdev,
 
 void rkisp1_unregister_params_vdev(struct rkisp1_isp_params_vdev *params_vdev);
 
-void rkisp1_params_isr(struct rkisp1_isp_params_vdev *params_vdev, u32 isp_mis);
+void rkisp1_params_isr(struct rkisp1_device *dev, u32 isp_mis);
 
 #endif /* _RKISP1_ISP_H */

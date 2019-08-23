@@ -8,8 +8,8 @@
 #ifndef _RKISP1_H
 #define _RKISP1_H
 
-#include <linux/platform_device.h>
-#include <media/v4l2-fwnode.h>
+#include <media/v4l2-ctrls.h>
+#include <media/v4l2-subdev.h>
 
 #include "common.h"
 

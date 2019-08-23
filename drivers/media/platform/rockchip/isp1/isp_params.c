@@ -1169,14 +1169,14 @@ void __isp_isr_meas_config(struct rkisp1_isp_params_vdev *params_vdev,
 	}
 }
 
-void rkisp1_params_isr(struct rkisp1_isp_params_vdev *params_vdev, u32 isp_mis)
+void rkisp1_params_isr(struct rkisp1_device *dev, u32 isp_mis)
 {
+	struct rkisp1_isp_params_vdev *params_vdev = dev->params_vdev;
 	struct rkisp1_isp_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
 
-	cur_frame_id =
-		atomic_read(&params_vdev->dev->isp_sdev.frm_sync_seq) - 1;
+	cur_frame_id = atomic_read(&dev->isp_sdev.frm_sync_seq) - 1;
 
 	spin_lock(&params_vdev->config_lock);
 	if (!params_vdev->streamon) {

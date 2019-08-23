@@ -1253,5 +1253,5 @@ void rkisp1_isp_isr(struct rkisp1_device *dev)
 	 * lot of register writes. Do those only one per frame.
 	 * Do the updates in the order of the processing flow.
 	 */
-	rkisp1_params_isr(&dev->params_vdev, status);
+	rkisp1_params_isr(dev, status);
 }
