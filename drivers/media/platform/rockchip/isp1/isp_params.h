@@ -35,7 +35,7 @@ struct rkisp1_isp_params_vdev {
 
 /* config params before ISP streaming */
 void rkisp1_params_configure_isp(struct rkisp1_isp_params_vdev *params_vdev,
-				 struct rkisp1_in_fmt *in_fmt,
+				 struct rkisp1_fmt *in_fmt,
 				 enum v4l2_quantization quantization);
 void rkisp1_params_disable_isp(struct rkisp1_isp_params_vdev *params_vdev);
 

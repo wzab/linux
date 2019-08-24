@@ -126,9 +126,9 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
 	struct v4l2_rect *out_crop, *in_crop;
 	struct v4l2_mbus_framefmt *in_frm;
-	struct rkisp1_out_fmt *out_fmt;
+	struct rkisp1_fmt *out_fmt;
 	struct sensor_async_subdev *sensor;
-	struct rkisp1_in_fmt *in_fmt;
+	struct rkisp1_fmt *in_fmt;
 
 	sensor = dev->active_sensor;
 	in_frm = &dev->isp_sdev.in_frm;
@@ -219,7 +219,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 
 static int rkisp1_config_dvp(struct rkisp1_device *dev)
 {
-	struct rkisp1_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_fmt *in_fmt = &dev->isp_sdev.in_fmt;
 	u32 val, input_sel;
 
 	switch (in_fmt->bus_width) {
@@ -245,7 +245,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 
 static int rkisp1_config_mipi(struct rkisp1_device *dev)
 {
-	struct rkisp1_in_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	struct rkisp1_fmt *in_fmt = &dev->isp_sdev.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
@@ -449,170 +449,133 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 
 /***************************** ISP sub-devs *******************************/
 
-static const struct rkisp1_in_fmt rkisp1_isp_input_formats[] = {
+static const struct rkisp1_fmt rkisp1_isp_formats[] = {
 	{
+		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
+		.fmt_type	= FMT_YUV,
+		.direction	= RKISP1_DIR_OUT,
+	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RAW_RGGB,
 		.bus_width	= 10,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RAW_BGGR,
 		.bus_width	= 10,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RAW_GBRG,
 		.bus_width	= 10,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RAW_GRBG,
 		.bus_width	= 10,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW12,
 		.bayer_pat	= RAW_RGGB,
 		.bus_width	= 12,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW12,
 		.bayer_pat	= RAW_BGGR,
 		.bus_width	= 12,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW12,
 		.bayer_pat	= RAW_GBRG,
 		.bus_width	= 12,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW12,
 		.bayer_pat	= RAW_GRBG,
 		.bus_width	= 12,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW8,
 		.bayer_pat	= RAW_RGGB,
 		.bus_width	= 8,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW8,
 		.bayer_pat	= RAW_BGGR,
 		.bus_width	= 8,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW8,
 		.bayer_pat	= RAW_GBRG,
 		.bus_width	= 8,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
 		.fmt_type	= FMT_BAYER,
 		.mipi_dt	= CIF_CSI2_DT_RAW8,
 		.bayer_pat	= RAW_GRBG,
 		.bus_width	= 8,
+		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
 		.fmt_type	= FMT_YUV,
 		.mipi_dt	= CIF_CSI2_DT_YUV422_8b,
 		.yuv_seq	= CIF_ISP_ACQ_PROP_YCBYCR,
 		.bus_width	= 16,
+		.direction	= RKISP1_DIR_IN,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YVYU8_1X16,
 		.fmt_type	= FMT_YUV,
 		.mipi_dt	= CIF_CSI2_DT_YUV422_8b,
 		.yuv_seq	= CIF_ISP_ACQ_PROP_YCRYCB,
 		.bus_width	= 16,
+		.direction	= RKISP1_DIR_IN,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 		.fmt_type	= FMT_YUV,
 		.mipi_dt	= CIF_CSI2_DT_YUV422_8b,
 		.yuv_seq	= CIF_ISP_ACQ_PROP_CBYCRY,
 		.bus_width	= 16,
+		.direction	= RKISP1_DIR_IN,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_VYUY8_1X16,
 		.fmt_type	= FMT_YUV,
 		.mipi_dt	= CIF_CSI2_DT_YUV422_8b,
 		.yuv_seq	= CIF_ISP_ACQ_PROP_CRYCBY,
 		.bus_width	= 16,
+		.direction	= RKISP1_DIR_IN,
 	},
 };
 
-static const struct rkisp1_out_fmt rkisp1_isp_output_formats[] = {
-	{
-		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
-		.fmt_type	= FMT_YUV,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
-		.fmt_type	= FMT_BAYER,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
-		.fmt_type	= FMT_BAYER,
-	},
-};
-
-static const struct rkisp1_in_fmt *find_in_fmt(u32 mbus_code)
+static const struct rkisp1_fmt *find_fmt(u32 mbus_code)
 {
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_input_formats); i++) {
-		const struct rkisp1_in_fmt *fmt = &rkisp1_isp_input_formats[i];
+	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_formats); i++) {
+		const struct rkisp1_fmt *fmt = &rkisp1_isp_formats[i];
 
-		if (fmt->mbus_code == mbus_code)
-			return fmt;
-	}
-
-	return NULL;
-}
-
-static const struct rkisp1_out_fmt *find_out_fmt(u32 mbus_code)
-{
-	const struct rkisp1_out_fmt *fmt;
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_output_formats); i++) {
-		fmt = &rkisp1_isp_output_formats[i];
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
 	}
@@ -624,27 +587,36 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_mbus_code_enum *code)
 {
-	unsigned int i = code->index;
+	unsigned int i, dir;
+	int pos = 0;
 
-	if ((code->pad != RKISP1_ISP_PAD_SINK_VIDEO) &&
-	    (code->pad != RKISP1_ISP_PAD_SOURCE_VIDEO)) {
-		if (i > 0)
+	if (code->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
+		dir = RKISP1_DIR_IN;
+	} else if (code->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
+		dir = RKISP1_DIR_OUT;
+	} else {
+		if (code->index > 0)
 			return -EINVAL;
 		code->code = MEDIA_BUS_FMT_FIXED;
 		return 0;
 	}
 
-	if (code->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
-		if (i >= ARRAY_SIZE(rkisp1_isp_input_formats))
-			return -EINVAL;
-		code->code = rkisp1_isp_input_formats[i].mbus_code;
-	} else {
-		if (i >= ARRAY_SIZE(rkisp1_isp_output_formats))
-			return -EINVAL;
-		code->code = rkisp1_isp_output_formats[i].mbus_code;
+	if (code->index >= ARRAY_SIZE(rkisp1_isp_formats))
+		return -EINVAL;
+
+	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_formats); i++) {
+		const struct rkisp1_fmt *fmt = &rkisp1_isp_formats[i];
+
+		if (fmt->direction & dir)
+			pos++;
+
+		if (code->index == pos - 1) {
+			code->code = fmt->mbus_code;
+			return 0;
+		}
 	}
 
-	return 0;
+	return -EINVAL;
 }
 
 static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
@@ -726,15 +698,11 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 {
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
 	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
-	const struct rkisp1_out_fmt *out_fmt;
-	const struct rkisp1_in_fmt *in_fmt;
+	const struct rkisp1_fmt *rk_fmt = find_fmt(fmt->code);
 
 	switch (pad) {
 	case RKISP1_ISP_PAD_SINK_VIDEO:
-		in_fmt = find_in_fmt(fmt->code);
-		if (in_fmt)
-			fmt->code = in_fmt->mbus_code;
-		else
+		if (!rk_fmt)
 			fmt->code = RKISP1_DEF_SINK_PAD_FMT;
 		fmt->width  = clamp_t(u32, fmt->width, CIF_ISP_INPUT_W_MIN,
 				      CIF_ISP_INPUT_W_MAX);
@@ -742,10 +710,7 @@ static void rkisp1_isp_sd_try_fmt(struct v4l2_subdev *sd,
 				      CIF_ISP_INPUT_H_MAX);
 		break;
 	case RKISP1_ISP_PAD_SOURCE_VIDEO:
-		out_fmt = find_out_fmt(fmt->code);
-		if (out_fmt)
-			fmt->code = out_fmt->mbus_code;
-		else
+		if (!rk_fmt)
 			fmt->code = RKISP1_DEF_SRC_PAD_FMT;
 		/* window size is set in s_selection */
 		fmt->width  = isp_sd->out_crop.width;
@@ -766,6 +731,7 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 	struct rkisp1_device *isp_dev = sd_to_isp_dev(sd);
 	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
+	const struct rkisp1_fmt *rk_fmt;
 
 	if ((fmt->pad != RKISP1_ISP_PAD_SINK_VIDEO) &&
 	    (fmt->pad != RKISP1_ISP_PAD_SOURCE_VIDEO))
@@ -781,18 +747,14 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 		return 0;
 	}
 
-	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
-		const struct rkisp1_in_fmt *in_fmt;
+	rk_fmt = find_fmt(mf->code);
 
-		in_fmt = find_in_fmt(mf->code);
-		isp_sd->in_fmt = *in_fmt;
+	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
+		isp_sd->in_fmt = *rk_fmt;
 		isp_sd->in_frm = *mf;
 	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
-		const struct rkisp1_out_fmt *out_fmt;
-
 		/* Ignore width/height */
-		out_fmt = find_out_fmt(mf->code);
-		isp_sd->out_fmt = *out_fmt;
+		isp_sd->out_fmt = *rk_fmt;
 		/*
 		 * It is quantization for output,
 		 * isp use bt601 limit-range in internal
@@ -1078,10 +1040,10 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 	struct v4l2_mbus_framefmt *in_frm = &isp_sd->in_frm;
 	struct v4l2_rect *in_crop = &isp_sd->in_crop;
 	struct v4l2_rect *out_crop = &isp_sd->out_crop;
-	struct rkisp1_in_fmt *in_fmt = &isp_sd->in_fmt;
-	struct rkisp1_out_fmt *out_fmt = &isp_sd->out_fmt;
+	struct rkisp1_fmt *in_fmt = &isp_sd->in_fmt;
+	struct rkisp1_fmt *out_fmt = &isp_sd->out_fmt;
 
-	*in_fmt = *find_in_fmt(RKISP1_DEF_SINK_PAD_FMT);
+	*in_fmt = *find_fmt(RKISP1_DEF_SINK_PAD_FMT);
 	in_frm->width = RKISP1_DEFAULT_WIDTH;
 	in_frm->height = RKISP1_DEFAULT_HEIGHT;
 	in_frm->code = in_fmt->mbus_code;
@@ -1093,7 +1055,7 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 
 	/* propagate to source */
 	*out_crop = *in_crop;
-	*out_fmt = *find_out_fmt(RKISP1_DEF_SRC_PAD_FMT);
+	*out_fmt = *find_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	isp_sd->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 }
 

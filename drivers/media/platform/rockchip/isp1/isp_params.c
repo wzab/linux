@@ -1291,8 +1291,8 @@ void rkisp1_params_config_parameter(struct rkisp1_isp_params_vdev *params_vdev)
 
 /* Not called when the camera active, thus not isr protection. */
 void rkisp1_params_configure_isp(struct rkisp1_isp_params_vdev *params_vdev,
-			  struct rkisp1_in_fmt *in_fmt,
-			  enum v4l2_quantization quantization)
+				 struct rkisp1_fmt *in_fmt,
+				 enum v4l2_quantization quantization)
 {
 	params_vdev->quantization = quantization;
 	params_vdev->raw_type = in_fmt->bayer_pat;
