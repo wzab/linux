@@ -64,9 +64,9 @@ struct rkisp1_isp_subdev {
 	struct v4l2_subdev sd;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_mbus_framefmt in_frm;
-	struct rkisp1_fmt in_fmt;
+	const struct rkisp1_fmt *in_fmt;
 	struct v4l2_rect in_crop;
-	struct rkisp1_fmt out_fmt;
+	const struct rkisp1_fmt *out_fmt;
 	struct v4l2_rect out_crop;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;

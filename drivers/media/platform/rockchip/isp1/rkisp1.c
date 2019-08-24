@@ -126,14 +126,14 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
 	struct v4l2_rect *out_crop, *in_crop;
 	struct v4l2_mbus_framefmt *in_frm;
-	struct rkisp1_fmt *out_fmt;
+	const struct rkisp1_fmt *out_fmt;
 	struct sensor_async_subdev *sensor;
-	struct rkisp1_fmt *in_fmt;
+	const struct rkisp1_fmt *in_fmt;
 
 	sensor = dev->active_sensor;
 	in_frm = &dev->isp_sdev.in_frm;
-	in_fmt = &dev->isp_sdev.in_fmt;
-	out_fmt = &dev->isp_sdev.out_fmt;
+	in_fmt = dev->isp_sdev.in_fmt;
+	out_fmt = dev->isp_sdev.out_fmt;
 	out_crop = &dev->isp_sdev.out_crop;
 	in_crop = &dev->isp_sdev.in_crop;
 
@@ -219,7 +219,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 
 static int rkisp1_config_dvp(struct rkisp1_device *dev)
 {
-	struct rkisp1_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
 	u32 val, input_sel;
 
 	switch (in_fmt->bus_width) {
@@ -245,7 +245,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 
 static int rkisp1_config_mipi(struct rkisp1_device *dev)
 {
-	struct rkisp1_fmt *in_fmt = &dev->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
@@ -681,7 +681,7 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
 		/* format of source pad */
 		*mf = isp_sd->in_frm;
-		mf->code = isp_sd->out_fmt.mbus_code;
+		mf->code = isp_sd->out_fmt->mbus_code;
 		/* window size of source pad */
 		mf->width = isp_sd->out_crop.width;
 		mf->height = isp_sd->out_crop.height;
@@ -750,11 +750,11 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 	rk_fmt = find_fmt(mf->code);
 
 	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
-		isp_sd->in_fmt = *rk_fmt;
+		isp_sd->in_fmt = rk_fmt;
 		isp_sd->in_frm = *mf;
 	} else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO) {
 		/* Ignore width/height */
-		isp_sd->out_fmt = *rk_fmt;
+		isp_sd->out_fmt = rk_fmt;
 		/*
 		 * It is quantization for output,
 		 * isp use bt601 limit-range in internal
@@ -904,7 +904,7 @@ static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 		return -EINVAL;
 	}
 
-	phy_mipi_dphy_get_default_config(pixel_clock, isp_sd->in_fmt.bus_width,
+	phy_mipi_dphy_get_default_config(pixel_clock, isp_sd->in_fmt->bus_width,
 					 sensor->lanes, cfg);
 	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
 	phy_configure(sensor->dphy, &opts);
@@ -1040,10 +1040,10 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 	struct v4l2_mbus_framefmt *in_frm = &isp_sd->in_frm;
 	struct v4l2_rect *in_crop = &isp_sd->in_crop;
 	struct v4l2_rect *out_crop = &isp_sd->out_crop;
-	struct rkisp1_fmt *in_fmt = &isp_sd->in_fmt;
-	struct rkisp1_fmt *out_fmt = &isp_sd->out_fmt;
+	const struct rkisp1_fmt *in_fmt = isp_sd->in_fmt;
+	const struct rkisp1_fmt *out_fmt = isp_sd->out_fmt;
 
-	*in_fmt = *find_fmt(RKISP1_DEF_SINK_PAD_FMT);
+	in_fmt = find_fmt(RKISP1_DEF_SINK_PAD_FMT);
 	in_frm->width = RKISP1_DEFAULT_WIDTH;
 	in_frm->height = RKISP1_DEFAULT_HEIGHT;
 	in_frm->code = in_fmt->mbus_code;
@@ -1055,7 +1055,7 @@ static void rkisp1_isp_sd_init_default_fmt(struct rkisp1_isp_subdev *isp_sd)
 
 	/* propagate to source */
 	*out_crop = *in_crop;
-	*out_fmt = *find_fmt(RKISP1_DEF_SRC_PAD_FMT);
+	out_fmt = find_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	isp_sd->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 }
 

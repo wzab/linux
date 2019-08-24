@@ -656,7 +656,7 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
 	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
-	struct rkisp1_fmt *input_isp_fmt = &dev->isp_sdev.out_fmt;
+	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
 	u32 xsubs_in, ysubs_in, xsubs_out, ysubs_out;
 
@@ -748,7 +748,7 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 	void __iomem *base = stream->ispdev->base_addr;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
-	struct rkisp1_fmt *input_isp_fmt = &dev->isp_sdev.out_fmt;
+	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
 	u32 sp_in_fmt;
 
 	if (mbus_code_sp_in_fmt(input_isp_fmt->mbus_code, &sp_in_fmt)) {
@@ -1678,7 +1678,7 @@ static int rkisp1_vdev_link_validate(struct media_link *link)
 		media_entity_to_video_device(link->sink->entity);
 	struct rkisp1_stream *stream = video_get_drvdata(vdev);
 
-	if (stream->out_isp_fmt.fmt_type != isp_sd->out_fmt.fmt_type) {
+	if (stream->out_isp_fmt.fmt_type != isp_sd->out_fmt->fmt_type) {
 		dev_err(sd->dev,
 			"format type mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
