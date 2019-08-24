@@ -82,18 +82,6 @@ void rkisp1_mipi_isr(struct rkisp1_device *dev);
 
 void rkisp1_isp_isr(struct rkisp1_device *dev);
 
-static inline
-struct rkisp1_fmt *rkisp1_get_ispsd_out_fmt(struct rkisp1_isp_subdev *isp_sdev)
-{
-	return &isp_sdev->out_fmt;
-}
-
-static inline
-struct rkisp1_fmt *rkisp1_get_ispsd_in_fmt(struct rkisp1_isp_subdev *isp_sdev)
-{
-	return &isp_sdev->in_fmt;
-}
-
 static inline struct rkisp1_isp_subdev *sd_to_isp_sd(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct rkisp1_isp_subdev, sd);

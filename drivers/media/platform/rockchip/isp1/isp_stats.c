@@ -260,8 +260,7 @@ static void rkisp1_stats_get_bls_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 				      struct rkisp1_stat_buffer *pbuf)
 {
 	struct rkisp1_device *dev = stats_vdev->dev;
-	const struct rkisp1_fmt *in_fmt =
-			rkisp1_get_ispsd_in_fmt(&dev->isp_sdev);
+	const struct rkisp1_fmt *in_fmt = &dev->isp_sdev.in_fmt;
 	void __iomem *base = stats_vdev->dev->base_addr;
 	struct cifisp_bls_meas_val *bls_val;
 
