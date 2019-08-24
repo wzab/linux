@@ -63,14 +63,12 @@ enum rkisp1_isp_pad {
 struct rkisp1_isp_subdev {
 	struct v4l2_subdev sd;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
-	struct v4l2_mbus_framefmt in_frm;
+	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
 	const struct rkisp1_fmt *in_fmt;
-	struct v4l2_rect in_crop;
 	const struct rkisp1_fmt *out_fmt;
-	struct v4l2_rect out_crop;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
-	enum v4l2_quantization quantization;
+
 };
 
 int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
