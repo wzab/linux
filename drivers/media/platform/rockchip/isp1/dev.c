@@ -227,6 +227,9 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 	if (ret < 0)
 		return ret;
 
+	rkisp1_stream_init(dev, RKISP1_STREAM_SP);
+	rkisp1_stream_init(dev, RKISP1_STREAM_MP);
+
 	ret = rkisp1_register_stream_vdevs(dev);
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
@@ -337,9 +340,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		return ret;
 	isp_dev->clk_size = clk_data->size;
 
-	rkisp1_stream_init(isp_dev, RKISP1_STREAM_SP);
-	rkisp1_stream_init(isp_dev, RKISP1_STREAM_MP);
-
 	strscpy(isp_dev->media_dev.model, "rkisp1",
 		sizeof(isp_dev->media_dev.model));
 	isp_dev->media_dev.dev = &pdev->dev;
@@ -361,7 +361,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		goto err_unreg_v4l2_dev;
 	}
 
-	/* create & register platefom subdev (from of_node) */
+	/* create & register platform subdev (from of_node) */
 	ret = rkisp1_register_platform_subdevs(isp_dev);
 	if (ret < 0)
 		goto err_unreg_media_dev;

@@ -71,6 +71,15 @@ struct rkisp1_isp_subdev {
 
 };
 
+struct v4l2_mbus_framefmt *
+rkisp1_isp_sd_get_pad_fmt(struct rkisp1_isp_subdev *isp_sd,
+			  struct v4l2_subdev_pad_config *cfg,
+			  unsigned int pad, u32 which);
+
+struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
+					     struct v4l2_subdev_pad_config *cfg,
+					     unsigned int pad, u32 which);
+
 int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 			       struct v4l2_device *v4l2_dev);
 

@@ -628,10 +628,12 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
-	struct v4l2_rect *input_win;
+	const struct v4l2_rect *input_win;
 
 	/* dual-crop unit get data from ISP */
-	input_win = &dev->isp_sdev.out_crop;
+	input_win = rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
+					       RKISP1_ISP_PAD_SINK_VIDEO,
+					       V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
@@ -1386,6 +1388,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	const struct stream_config *config = stream->config;
 	struct rkisp1_stream *other_stream =
 			&stream->ispdev->stream[!stream->id];
+	const struct v4l2_mbus_framefmt *ispsd_frm;
 	unsigned int imagsize = 0;
 	unsigned int planes;
 	u32 xsubs = 1, ysubs = 1;
@@ -1397,6 +1400,11 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 		pixm->pixelformat = fmt->fourcc;
 	}
 
+	// TODO: review try format
+	ispsd_frm = rkisp1_isp_sd_get_pad_fmt(&stream->ispdev->isp_sdev, NULL,
+					      RKISP1_ISP_PAD_SINK_VIDEO,
+					      V4L2_SUBDEV_FORMAT_ACTIVE);
+
 	/* do checks on resolution */
 	pixm->width = clamp_t(u32, pixm->width, config->min_rsz_width,
 			      config->max_rsz_width);
@@ -1407,7 +1415,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
 	/* get quantization from ispsd */
-	pixm->quantization = stream->ispdev->isp_sdev.quantization;
+	pixm->quantization = ispsd_frm->quantization;
 
 	/* output full range by default, take effect in isp_params */
 	if (!pixm->quantization)
@@ -1569,12 +1577,14 @@ static int rkisp1_g_selection(struct file *file, void *prv,
 	struct rkisp1_stream *stream = video_drvdata(file);
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
-	struct v4l2_rect *input_win;
+	const struct v4l2_rect *input_win;
 
 	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
-	input_win = &dev->isp_sdev.out_crop;
+	input_win = rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
+					       RKISP1_ISP_PAD_SINK_VIDEO,
+					       V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP_BOUNDS:
@@ -1638,13 +1648,15 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 		return -EBUSY;
 	}
 
-	input_win = &dev->isp_sdev.out_crop;
-
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;
 
 	if (sel->flags != 0)
 		return -EINVAL;
+
+	input_win = rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
+					       RKISP1_ISP_PAD_SINK_VIDEO,
+					       V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	if (sel->target == V4L2_SEL_TGT_CROP) {
 		*dcrop = *rkisp1_update_crop(stream, &sel->r, input_win);
