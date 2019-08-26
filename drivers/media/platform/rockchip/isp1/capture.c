@@ -1388,22 +1388,14 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	const struct stream_config *config = stream->config;
 	struct rkisp1_stream *other_stream =
 			&stream->ispdev->stream[!stream->id];
-	const struct v4l2_mbus_framefmt *ispsd_frm;
-	unsigned int imagsize = 0;
-	unsigned int planes;
+	unsigned int i, planes, imagsize = 0;
 	u32 xsubs = 1, ysubs = 1;
-	unsigned int i;
 
 	fmt = find_fmt(stream, pixm->pixelformat);
 	if (!fmt) {
 		fmt = config->fmts;
 		pixm->pixelformat = fmt->fourcc;
 	}
-
-	// TODO: review try format
-	ispsd_frm = rkisp1_isp_sd_get_pad_fmt(&stream->ispdev->isp_sdev, NULL,
-					      RKISP1_ISP_PAD_SINK_VIDEO,
-					      V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	/* do checks on resolution */
 	pixm->width = clamp_t(u32, pixm->width, config->min_rsz_width,
@@ -1414,15 +1406,14 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	pixm->field = V4L2_FIELD_NONE;
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
-	/* get quantization from ispsd */
-	pixm->quantization = ispsd_frm->quantization;
 
-	/* output full range by default, take effect in isp_params */
-	if (!pixm->quantization)
-		pixm->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 	/* can not change quantization when stream-on */
 	if (other_stream->streaming)
 		pixm->quantization = other_stream->out_fmt.quantization;
+	/* output full range by default, take effect in isp_params */
+	else if (!pixm->quantization ||
+		 pixm->quantization > V4L2_QUANTIZATION_LIM_RANGE)
+		pixm->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
 	/* calculate size */
 	fcc_xysubs(fmt->fourcc, &xsubs, &ysubs);
@@ -1683,20 +1674,44 @@ static int rkisp1_querycap(struct file *file, void *priv,
 
 static int rkisp1_vdev_link_validate(struct media_link *link)
 {
-	struct v4l2_subdev *sd =
-		media_entity_to_v4l2_subdev(link->source->entity);
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 	struct video_device *vdev =
 		media_entity_to_video_device(link->sink->entity);
 	struct rkisp1_stream *stream = video_get_drvdata(vdev);
+	struct rkisp1_isp_subdev *isp_sd = &stream->ispdev->isp_sdev;
+	const struct v4l2_mbus_framefmt *ispsd_frm;
+	u16 isp_quant, cap_quant;
 
 	if (stream->out_isp_fmt.fmt_type != isp_sd->out_fmt->fmt_type) {
-		dev_err(sd->dev,
+		dev_err(isp_sd->sd.dev,
 			"format type mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
 			link->sink->entity->name, link->sink->index);
 		return -EPIPE;
 	}
+
+	ispsd_frm = rkisp1_isp_sd_get_pad_fmt(isp_sd, NULL,
+					      RKISP1_ISP_PAD_SINK_VIDEO,
+					      V4L2_SUBDEV_FORMAT_ACTIVE);
+
+	/*
+	 * TODO: we are considering default quantization as full range. Check if
+	 * we can do this or not.
+	 */
+	cap_quant = stream->out_fmt.quantization;
+	isp_quant = ispsd_frm->quantization;
+
+	if (cap_quant == V4L2_QUANTIZATION_DEFAULT)
+		cap_quant = V4L2_QUANTIZATION_FULL_RANGE;
+	if (isp_quant == V4L2_QUANTIZATION_DEFAULT)
+		isp_quant = V4L2_QUANTIZATION_FULL_RANGE;
+	if (cap_quant != isp_quant) {
+		dev_err(isp_sd->sd.dev,
+			"quantization mismatch in link '%s:%d->%s:%d'\n",
+			link->source->entity->name, link->source->index,
+			link->sink->entity->name, link->sink->index);
+		return -EPIPE;
+	}
+
 	return 0;
 }
 
