@@ -711,60 +711,93 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg,
-				 struct v4l2_subdev_format *fmt)
+static void rkisp1_isp_sd_set_out_fmt(struct rkisp1_isp_subdev *isp_sd,
+				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_mbus_framefmt *format,
+				      unsigned int which)
 {
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 	struct v4l2_mbus_framefmt *__format;
 	const struct rkisp1_fmt *rk_fmt;
 	const struct v4l2_rect *__crop;
 
-	__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, fmt->pad, fmt->which);
-	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg, fmt->pad, fmt->which);
+	__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
+					     RKISP1_ISP_PAD_SOURCE_VIDEO,
+					     which);
+	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+					    RKISP1_ISP_PAD_SOURCE_VIDEO, which);
 
 	/*
 	 * TODO: check if other fields besides width/height/quantization are
 	 * also configurable. If yes, then accept them from userspace.
 	 */
-	switch (fmt->pad) {
-	case RKISP1_ISP_PAD_SINK_VIDEO:
-		__format->code = fmt->format.code;
+	__format->code = format->code;
+	rk_fmt = find_fmt(__format->code);
+	if (!rk_fmt) {
+		__format->code = RKISP1_DEF_SRC_PAD_FMT;
 		rk_fmt = find_fmt(__format->code);
-		if (!rk_fmt) {
-			__format->code = RKISP1_DEF_SINK_PAD_FMT;
-			rk_fmt = find_fmt(__format->code);
-		}
-		if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
-			isp_sd->in_fmt = rk_fmt;
-		__format->width = clamp_t(u32, fmt->format.width,
-					  CIF_ISP_INPUT_W_MIN,
-					  CIF_ISP_INPUT_W_MAX);
-		__format->height = clamp_t(u32, fmt->format.height,
-					   CIF_ISP_INPUT_H_MIN,
-					   CIF_ISP_INPUT_H_MAX);
-		break;
-	case RKISP1_ISP_PAD_SOURCE_VIDEO:
-		__format->code = fmt->format.code;
-		rk_fmt = find_fmt(__format->code);
-		if (!rk_fmt) {
-			__format->code = RKISP1_DEF_SRC_PAD_FMT;
-			rk_fmt = find_fmt(__format->code);
-		}
-		if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
-			isp_sd->out_fmt = rk_fmt;
-		/* window size is set in s_selection */
-		__format->width  = __crop->width;
-		__format->height = __crop->height;
-		/* TODO: validate quantization value */
-		__format->quantization = fmt->format.quantization;
-		/* full range by default */
-		if (!__format->quantization)
-			__format->quantization = V4L2_QUANTIZATION_FULL_RANGE;
-		break;
 	}
+	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		isp_sd->out_fmt = rk_fmt;
+	/* window size is set in s_selection */
+	__format->width  = __crop->width;
+	__format->height = __crop->height;
+	/* TODO: validate quantization value */
+	__format->quantization = format->quantization;
+	/* full range by default */
+	if (!__format->quantization)
+		__format->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
-	fmt->format = *__format;
+	*format = *__format;
+}
+
+static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
+				     struct v4l2_subdev_pad_config *cfg,
+				     struct v4l2_mbus_framefmt *format,
+				     unsigned int which)
+{
+	struct v4l2_mbus_framefmt *__format;
+	const struct rkisp1_fmt *rk_fmt;
+
+	__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
+					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+
+	/*
+	 * TODO: check if other fields besides width/height/quantization are
+	 * also configurable. If yes, then accept them from userspace.
+	 */
+	__format->code = format->code;
+	rk_fmt = find_fmt(__format->code);
+	if (!rk_fmt) {
+		__format->code = RKISP1_DEF_SINK_PAD_FMT;
+		rk_fmt = find_fmt(__format->code);
+	}
+	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		isp_sd->in_fmt = rk_fmt;
+	__format->width = clamp_t(u32, format->width,
+				  CIF_ISP_INPUT_W_MIN,
+				  CIF_ISP_INPUT_W_MAX);
+	__format->height = clamp_t(u32, format->height,
+				   CIF_ISP_INPUT_H_MIN,
+				   CIF_ISP_INPUT_H_MAX);
+
+	*format = *__format;
+}
+
+static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
+				 struct v4l2_subdev_pad_config *cfg,
+				 struct v4l2_subdev_format *fmt)
+{
+	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
+
+	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO)
+		rkisp1_isp_sd_set_in_fmt(isp_sd, cfg, &fmt->format, fmt->which);
+	else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO)
+		rkisp1_isp_sd_set_out_fmt(isp_sd, cfg, &fmt->format,
+					  fmt->which);
+	else
+		fmt->format = *rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, fmt->pad,
+							 fmt->which);
+
 	return 0;
 }
 
@@ -807,14 +840,69 @@ static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
+				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_rect *r, unsigned int which)
+{
+	struct v4l2_mbus_framefmt *__format;
+	struct v4l2_rect *__crop;
+
+	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+					    RKISP1_ISP_PAD_SINK_VIDEO,
+					    which);
+
+	__crop->left = ALIGN(r->left, 2);
+	__crop->width = ALIGN(r->width, 2);
+	__crop->top = r->top;
+	__crop->height = r->height;
+
+	__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
+					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+
+	__crop->left = clamp_t(u32, __crop->left, 0, __format->width);
+	__crop->top = clamp_t(u32, __crop->top, 0, __format->height);
+	__crop->width = clamp_t(u32, __crop->width, CIF_ISP_INPUT_W_MIN,
+				__format->width - __crop->left);
+	__crop->height = clamp_t(u32, __crop->height,
+				 CIF_ISP_INPUT_H_MIN,
+				 __format->height - __crop->top);
+}
+
+static void rkisp1_isp_sd_set_out_crop(struct rkisp1_isp_subdev *isp_sd,
+				       struct v4l2_subdev_pad_config *cfg,
+				       struct v4l2_rect *r, unsigned int which)
+{
+	const struct v4l2_rect *in_crop;
+	struct v4l2_rect *__crop;
+
+	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+					    RKISP1_ISP_PAD_SOURCE_VIDEO,
+					    which);
+
+	__crop->left = ALIGN(r->left, 2);
+	__crop->width = ALIGN(r->width, 2);
+	__crop->top = r->top;
+	__crop->height = r->height;
+
+	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+
+	__crop->left = clamp_t(u32, __crop->left, 0, in_crop->width);
+	__crop->top = clamp_t(u32, __crop->top, 0, in_crop->height);
+	__crop->width = clamp_t(u32, __crop->width,
+				CIF_ISP_OUTPUT_W_MIN,
+				in_crop->width - __crop->left);
+	__crop->height = clamp_t(u32, __crop->height,
+				 CIF_ISP_OUTPUT_H_MIN,
+				 in_crop->height - __crop->top);
+}
+
 static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_selection *sel)
 {
 	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
 	struct rkisp1_device *dev = sd_to_isp_dev(sd);
-	struct v4l2_rect *__crop, *in_crop;
-	struct v4l2_mbus_framefmt *__format;
 
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;
@@ -822,43 +910,12 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 	dev_dbg(dev->dev, "%s: pad: %d sel(%d,%d)/%dx%d\n", __func__, sel->pad,
 		sel->r.left, sel->r.top, sel->r.width, sel->r.height);
 
-	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg, sel->pad, sel->which);
-
-	__crop->left = ALIGN(sel->r.left, 2);
-	__crop->width = ALIGN(sel->r.width, 2);
-	__crop->top = sel->r.top;
-	__crop->height = sel->r.height;
-
-	switch (sel->pad) {
-	case RKISP1_ISP_PAD_SINK_VIDEO:
-		__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, sel->pad,
-						     sel->which);
-		__crop->left = clamp_t(u32, __crop->left, 0, __format->width);
-		__crop->top = clamp_t(u32, __crop->top, 0, __format->height);
-
-		__crop->width = clamp_t(u32, __crop->width, CIF_ISP_INPUT_W_MIN,
-					__format->width - __crop->left);
-		__crop->height = clamp_t(u32, __crop->height,
-					 CIF_ISP_INPUT_H_MIN,
-					 __format->height - __crop->top);
-		break;
-	case RKISP1_ISP_PAD_SOURCE_VIDEO:
-		in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-						     RKISP1_ISP_PAD_SINK_VIDEO,
-						     sel->which);
-
-		__crop->left = clamp_t(u32, __crop->left, 0, in_crop->width);
-		__crop->top = clamp_t(u32, __crop->top, 0, in_crop->height);
-		__crop->width = clamp_t(u32, __crop->width,
-					CIF_ISP_OUTPUT_W_MIN,
-				       in_crop->width - __crop->left);
-		__crop->height = clamp_t(u32, __crop->height,
-					CIF_ISP_OUTPUT_H_MIN,
-					in_crop->height - __crop->top);
-		break;
-	default:
+	if (sel->pad == RKISP1_ISP_PAD_SINK_VIDEO)
+		rkisp1_isp_sd_set_in_crop(isp_sd, cfg, &sel->r, sel->which);
+	else if (sel->pad == RKISP1_ISP_PAD_SOURCE_VIDEO)
+		rkisp1_isp_sd_set_out_crop(isp_sd, cfg, &sel->r, sel->which);
+	else
 		return -EINVAL;
-	}
 
 	return 0;
 }
