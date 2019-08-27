@@ -750,12 +750,18 @@ static void rkisp1_isp_sd_set_out_fmt(struct rkisp1_isp_subdev *isp_sd,
 	*format = *__format;
 }
 
+// TODO: change function order
+static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
+				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_rect *r, unsigned int which);
+
 static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
 				     struct v4l2_subdev_pad_config *cfg,
 				     struct v4l2_mbus_framefmt *format,
 				     unsigned int which)
 {
 	struct v4l2_mbus_framefmt *__format;
+	const struct v4l2_rect *in_crop;
 	const struct rkisp1_fmt *rk_fmt;
 
 	__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
@@ -779,6 +785,11 @@ static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
 	__format->height = clamp_t(u32, format->height,
 				   CIF_ISP_INPUT_H_MIN,
 				   CIF_ISP_INPUT_H_MAX);
+
+	/* Update sink crop */
+	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+	rkisp1_isp_sd_set_in_crop(isp_sd, cfg, in_crop, which);
 
 	*format = *__format;
 }
@@ -845,6 +856,7 @@ static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
 				      struct v4l2_rect *r, unsigned int which)
 {
 	struct v4l2_mbus_framefmt *__format;
+	struct v4l2_mbus_framefmt *out_format;
 	struct v4l2_rect *__crop;
 
 	__crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
@@ -866,6 +878,12 @@ static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
 	__crop->height = clamp_t(u32, __crop->height,
 				 CIF_ISP_INPUT_H_MIN,
 				 __format->height - __crop->top);
+
+	/* Update source format */
+	out_format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
+					       RKISP1_ISP_PAD_SOURCE_VIDEO,
+					       which);
+	rkisp1_isp_sd_set_out_fmt(isp_sd, cfg, out_format, which);
 }
 
 static void rkisp1_isp_sd_set_out_crop(struct rkisp1_isp_subdev *isp_sd,
