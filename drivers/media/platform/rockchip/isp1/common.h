@@ -15,8 +15,15 @@
 #include <media/v4l2-device.h>
 #include <media/videobuf2-v4l2.h>
 
-#define RKISP1_DEFAULT_WIDTH		2000
-#define RKISP1_DEFAULT_HEIGHT		2000
+/* TODO: FIXME: changing the default resolution to higher values causes the
+ * stream to stall.
+ * The capture node gets the crop bounds from the isp source pad crop size, but
+ * if the user updates isp source pad crop size and start streaming, the capture
+ * doesn't detect the new crop bounds, and if the isp source pad crop size is
+ * smaller then the capture crop size, the stream doesn't work.
+ */
+#define RKISP1_DEFAULT_WIDTH		800
+#define RKISP1_DEFAULT_HEIGHT		600
 
 #define RKISP1_MAX_STREAM		2
 #define RKISP1_STREAM_MP		0
