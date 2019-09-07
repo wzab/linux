@@ -22,9 +22,6 @@ MODULE_PARM_DESC(deb_mean_win_size, " the window size to calculate the mean.\n"
 	"stays in the center of the window, otherwise the next odd number "
 	"is considered");
 
-#define IS_SINK(pad) (!pad)
-#define IS_SRC(pad)  (pad)
-
 enum vimc_deb_rgb_colors {
 	VIMC_DEB_RED = 0,
 	VIMC_DEB_GREEN = 1,
@@ -157,7 +154,7 @@ static int vimc_deb_enum_mbus_code(struct v4l2_subdev *sd,
 				   struct v4l2_subdev_mbus_code_enum *code)
 {
 	/* We only support one format for source pads */
-	if (IS_SRC(code->pad)) {
+	if (VIMC_IS_SRC(code->pad)) {
 		struct vimc_deb_device *vdeb = v4l2_get_subdevdata(sd);
 
 		if (code->index)
@@ -183,7 +180,7 @@ static int vimc_deb_enum_frame_size(struct v4l2_subdev *sd,
 	if (fse->index)
 		return -EINVAL;
 
-	if (IS_SINK(fse->pad)) {
+	if (VIMC_IS_SINK(fse->pad)) {
 		const struct vimc_deb_pix_map *vpix =
 			vimc_deb_pix_map_by_code(fse->code);
 
@@ -213,7 +210,7 @@ static int vimc_deb_get_fmt(struct v4l2_subdev *sd,
 		      vdeb->sink_fmt;
 
 	/* Set the right code for the source pad */
-	if (IS_SRC(fmt->pad))
+	if (VIMC_IS_SRC(fmt->pad))
 		fmt->format.code = vdeb->src_code;
 
 	return 0;
@@ -260,7 +257,7 @@ static int vimc_deb_set_fmt(struct v4l2_subdev *sd,
 	 * Do not change the format of the source pad,
 	 * it is propagated from the sink
 	 */
-	if (IS_SRC(fmt->pad)) {
+	if (VIMC_IS_SRC(fmt->pad)) {
 		fmt->format = *sink_fmt;
 		/* TODO: Add support for other formats */
 		fmt->format.code = vdeb->src_code;
