@@ -109,10 +109,12 @@ static void vimc_sen_tpg_s_format(struct vimc_sen_device *vsen)
 {
 	const struct vimc_pix_map *vpix =
 				vimc_pix_map_by_code(vsen->mbus_format.code);
+	const struct v4l2_format_info *pixi =
+					v4l2_format_info(vpix->pixelformat);
 
 	tpg_reset_source(&vsen->tpg, vsen->mbus_format.width,
 			 vsen->mbus_format.height, vsen->mbus_format.field);
-	tpg_s_bytesperline(&vsen->tpg, 0, vsen->mbus_format.width * vpix->bpp);
+	tpg_s_bytesperline(&vsen->tpg, 0, vsen->mbus_format.width * pixi->bpp[0]);
 	tpg_s_buf_height(&vsen->tpg, vsen->mbus_format.height);
 	tpg_s_fourcc(&vsen->tpg, vpix->pixelformat);
 	/* TODO: add support for V4L2_FIELD_ALTERNATE */

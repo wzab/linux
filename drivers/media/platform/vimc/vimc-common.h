@@ -78,10 +78,8 @@ struct vimc_platform_data {
  * V4L2_PIX_FMT_* fourcc pixelformat and its bytes per pixel (bpp)
  */
 struct vimc_pix_map {
-	unsigned int code;
-	unsigned int bpp;
+	unsigned int *code;
 	u32 pixelformat;
-	bool bayer;
 };
 
 /**

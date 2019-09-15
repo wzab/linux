@@ -9,13 +9,13 @@
 
 #include "regs.h"
 
-void disable_dcrop(struct rkisp1_stream *stream, bool async)
+void disable_dcrop(struct rkisp1_rsz_subdev *rsz_sd, bool async)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *dc_ctrl_addr = base + stream->config->dual_crop.ctrl;
+	void __iomem *base = rsz_sd->ispdev->base_addr;
+	void __iomem *dc_ctrl_addr = base + rsz_sd->config->dual_crop.ctrl;
 	u32 dc_ctrl = readl(dc_ctrl_addr);
-	u32 mask = ~(stream->config->dual_crop.yuvmode_mask |
-			stream->config->dual_crop.rawmode_mask);
+	u32 mask = ~(rsz_sd->config->dual_crop.yuvmode_mask |
+			rsz_sd->config->dual_crop.rawmode_mask);
 	u32 val = dc_ctrl & mask;
 
 	if (async)
@@ -25,18 +25,18 @@ void disable_dcrop(struct rkisp1_stream *stream, bool async)
 	writel(val, dc_ctrl_addr);
 }
 
-void
-config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect, bool async)
+void config_dcrop(struct rkisp1_rsz_subdev *rsz_sd, struct v4l2_rect *rect,
+		  bool async)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *dc_ctrl_addr = base + stream->config->dual_crop.ctrl;
+	void __iomem *base = rsz_sd->ispdev->base_addr;
+	void __iomem *dc_ctrl_addr = base + rsz_sd->config->dual_crop.ctrl;
 	u32 dc_ctrl = readl(dc_ctrl_addr);
 
-	writel(rect->left, base + stream->config->dual_crop.h_offset);
-	writel(rect->top, base + stream->config->dual_crop.v_offset);
-	writel(rect->width, base + stream->config->dual_crop.h_size);
-	writel(rect->height, base + stream->config->dual_crop.v_size);
-	dc_ctrl |= stream->config->dual_crop.yuvmode_mask;
+	writel(rect->left, base + rsz_sd->config->dual_crop.h_offset);
+	writel(rect->top, base + rsz_sd->config->dual_crop.v_offset);
+	writel(rect->width, base + rsz_sd->config->dual_crop.h_size);
+	writel(rect->height, base + rsz_sd->config->dual_crop.v_size);
+	dc_ctrl |= rsz_sd->config->dual_crop.yuvmode_mask;
 	if (async)
 		dc_ctrl |= CIF_DUAL_CROP_GEN_CFG_UPD;
 	else
@@ -44,9 +44,9 @@ config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect, bool async)
 	writel(dc_ctrl, dc_ctrl_addr);
 }
 
-void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
+void dump_rsz_regs(struct device *dev, struct rkisp1_rsz_subdev *rsz_sd)
 {
-	void __iomem *base = stream->ispdev->base_addr;
+	void __iomem *base = rsz_sd->ispdev->base_addr;
 
 	dev_dbg(dev,
 		"RSZ_CTRL 0x%08x/0x%08x\n"
@@ -59,32 +59,32 @@ void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
 		"RSZ_PHASE_HC %d/%d\n"
 		"RSZ_PHASE_VY %d/%d\n"
 		"RSZ_PHASE_VC %d/%d\n",
-		readl(base + stream->config->rsz.ctrl),
-		readl(base + stream->config->rsz.ctrl_shd),
-		readl(base + stream->config->rsz.scale_hy),
-		readl(base + stream->config->rsz.scale_hy_shd),
-		readl(base + stream->config->rsz.scale_hcb),
-		readl(base + stream->config->rsz.scale_hcb_shd),
-		readl(base + stream->config->rsz.scale_hcr),
-		readl(base + stream->config->rsz.scale_hcr_shd),
-		readl(base + stream->config->rsz.scale_vy),
-		readl(base + stream->config->rsz.scale_vy_shd),
-		readl(base + stream->config->rsz.scale_vc),
-		readl(base + stream->config->rsz.scale_vc_shd),
-		readl(base + stream->config->rsz.phase_hy),
-		readl(base + stream->config->rsz.phase_hy_shd),
-		readl(base + stream->config->rsz.phase_hc),
-		readl(base + stream->config->rsz.phase_hc_shd),
-		readl(base + stream->config->rsz.phase_vy),
-		readl(base + stream->config->rsz.phase_vy_shd),
-		readl(base + stream->config->rsz.phase_vc),
-		readl(base + stream->config->rsz.phase_vc_shd));
+		readl(base + rsz_sd->config->rsz.ctrl),
+		readl(base + rsz_sd->config->rsz.ctrl_shd),
+		readl(base + rsz_sd->config->rsz.scale_hy),
+		readl(base + rsz_sd->config->rsz.scale_hy_shd),
+		readl(base + rsz_sd->config->rsz.scale_hcb),
+		readl(base + rsz_sd->config->rsz.scale_hcb_shd),
+		readl(base + rsz_sd->config->rsz.scale_hcr),
+		readl(base + rsz_sd->config->rsz.scale_hcr_shd),
+		readl(base + rsz_sd->config->rsz.scale_vy),
+		readl(base + rsz_sd->config->rsz.scale_vy_shd),
+		readl(base + rsz_sd->config->rsz.scale_vc),
+		readl(base + rsz_sd->config->rsz.scale_vc_shd),
+		readl(base + rsz_sd->config->rsz.phase_hy),
+		readl(base + rsz_sd->config->rsz.phase_hy_shd),
+		readl(base + rsz_sd->config->rsz.phase_hc),
+		readl(base + rsz_sd->config->rsz.phase_hc_shd),
+		readl(base + rsz_sd->config->rsz.phase_vy),
+		readl(base + rsz_sd->config->rsz.phase_vy_shd),
+		readl(base + rsz_sd->config->rsz.phase_vc),
+		readl(base + rsz_sd->config->rsz.phase_vc_shd));
 }
 
-static void update_rsz_shadow(struct rkisp1_stream *stream, bool async)
+static void update_rsz_shadow(struct rkisp1_rsz_subdev *rsz_sd, bool async)
 {
 	void __iomem *addr =
-		stream->ispdev->base_addr + stream->config->rsz.ctrl;
+		rsz_sd->ispdev->base_addr + rsz_sd->config->rsz.ctrl;
 	u32 ctrl_cfg = readl(addr);
 
 	if (async)
@@ -93,17 +93,19 @@ static void update_rsz_shadow(struct rkisp1_stream *stream, bool async)
 		writel(CIF_RSZ_CTRL_CFG_UPD | ctrl_cfg, addr);
 }
 
-static void set_scale(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
-		      struct v4l2_rect *in_c, struct v4l2_rect *out_y,
-		      struct v4l2_rect *out_c)
+static void set_scale(struct rkisp1_rsz_subdev *rsz_sd,
+		      const struct v4l2_rect *in_y,
+		      const struct v4l2_rect *in_c,
+		      const struct v4l2_rect *out_y,
+		      const struct v4l2_rect *out_c)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *scale_hy_addr = base + stream->config->rsz.scale_hy;
-	void __iomem *scale_hcr_addr = base + stream->config->rsz.scale_hcr;
-	void __iomem *scale_hcb_addr = base + stream->config->rsz.scale_hcb;
-	void __iomem *scale_vy_addr = base + stream->config->rsz.scale_vy;
-	void __iomem *scale_vc_addr = base + stream->config->rsz.scale_vc;
-	void __iomem *rsz_ctrl_addr = base + stream->config->rsz.ctrl;
+	void __iomem *base = rsz_sd->ispdev->base_addr;
+	void __iomem *scale_hy_addr = base + rsz_sd->config->rsz.scale_hy;
+	void __iomem *scale_hcr_addr = base + rsz_sd->config->rsz.scale_hcr;
+	void __iomem *scale_hcb_addr = base + rsz_sd->config->rsz.scale_hcb;
+	void __iomem *scale_vy_addr = base + rsz_sd->config->rsz.scale_vy;
+	void __iomem *scale_vc_addr = base + rsz_sd->config->rsz.scale_vc;
+	void __iomem *rsz_ctrl_addr = base + rsz_sd->config->rsz.ctrl;
 	u32 scale_hy, scale_hc, scale_vy, scale_vc, rsz_ctrl = 0;
 
 	if (in_y->width < out_y->width) {
@@ -162,36 +164,36 @@ static void set_scale(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 	writel(rsz_ctrl, rsz_ctrl_addr);
 }
 
-void config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
-		struct v4l2_rect *in_c, struct v4l2_rect *out_y,
-		struct v4l2_rect *out_c, bool async)
+void config_rsz(struct rkisp1_rsz_subdev *rsz_sd, const struct v4l2_rect *in_y,
+		const struct v4l2_rect *in_c, const struct v4l2_rect *out_y,
+		const struct v4l2_rect *out_c, bool async)
 {
-	void __iomem *base_addr = stream->ispdev->base_addr;
+	void __iomem *base_addr = rsz_sd->ispdev->base_addr;
 	unsigned int i;
 
 	/* No phase offset */
-	writel(0, base_addr + stream->config->rsz.phase_hy);
-	writel(0, base_addr + stream->config->rsz.phase_hc);
-	writel(0, base_addr + stream->config->rsz.phase_vy);
-	writel(0, base_addr + stream->config->rsz.phase_vc);
+	writel(0, base_addr + rsz_sd->config->rsz.phase_hy);
+	writel(0, base_addr + rsz_sd->config->rsz.phase_hc);
+	writel(0, base_addr + rsz_sd->config->rsz.phase_vy);
+	writel(0, base_addr + rsz_sd->config->rsz.phase_vc);
 
 	/* Linear interpolation */
 	for (i = 0; i < 64; i++) {
-		writel(i, base_addr + stream->config->rsz.scale_lut_addr);
-		writel(i, base_addr + stream->config->rsz.scale_lut);
+		writel(i, base_addr + rsz_sd->config->rsz.scale_lut_addr);
+		writel(i, base_addr + rsz_sd->config->rsz.scale_lut);
 	}
 
-	set_scale(stream, in_y, in_c, out_y, out_c);
+	set_scale(rsz_sd, in_y, in_c, out_y, out_c);
 
-	update_rsz_shadow(stream, async);
+	update_rsz_shadow(rsz_sd, async);
 }
 
-void disable_rsz(struct rkisp1_stream *stream, bool async)
+void disable_rsz(struct rkisp1_rsz_subdev *rsz_sd, bool async)
 {
-	writel(0, stream->ispdev->base_addr + stream->config->rsz.ctrl);
+	writel(0, rsz_sd->ispdev->base_addr + rsz_sd->config->rsz.ctrl);
 
 	if (!async)
-		update_rsz_shadow(stream, async);
+		update_rsz_shadow(rsz_sd, async);
 }
 
 void config_mi_ctrl(struct rkisp1_stream *stream)

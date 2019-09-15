@@ -227,16 +227,25 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 	if (ret < 0)
 		return ret;
 
-	rkisp1_stream_init(dev, RKISP1_STREAM_SP);
-	rkisp1_stream_init(dev, RKISP1_STREAM_MP);
-
-	ret = rkisp1_register_stream_vdevs(dev);
+	ret = rkisp1_register_rsz_subdev(dev, RKISP1_STREAM_SP);
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
 
+	ret = rkisp1_register_rsz_subdev(dev, RKISP1_STREAM_MP);
+	if (ret < 0)
+		goto err_unreg_rsz_subdev_sp;
+
+	ret = rkisp1_register_stream_vdev(dev, RKISP1_STREAM_SP);
+	if (ret < 0)
+		goto err_unreg_rsz_subdev_mp;
+
+	ret = rkisp1_register_stream_vdev(dev, RKISP1_STREAM_MP]);
+	if (ret < 0)
+		goto err_unreg_stream_vdev_sp;
+
 	ret = rkisp1_register_stats_vdev(&dev->stats_vdev, &dev->v4l2_dev, dev);
 	if (ret < 0)
-		goto err_unreg_stream_vdev;
+		goto err_unreg_stream_vdev_mp;
 
 	ret = rkisp1_register_params_vdev(&dev->params_vdev, &dev->v4l2_dev,
 					  dev);
@@ -249,14 +258,20 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 			"Failed to register subdev notifier(%d)\n", ret);
 		goto err_unreg_params_vdev;
 	}
-
 	return 0;
+
 err_unreg_params_vdev:
 	rkisp1_unregister_params_vdev(&dev->params_vdev);
 err_unreg_stats_vdev:
 	rkisp1_unregister_stats_vdev(&dev->stats_vdev);
-err_unreg_stream_vdev:
-	rkisp1_unregister_stream_vdevs(dev);
+err_unreg_stream_vdev_mp:
+	rkisp1_unregister_stream_vdev(&dev->stream[RKISP1_STREAM_MP]);
+err_unreg_stream_vdev_sp:
+	rkisp1_unregister_stream_vdev(&dev->stream[RKISP1_STREAM_SP]);
+err_unreg_rsz_subdev_mp:
+	rkisp1_register_rsz_subdev(&dev->rsz_sdev[RKISP1_STREAM_MP]);
+err_unreg_rsz_subdev_sp:
+	rkisp1_register_rsz_subdev(&dev->rsz_sdev[RKISP1_STREAM_SP]);
 err_unreg_isp_subdev:
 	rkisp1_unregister_isp_subdev(dev);
 	return ret;

@@ -40,9 +40,6 @@
 #define CIF_ISP_REQ_BUFS_MIN 1
 #define CIF_ISP_REQ_BUFS_MAX 8
 
-#define STREAM_PAD_SINK				0
-#define STREAM_PAD_SOURCE			1
-
 #define STREAM_MAX_MP_RSZ_OUTPUT_WIDTH		4416
 #define STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT		3312
 #define STREAM_MAX_SP_RSZ_OUTPUT_WIDTH		1920
@@ -55,6 +52,18 @@
 #define STREAM_MIN_MP_SP_INPUT_WIDTH		32
 #define STREAM_MIN_MP_SP_INPUT_HEIGHT		32
 
+enum rkisp1_plane {
+	RKISP1_PLANE_Y,
+	RKISP1_PLANE_CB,
+	RKISP1_PLANE_CR
+}
+
+enum rkisp1_stream_pad {
+	STREAM_PAD_SINK,
+	STREAM_PAD_SOURCE
+}
+
+// TODO: replace this by v4l2_format_info()
 /* Get xsubs and ysubs for fourcc formats
  *
  * @xsubs: horizontal color samples in a 4*4 matrix, for yuv
@@ -86,24 +95,6 @@ static int fcc_xysubs(u32 fcc, u32 *xsubs, u32 *ysubs)
 	case V4L2_PIX_FMT_YVU420:
 		*xsubs = 2;
 		*ysubs = 2;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int mbus_code_xysubs(u32 code, u32 *xsubs, u32 *ysubs)
-{
-	switch (code) {
-	case MEDIA_BUS_FMT_YUYV8_2X8:
-	case MEDIA_BUS_FMT_YUYV8_1X16:
-	case MEDIA_BUS_FMT_YVYU8_1X16:
-	case MEDIA_BUS_FMT_UYVY8_1X16:
-	case MEDIA_BUS_FMT_VYUY8_1X16:
-		*xsubs = 2;
-		*ysubs = 1;
 		break;
 	default:
 		return -EINVAL;
@@ -502,45 +493,6 @@ static const struct capture_fmt sp_fmts[] = {
 static struct stream_config rkisp1_mp_stream_config = {
 	.fmts = mp_fmts,
 	.fmt_size = ARRAY_SIZE(mp_fmts),
-	/* constraints */
-	.max_rsz_width = STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = STREAM_MIN_RSZ_OUTPUT_HEIGHT,
-	/* registers */
-	.rsz = {
-		.ctrl = CIF_MRSZ_CTRL,
-		.scale_hy = CIF_MRSZ_SCALE_HY,
-		.scale_hcr = CIF_MRSZ_SCALE_HCR,
-		.scale_hcb = CIF_MRSZ_SCALE_HCB,
-		.scale_vy = CIF_MRSZ_SCALE_VY,
-		.scale_vc = CIF_MRSZ_SCALE_VC,
-		.scale_lut = CIF_MRSZ_SCALE_LUT,
-		.scale_lut_addr = CIF_MRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd = CIF_MRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd = CIF_MRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd = CIF_MRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd = CIF_MRSZ_SCALE_VY_SHD,
-		.scale_vc_shd = CIF_MRSZ_SCALE_VC_SHD,
-		.phase_hy = CIF_MRSZ_PHASE_HY,
-		.phase_hc = CIF_MRSZ_PHASE_HC,
-		.phase_vy = CIF_MRSZ_PHASE_VY,
-		.phase_vc = CIF_MRSZ_PHASE_VC,
-		.ctrl_shd = CIF_MRSZ_CTRL_SHD,
-		.phase_hy_shd = CIF_MRSZ_PHASE_HY_SHD,
-		.phase_hc_shd = CIF_MRSZ_PHASE_HC_SHD,
-		.phase_vy_shd = CIF_MRSZ_PHASE_VY_SHD,
-		.phase_vc_shd = CIF_MRSZ_PHASE_VC_SHD,
-	},
-	.dual_crop = {
-		.ctrl = CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask = CIF_DUAL_CROP_MP_MODE_YUV,
-		.rawmode_mask = CIF_DUAL_CROP_MP_MODE_RAW,
-		.h_offset = CIF_DUAL_CROP_M_H_OFFS,
-		.v_offset = CIF_DUAL_CROP_M_V_OFFS,
-		.h_size = CIF_DUAL_CROP_M_H_SIZE,
-		.v_size = CIF_DUAL_CROP_M_V_SIZE,
-	},
 	.mi = {
 		.y_size_init = CIF_MI_MP_Y_SIZE_INIT,
 		.cb_size_init = CIF_MI_MP_CB_SIZE_INIT,
@@ -557,45 +509,6 @@ static struct stream_config rkisp1_mp_stream_config = {
 static struct stream_config rkisp1_sp_stream_config = {
 	.fmts = sp_fmts,
 	.fmt_size = ARRAY_SIZE(sp_fmts),
-	/* constraints */
-	.max_rsz_width = STREAM_MAX_SP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = STREAM_MIN_RSZ_OUTPUT_HEIGHT,
-	/* registers */
-	.rsz = {
-		.ctrl = CIF_SRSZ_CTRL,
-		.scale_hy = CIF_SRSZ_SCALE_HY,
-		.scale_hcr = CIF_SRSZ_SCALE_HCR,
-		.scale_hcb = CIF_SRSZ_SCALE_HCB,
-		.scale_vy = CIF_SRSZ_SCALE_VY,
-		.scale_vc = CIF_SRSZ_SCALE_VC,
-		.scale_lut = CIF_SRSZ_SCALE_LUT,
-		.scale_lut_addr = CIF_SRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd = CIF_SRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd = CIF_SRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd = CIF_SRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd = CIF_SRSZ_SCALE_VY_SHD,
-		.scale_vc_shd = CIF_SRSZ_SCALE_VC_SHD,
-		.phase_hy = CIF_SRSZ_PHASE_HY,
-		.phase_hc = CIF_SRSZ_PHASE_HC,
-		.phase_vy = CIF_SRSZ_PHASE_VY,
-		.phase_vc = CIF_SRSZ_PHASE_VC,
-		.ctrl_shd = CIF_SRSZ_CTRL_SHD,
-		.phase_hy_shd = CIF_SRSZ_PHASE_HY_SHD,
-		.phase_hc_shd = CIF_SRSZ_PHASE_HC_SHD,
-		.phase_vy_shd = CIF_SRSZ_PHASE_VY_SHD,
-		.phase_vc_shd = CIF_SRSZ_PHASE_VC_SHD,
-	},
-	.dual_crop = {
-		.ctrl = CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask = CIF_DUAL_CROP_SP_MODE_YUV,
-		.rawmode_mask = CIF_DUAL_CROP_SP_MODE_RAW,
-		.h_offset = CIF_DUAL_CROP_S_H_OFFS,
-		.v_offset = CIF_DUAL_CROP_S_V_OFFS,
-		.h_size = CIF_DUAL_CROP_S_H_SIZE,
-		.v_size = CIF_DUAL_CROP_S_V_SIZE,
-	},
 	.mi = {
 		.y_size_init = CIF_MI_SP_Y_SIZE_INIT,
 		.cb_size_init = CIF_MI_SP_CB_SIZE_INIT,
@@ -621,94 +534,6 @@ struct capture_fmt *find_fmt(struct rkisp1_stream *stream, const u32 pixelfmt)
 			return fmt;
 	}
 	return NULL;
-}
-
-/* configure dual-crop unit */
-static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_rect *dcrop = &stream->dcrop;
-	const struct v4l2_rect *input_win;
-
-	/* dual-crop unit get data from ISP */
-	input_win = rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
-					       RKISP1_ISP_PAD_SINK_VIDEO,
-					       V4L2_SUBDEV_FORMAT_ACTIVE);
-
-	if (dcrop->width == input_win->width &&
-	    dcrop->height == input_win->height &&
-	    dcrop->left == 0 && dcrop->top == 0) {
-		disable_dcrop(stream, async);
-		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
-		return 0;
-	}
-
-	config_dcrop(stream, dcrop, async);
-
-	dev_dbg(dev->dev, "stream %d crop: %dx%d -> %dx%d\n", stream->id,
-		input_win->width, input_win->height,
-		dcrop->width, dcrop->height);
-
-	return 0;
-}
-
-/* configure scale unit */
-static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
-	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
-	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
-	struct v4l2_rect in_y, in_c, out_y, out_c;
-	u32 xsubs_in, ysubs_in, xsubs_out, ysubs_out;
-
-	if (input_isp_fmt->fmt_type == FMT_BAYER)
-		goto disable;
-
-	/* set input and output sizes for scale calculation */
-	in_y.width = stream->dcrop.width;
-	in_y.height = stream->dcrop.height;
-	out_y.width = output_fmt.width;
-	out_y.height = output_fmt.height;
-
-	/* The size of Cb,Cr are related to the format */
-	if (mbus_code_xysubs(input_isp_fmt->mbus_code, &xsubs_in, &ysubs_in)) {
-		dev_err(dev->dev, "Not xsubs/ysubs found\n");
-		return -EINVAL;
-	}
-	in_c.width = in_y.width / xsubs_in;
-	in_c.height = in_y.height / ysubs_in;
-
-	if (output_isp_fmt->fmt_type == FMT_YUV) {
-		fcc_xysubs(output_isp_fmt->fourcc, &xsubs_out, &ysubs_out);
-		out_c.width = out_y.width / xsubs_out;
-		out_c.height = out_y.height / ysubs_out;
-	} else {
-		out_c.width = out_y.width / xsubs_in;
-		out_c.height = out_y.height / ysubs_in;
-	}
-
-	if (in_c.width == out_c.width && in_c.height == out_c.height)
-		goto disable;
-
-	/* set RSZ input and output */
-	dev_dbg(dev->dev, "stream %d rsz/scale: %dx%d -> %dx%d\n",
-		stream->id, stream->dcrop.width, stream->dcrop.height,
-		output_fmt.width, output_fmt.height);
-	dev_dbg(dev->dev, "chroma scaling %dx%d -> %dx%d\n",
-		in_c.width, in_c.height, out_c.width, out_c.height);
-
-	/* calculate and set scale */
-	config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
-
-	dump_rsz_regs(dev->dev, stream);
-
-	return 0;
-
-disable:
-	disable_rsz(stream, async);
-
-	return 0;
 }
 
 /***************************** stream operations*******************************/
@@ -928,29 +753,6 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 }
 
 /***************************** vb2 operations*******************************/
-
-/*
- * Set flags and wait, it should stop in interrupt.
- * If it didn't, stop it by force.
- */
-static void rkisp1_stream_stop(struct rkisp1_stream *stream)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	int ret;
-
-	stream->stopping = true;
-	ret = wait_event_timeout(stream->done,
-				 !stream->streaming,
-				 msecs_to_jiffies(1000));
-	if (!ret) {
-		dev_warn(dev->dev, "waiting on event return error %d\n", ret);
-		stream->ops->stop_mi(stream);
-		stream->stopping = false;
-		stream->streaming = false;
-	}
-	disable_dcrop(stream, true);
-	disable_rsz(stream, true);
-}
 
 /*
  * Most of registers inside rockchip ISP1 have shadow register since
@@ -1233,7 +1035,20 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	struct rkisp1_device *dev = stream->ispdev;
 	int ret;
 
-	rkisp1_stream_stop(stream);
+	/*
+	 * Set flags and wait, it should stop in interrupt.
+	 * If it didn't, stop it by force.
+	 */
+	stream->stopping = true;
+	ret = wait_event_timeout(stream->done,
+				 !stream->streaming,
+				 msecs_to_jiffies(1000));
+	if (!ret) {
+		dev_warn(dev->dev, "waiting on event return error %d\n", ret);
+		stream->ops->stop_mi(stream);
+		stream->stopping = false;
+		stream->streaming = false;
+	}
 	/* call to the other devices */
 	media_pipeline_stop(&node->vdev.entity);
 	ret = rkisp1_pipeline_sink_walk(&node->vdev.entity, NULL,
@@ -1253,35 +1068,6 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
 
 	rkisp1_destroy_dummy_buf(stream);
-}
-
-static int rkisp1_stream_start(struct rkisp1_stream *stream)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	struct rkisp1_stream *other = &dev->stream[stream->id ^ 1];
-	bool async = false;
-	int ret;
-
-	if (other->streaming)
-		async = true;
-
-	ret = rkisp1_config_rsz(stream, async);
-	if (ret < 0) {
-		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
-		return ret;
-	}
-
-	/*
-	 * can't be async now, otherwise the latter started stream fails to
-	 * produce mi interrupt.
-	 */
-	ret = rkisp1_config_dcrop(stream, false);
-	if (ret < 0) {
-		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
-		return ret;
-	}
-
-	return rkisp1_start(stream);
 }
 
 static int
@@ -1311,18 +1097,11 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 		goto close_pipe;
 	}
 
-	/* configure stream hardware to start */
-	ret = rkisp1_stream_start(stream);
-	if (ret < 0) {
-		dev_err(dev->dev, "start streaming failed\n");
-		goto power_down;
-	}
-
 	/* start sub-devices */
 	ret = rkisp1_pipeline_sink_walk(entity, NULL,
 					rkisp1_pipeline_enable_cb);
 	if (ret < 0)
-		goto stop_stream;
+		goto power_down;
 
 	ret = media_pipeline_start(entity, &dev->pipe);
 	if (ret < 0) {
@@ -1334,8 +1113,6 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 
 pipe_stream_off:
 	rkisp1_pipeline_sink_walk(entity, NULL, rkisp1_pipeline_disable_cb);
-stop_stream:
-	rkisp1_stream_stop(stream);
 power_down:
 	pm_runtime_put(dev->dev);
 close_pipe:
@@ -1398,6 +1175,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	}
 
 	/* do checks on resolution */
+	// TODO
 	pixm->width = clamp_t(u32, pixm->width, config->min_rsz_width,
 			      config->max_rsz_width);
 	pixm->height = clamp_t(u32, pixm->height, config->min_rsz_height,
@@ -1463,40 +1241,6 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 }
 
 /************************* v4l2_file_operations***************************/
-void rkisp1_stream_init(struct rkisp1_device *dev, u32 id)
-{
-	struct rkisp1_stream *stream = &dev->stream[id];
-	struct v4l2_pix_format_mplane pixm;
-
-	memset(stream, 0, sizeof(*stream));
-	stream->id = id;
-	stream->ispdev = dev;
-
-	INIT_LIST_HEAD(&stream->buf_queue);
-	init_waitqueue_head(&stream->done);
-	spin_lock_init(&stream->vbq_lock);
-	if (stream->id == RKISP1_STREAM_SP) {
-		stream->ops = &rkisp1_sp_streams_ops;
-		stream->config = &rkisp1_sp_stream_config;
-	} else {
-		stream->ops = &rkisp1_mp_streams_ops;
-		stream->config = &rkisp1_mp_stream_config;
-	}
-
-	stream->streaming = false;
-
-	memset(&pixm, 0, sizeof(pixm));
-	pixm.pixelformat = V4L2_PIX_FMT_YUYV;
-	pixm.width = RKISP1_DEFAULT_WIDTH;
-	pixm.height = RKISP1_DEFAULT_HEIGHT;
-	rkisp1_set_fmt(stream, &pixm, false);
-
-	stream->dcrop.left = 0;
-	stream->dcrop.top = 0;
-	stream->dcrop.width = RKISP1_DEFAULT_WIDTH;
-	stream->dcrop.height = RKISP1_DEFAULT_HEIGHT;
-}
-
 static const struct v4l2_file_operations rkisp1_fops = {
 	.open = v4l2_fh_open,
 	.release = vb2_fop_release,
@@ -1746,22 +1490,38 @@ static void rkisp1_unregister_stream_vdev(struct rkisp1_stream *stream)
 	video_unregister_device(&stream->vnode.vdev);
 }
 
-void rkisp1_unregister_stream_vdevs(struct rkisp1_device *dev)
+static int rkisp1_register_stream_vdev(struct rkisp1_device *dev,
+				       enum rkisp1_stream id)
 {
-	struct rkisp1_stream *mp_stream = &dev->stream[RKISP1_STREAM_MP];
-	struct rkisp1_stream *sp_stream = &dev->stream[RKISP1_STREAM_SP];
-
-	rkisp1_unregister_stream_vdev(mp_stream);
-	rkisp1_unregister_stream_vdev(sp_stream);
-}
-
-static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
-{
-	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
+	struct rkisp1_stream *stream = &dev->stream[id];
 	struct video_device *vdev = &stream->vnode.vdev;
 	struct rkisp1_vdev_node *node;
 	int ret;
+
+	// TODO check if this memset is required
+	memset(stream, 0, sizeof(*stream));
+	stream->id = id;
+	stream->ispdev = dev;
+
+	INIT_LIST_HEAD(&stream->buf_queue);
+	init_waitqueue_head(&stream->done);
+	spin_lock_init(&stream->vbq_lock);
+	if (id == RKISP1_STREAM_SP) {
+		stream->ops = &rkisp1_sp_streams_ops;
+		stream->config = &rkisp1_sp_stream_config;
+	} else {
+		stream->ops = &rkisp1_mp_streams_ops;
+		stream->config = &rkisp1_mp_stream_config;
+	}
+
+	stream->streaming = false;
+
+	memset(&pixm, 0, sizeof(pixm));
+	pixm.pixelformat = V4L2_PIX_FMT_YUYV;
+	pixm.width = RKISP1_DEFAULT_WIDTH;
+	pixm.height = RKISP1_DEFAULT_HEIGHT;
+	rkisp1_set_fmt(stream, &pixm, false);
 
 	strscpy(vdev->name,
 		stream->id == RKISP1_STREAM_SP ? SP_VDEV_NAME : MP_VDEV_NAME,
@@ -1800,30 +1560,6 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	return 0;
 unreg:
 	video_unregister_device(vdev);
-	return ret;
-}
-
-int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
-{
-	struct rkisp1_stream *stream;
-	unsigned int i, j;
-	int ret;
-
-	for (i = 0; i < RKISP1_MAX_STREAM; i++) {
-		stream = &dev->stream[i];
-		stream->ispdev = dev;
-		ret = rkisp1_register_stream_vdev(stream);
-		if (ret < 0)
-			goto err;
-	}
-
-	return 0;
-err:
-	for (j = 0; j < i; j++) {
-		stream = &dev->stream[j];
-		rkisp1_unregister_stream_vdev(stream);
-	}
-
 	return ret;
 }
 

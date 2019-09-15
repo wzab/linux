@@ -56,45 +56,6 @@ struct rkisp1_stream_mp {
 struct stream_config {
 	const struct capture_fmt *fmts;
 	int fmt_size;
-	/* constrains */
-	const int max_rsz_width;
-	const int max_rsz_height;
-	const int min_rsz_width;
-	const int min_rsz_height;
-	/* registers */
-	struct {
-		u32 ctrl;
-		u32 ctrl_shd;
-		u32 scale_hy;
-		u32 scale_hcr;
-		u32 scale_hcb;
-		u32 scale_vy;
-		u32 scale_vc;
-		u32 scale_lut;
-		u32 scale_lut_addr;
-		u32 scale_hy_shd;
-		u32 scale_hcr_shd;
-		u32 scale_hcb_shd;
-		u32 scale_vy_shd;
-		u32 scale_vc_shd;
-		u32 phase_hy;
-		u32 phase_hc;
-		u32 phase_vy;
-		u32 phase_vc;
-		u32 phase_hy_shd;
-		u32 phase_hc_shd;
-		u32 phase_vy_shd;
-		u32 phase_vc_shd;
-	} rsz;
-	struct {
-		u32 ctrl;
-		u32 yuvmode_mask;
-		u32 rawmode_mask;
-		u32 h_offset;
-		u32 v_offset;
-		u32 h_size;
-		u32 v_size;
-	} dual_crop;
 	struct {
 		u32 y_size_init;
 		u32 cb_size_init;
@@ -134,12 +95,11 @@ struct streams_ops {
  * @next_buf: the buffer used for next frame
  */
 struct rkisp1_stream {
-	unsigned id:1;
+	enum rkisp1_stream id;
 	struct rkisp1_device *ispdev;
 	struct rkisp1_vdev_node vnode;
 	struct capture_fmt out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
-	struct v4l2_rect dcrop;
 	struct streams_ops *ops;
 	struct stream_config *config;
 	spinlock_t vbq_lock;

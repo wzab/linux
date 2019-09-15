@@ -19,10 +19,8 @@ static const struct vimc_pix_map vimc_pix_map_list[] = {
 
 	/* RGB formats */
 	{
-		.code = MEDIA_BUS_FMT_BGR888_1X24,
+		.code = {MEDIA_BUS_FMT_BGR888_1X24, MEDIA_BUS_FMT_BGR888_1X24};
 		.pixelformat = V4L2_PIX_FMT_BGR24,
-		.bpp = 3,
-		.bayer = false,
 	},
 	{
 		.code = MEDIA_BUS_FMT_RGB888_1X24,
