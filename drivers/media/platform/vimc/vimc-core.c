@@ -46,70 +46,31 @@ struct vimc_pipeline_config {
 
 static struct vimc_ent_config ent_config[] = {
 	{
-		.name = "Sensor A",
-		.add = vimc_sen_add,
-		.rm = vimc_sen_rm,
-	},
-	{
-		.name = "Sensor B",
-		.add = vimc_sen_add,
-		.rm = vimc_sen_rm,
-	},
-	{
-		.name = "Debayer A",
+		.name = "Decoder",
 		.add = vimc_deb_add,
 		.rm = vimc_deb_rm,
 	},
 	{
-		.name = "Debayer B",
+		.name = "PostProc",
 		.add = vimc_deb_add,
 		.rm = vimc_deb_rm,
 	},
 	{
-		.name = "Raw Capture 0",
-		.add = vimc_cap_add,
-		.rm = vimc_cap_rm,
-	},
-	{
-		.name = "Raw Capture 1",
-		.add = vimc_cap_add,
-		.rm = vimc_cap_rm,
-	},
-	{
-		/* TODO: change this to vimc-input when it is implemented */
-		.name = "RGB/YUV Input",
-		.add = vimc_sen_add,
-		.rm = vimc_sen_rm,
-	},
-	{
-		.name = "Scaler",
-		.add = vimc_sca_add,
-		.rm = vimc_sca_rm,
-	},
-	{
-		.name = "RGB/YUV Capture",
+		.name = "M2M Video Node",
 		.add = vimc_cap_add,
 		.rm = vimc_cap_rm,
 	},
 };
 
 static const struct vimc_ent_link ent_links[] = {
-	/* Link: Sensor A (Pad 0)->(Pad 0) Debayer A */
-	VIMC_ENT_LINK(0, 0, 2, 0, MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE),
-	/* Link: Sensor A (Pad 0)->(Pad 0) Raw Capture 0 */
-	VIMC_ENT_LINK(0, 0, 4, 0, MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE),
-	/* Link: Sensor B (Pad 0)->(Pad 0) Debayer B */
-	VIMC_ENT_LINK(1, 0, 3, 0, MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE),
-	/* Link: Sensor B (Pad 0)->(Pad 0) Raw Capture 1 */
-	VIMC_ENT_LINK(1, 0, 5, 0, MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE),
-	/* Link: Debayer A (Pad 1)->(Pad 0) Scaler */
-	VIMC_ENT_LINK(2, 1, 7, 0, MEDIA_LNK_FL_ENABLED),
-	/* Link: Debayer B (Pad 1)->(Pad 0) Scaler */
-	VIMC_ENT_LINK(3, 1, 7, 0, 0),
-	/* Link: RGB/YUV Input (Pad 0)->(Pad 0) Scaler */
-	VIMC_ENT_LINK(6, 0, 7, 0, 0),
-	/* Link: Scaler (Pad 1)->(Pad 0) RGB/YUV Capture */
-	VIMC_ENT_LINK(7, 1, 8, 0, MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE),
+	/* Link: M2M (Pad 1)->(Pad 0) Decoder */
+	VIMC_ENT_LINK(2, 1, 0, 0, MEDIA_LNK_FL_ENABLED),
+	/* Link: Decoder (Pad 1)->(Pad 0) M2M */
+	VIMC_ENT_LINK(0, 1, 2, 0, MEDIA_LNK_FL_ENABLED),
+	/* Link: Decoder (Pad 1)->(Pad 0) Post */
+	VIMC_ENT_LINK(0, 1, 1, 0, 0),
+	/* Link: Post (Pad 1)->(Pad 0) M2M */
+	VIMC_ENT_LINK(1, 1, 2, 0, 0),
 };
 
 static struct vimc_pipeline_config pipe_cfg = {

@@ -400,7 +400,7 @@ struct vimc_ent_device *vimc_cap_add(struct vimc_device *vimc,
 
 	/* Allocate the pads */
 	vcap->ved.pads =
-		vimc_pads_init(1, (const unsigned long[1]) {MEDIA_PAD_FL_SINK});
+		vimc_pads_init(2, (const unsigned long[2]) {MEDIA_PAD_FL_SINK, MEDIA_PAD_FL_SOURCE});
 	if (IS_ERR(vcap->ved.pads)) {
 		ret = PTR_ERR(vcap->ved.pads);
 		goto err_free_vcap;
@@ -410,7 +410,7 @@ struct vimc_ent_device *vimc_cap_add(struct vimc_device *vimc,
 	vcap->vdev.entity.name = vcfg_name;
 	vcap->vdev.entity.function = MEDIA_ENT_F_IO_V4L;
 	ret = media_entity_pads_init(&vcap->vdev.entity,
-				     1, vcap->ved.pads);
+				     2, vcap->ved.pads);
 	if (ret)
 		goto err_clean_pads;
 
