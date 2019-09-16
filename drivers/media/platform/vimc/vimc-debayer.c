@@ -348,7 +348,7 @@ static const struct v4l2_subdev_video_ops vimc_deb_video_ops = {
 };
 
 static const struct v4l2_subdev_ops vimc_deb_ops = {
-	.pad = &vimc_deb_pad_ops,
+	//.pad = &vimc_deb_pad_ops,
 	.video = &vimc_deb_video_ops,
 };
 
