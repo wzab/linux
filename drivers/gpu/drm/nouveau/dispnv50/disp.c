@@ -1941,7 +1941,7 @@ nv50_disp_atomic_commit_tail(struct drm_atomic_state *state)
 		if (interlock[NV50_DISP_INTERLOCK_BASE] ||
 		    interlock[NV50_DISP_INTERLOCK_OVLY] ||
 		    interlock[NV50_DISP_INTERLOCK_WNDW] ||
-		    !atom->state.legacy_cursor_update)
+		    !atom->state.async_update)
 			nv50_disp_atomic_commit_core(state, interlock);
 		else
 			disp->core->func->update(disp->core, interlock, false);

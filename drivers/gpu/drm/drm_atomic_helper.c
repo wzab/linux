@@ -951,7 +951,7 @@ int drm_atomic_helper_check(struct drm_device *dev,
 	if (ret)
 		return ret;
 
-	if (state->legacy_cursor_update)
+	if (state->async_update)
 		state->async_update = !drm_atomic_helper_async_check(dev, state);
 
 	drm_self_refresh_helper_alter_state(state);
@@ -1439,7 +1439,7 @@ drm_atomic_helper_wait_for_vblanks(struct drm_device *dev,
 	  * Legacy cursor ioctls are completely unsynced, and userspace
 	  * relies on that (by doing tons of cursor updates).
 	  */
-	if (old_state->legacy_cursor_update)
+	if (old_state->async_update)
 		return;
 
 	for_each_oldnew_crtc_in_state(old_state, crtc, old_crtc_state, new_crtc_state, i) {
@@ -2011,7 +2011,7 @@ int drm_atomic_helper_setup_commit(struct drm_atomic_state *state,
 		}
 
 		/* Legacy cursor updates are fully unsynced. */
-		if (state->legacy_cursor_update) {
+		if (state->async_update) {
 			complete_all(&commit->flip_done);
 			continue;
 		}
@@ -2830,7 +2830,7 @@ int drm_atomic_helper_update_plane(struct drm_plane *plane,
 	plane_state->src_h = src_h;
 
 	if (plane == crtc->cursor)
-		state->legacy_cursor_update = true;
+		state->async_update = true;
 
 	ret = drm_atomic_commit(state);
 fail:
@@ -2868,7 +2868,7 @@ int drm_atomic_helper_disable_plane(struct drm_plane *plane,
 	}
 
 	if (plane_state->crtc && plane_state->crtc->cursor == plane)
-		plane_state->state->legacy_cursor_update = true;
+		plane_state->state->async_update = true;
 
 	ret = __drm_atomic_helper_disable_plane(plane, plane_state);
 	if (ret != 0)

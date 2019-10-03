@@ -6078,7 +6078,7 @@ static int amdgpu_dm_atomic_commit(struct drm_device *dev,
 	}
 	/*
 	 * Add check here for SoC's that support hardware cursor plane, to
-	 * unset legacy_cursor_update
+	 * unset async_update
 	 */
 
 	return drm_atomic_helper_commit(dev, state, nonblock);
@@ -7309,7 +7309,7 @@ static int amdgpu_dm_atomic_check(struct drm_device *dev,
 	if (ret)
 		goto fail;
 
-	if (state->legacy_cursor_update) {
+	if (state->async_update) {
 		/*
 		 * This is a fast cursor update coming from the plane update
 		 * helper, check if it can be done asynchronously for better
