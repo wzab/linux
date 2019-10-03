@@ -13643,6 +13643,35 @@ static int intel_atomic_check(struct drm_device *dev,
 	if (ret)
 		goto fail;
 
+	/*
+	 * The intel_legacy_cursor_update() fast path takes care
+	 * of avoiding the vblank waits for simple cursor
+	 * movement and flips. For cursor on/off and size changes,
+	 * we want to perform the vblank waits so that watermark
+	 * updates happen during the correct frames. Gen9+ have
+	 * double buffered watermarks and so shouldn't need this.
+	 *
+	 * Unset state->legacy_cursor_update before the call to
+	 * drm_atomic_helper_setup_commit() because otherwise
+	 * drm_atomic_helper_wait_for_flip_done() is a noop and
+	 * we get FIFO underruns because we didn't wait
+	 * for vblank.
+	 *
+	 * FIXME doing watermarks and fb cleanup from a vblank worker
+	 * (assuming we had any) would solve these problems.
+	 */
+	if (INTEL_GEN(dev_priv) < 9 && state->base.legacy_cursor_update) {
+		struct intel_crtc_state *new_crtc_state;
+		struct intel_crtc *crtc;
+		int i;
+
+		for_each_new_intel_crtc_in_state(state, crtc, new_crtc_state, i)
+			if (new_crtc_state->wm.need_postvbl_update ||
+			    new_crtc_state->update_wm_post)
+				state->base.legacy_cursor_update = false;
+	}
+
+
 	if (_state->legacy_cursor_update)
 		_state->async_update = !drm_atomic_helper_async_check(dev,
 								     _state);
