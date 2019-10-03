@@ -14127,9 +14127,6 @@ static int intel_atomic_commit(struct drm_device *dev,
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	int ret = 0;
 
-	i915_sw_fence_init(&state->commit_ready,
-			   intel_atomic_commit_ready);
-
 	if (_state->async_update) {
 		ret = drm_atomic_helper_prepare_planes(dev, _state);
 		if (ret)
@@ -14138,6 +14135,9 @@ static int intel_atomic_commit(struct drm_device *dev,
 		drm_atomic_helper_cleanup_planes(dev, _state);
 		return 0;
 	}
+
+	i915_sw_fence_init(&state->commit_ready,
+			   intel_atomic_commit_ready);
 
 	state->wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
 
@@ -14352,7 +14352,8 @@ intel_prepare_plane_fb(struct drm_plane *plane,
 		}
 	}
 
-	if (new_state->fence) { /* explicit fencing */
+	/* Skip dealing with fences in async update */
+	if (!new_state->state->async_update && new_state->fence) { /* explicit fencing */
 		ret = i915_sw_fence_await_dma_fence(&intel_state->commit_ready,
 						    new_state->fence,
 						    I915_FENCE_TIMEOUT,
@@ -14384,23 +14385,30 @@ intel_prepare_plane_fb(struct drm_plane *plane,
 	fb_obj_bump_render_priority(obj);
 	intel_frontbuffer_flush(obj->frontbuffer, ORIGIN_DIRTYFB);
 
-	if (!new_state->fence) { /* implicit fencing */
-		struct dma_fence *fence;
 
-		ret = i915_sw_fence_await_reservation(&intel_state->commit_ready,
-						      obj->base.resv, NULL,
-						      false, I915_FENCE_TIMEOUT,
-						      GFP_KERNEL);
-		if (ret < 0)
-			return ret;
+	/* Skip dealing with fences in async update */
+	if (!new_state->state->async_update) {
+		if (!new_state->fence) { /* implicit fencing */
+			struct dma_fence *fence;
 
-		fence = dma_resv_get_excl_rcu(obj->base.resv);
-		if (fence) {
-			add_rps_boost_after_vblank(new_state->crtc, fence);
-			dma_fence_put(fence);
+			ret = i915_sw_fence_await_reservation(
+						&intel_state->commit_ready,
+						obj->base.resv, NULL,
+						false, I915_FENCE_TIMEOUT,
+						GFP_KERNEL);
+			if (ret < 0)
+				return ret;
+
+			fence = dma_resv_get_excl_rcu(obj->base.resv);
+			if (fence) {
+				add_rps_boost_after_vblank(new_state->crtc,
+							   fence);
+				dma_fence_put(fence);
+			}
+		} else {
+			add_rps_boost_after_vblank(new_state->crtc,
+						   new_state->fence);
 		}
-	} else {
-		add_rps_boost_after_vblank(new_state->crtc, new_state->fence);
 	}
 
 	/*
