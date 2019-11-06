@@ -1,0 +1,23 @@
+* Implement resizer subdevice.
+* Fix serialization on subdev ops.
+* Reject out of range hsfreq in rockchip_dphy_configure().
+* Don't use v4l2_async_notifier_parse_fwnode_endpoints_by_port().
+e.g. isp_parse_of_endpoints in drivers/media/platform/omap3isp/isp.c
+cio2_parse_firmware in drivers/media/pci/intel/ipu3/ipu3-cio2.c.
+* Fix race conditions when interrupt get delayed.
+* Fix pad format size for statistics and parameters entities.
+* Cleanup link_validate to use v4l2_subdev_link_validate_default().
+* Documentation for uapi.
+* Use threaded interrupt for rkisp1_stats_isr().
+* Fix reloading the module.
+* Fix checkpatch errors.
+* Make sure uapi structs have the same size and layout in 32 and 62 bits,
+and that there are no holes in the structures (pahole is a utility that
+can be used to test this).
+
+NOTES:
+* All v4l2-compliance test must pass.
+* Stats and params can be tested with libcamera and ChromiumOS stack.
+
+Please CC patches to Linux Media <linux-media@vger.kernel.org> and
+Helen Koike <helen.koike@collabora.com>.
