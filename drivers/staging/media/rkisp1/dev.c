@@ -141,7 +141,7 @@ static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 	if (ret < 0)
 		goto unlock;
 
-	dev_info(dev->dev, "Async subdev notifier completed\n");
+	dev_dbg(dev->dev, "Async subdev notifier completed\n");
 
 unlock:
 	mutex_unlock(&dev->media_dev.graph_mutex);
@@ -340,6 +340,8 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		return ret;
 	isp_dev->clk_size = clk_data->size;
 
+	pm_runtime_enable(&pdev->dev);
+
 	strscpy(isp_dev->media_dev.model, "rkisp1",
 		sizeof(isp_dev->media_dev.model));
 	isp_dev->media_dev.dev = &pdev->dev;
@@ -366,14 +368,13 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err_unreg_media_dev;
 
-	pm_runtime_enable(&pdev->dev);
-
 	return 0;
 
 err_unreg_media_dev:
 	media_device_unregister(&isp_dev->media_dev);
 err_unreg_v4l2_dev:
 	v4l2_device_unregister(&isp_dev->v4l2_dev);
+	pm_runtime_disable(&pdev->dev);
 	return ret;
 }
 
@@ -381,16 +382,18 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 {
 	struct rkisp1_device *isp_dev = platform_get_drvdata(pdev);
 
-	pm_runtime_disable(&pdev->dev);
-	media_device_unregister(&isp_dev->media_dev);
 	v4l2_async_notifier_unregister(&isp_dev->notifier);
 	v4l2_async_notifier_cleanup(&isp_dev->notifier);
-	v4l2_device_unregister(&isp_dev->v4l2_dev);
+
 	rkisp1_unregister_params_vdev(&isp_dev->params_vdev);
 	rkisp1_unregister_stats_vdev(&isp_dev->stats_vdev);
 	rkisp1_unregister_stream_vdevs(isp_dev);
 	rkisp1_unregister_isp_subdev(isp_dev);
 
+	media_device_unregister(&isp_dev->media_dev);
+	v4l2_device_unregister(&isp_dev->v4l2_dev);
+
+	pm_runtime_disable(&pdev->dev);
 	return 0;
 }
 

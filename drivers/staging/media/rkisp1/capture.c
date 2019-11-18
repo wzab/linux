@@ -1794,6 +1794,8 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 			"video_register_device failed with error %d\n", ret);
 		return ret;
 	}
+	v4l2_info(v4l2_dev, "registered %s as /dev/video%d\n", vdev->name,
+		  vdev->num);
 
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
 	if (ret < 0)
