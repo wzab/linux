@@ -19,37 +19,21 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 
-#define RK3399_GRF_SOC_CON9	0x6224
-#define RK3399_GRF_SOC_CON21	0x6254
-#define RK3399_GRF_SOC_CON22	0x6258
-#define RK3399_GRF_SOC_CON23	0x625c
-#define RK3399_GRF_SOC_CON24	0x6260
-#define RK3399_GRF_SOC_CON25	0x6264
-#define RK3399_GRF_SOC_STATUS1	0xe2a4
+#define RK3399_GRF_SOC_CON9		0x6224
+#define RK3399_GRF_SOC_CON21		0x6254
+#define RK3399_GRF_SOC_CON22		0x6258
+#define RK3399_GRF_SOC_CON23		0x625c
+#define RK3399_GRF_SOC_CON24		0x6260
+#define RK3399_GRF_SOC_CON25		0x6264
+#define RK3399_GRF_SOC_STATUS1		0xe2a4
 
-#define CLOCK_LANE_HS_RX_CONTROL		0x34
-#define LANE0_HS_RX_CONTROL			0x44
-#define LANE1_HS_RX_CONTROL			0x54
-#define LANE2_HS_RX_CONTROL			0x84
-#define LANE3_HS_RX_CONTROL			0x94
-#define HS_RX_DATA_LANES_THS_SETTLE_CONTROL	0x75
-
-#define MAX_DPHY_CLK 8
-
-#define PHY_TESTEN_ADDR			BIT(16)
-#define PHY_TESTEN_DATA			0
-#define PHY_TESTCLK			BIT(1)
-#define PHY_TESTCLR			BIT(0)
+#define CLOCK_LANE_HS_RX_CONTROL	0x34
+#define LANE0_HS_RX_CONTROL		0x44
+#define LANE1_HS_RX_CONTROL		0x54
+#define LANE2_HS_RX_CONTROL		0x84
+#define LANE3_HS_RX_CONTROL		0x94
+#define LANES_THS_SETTLE_CONTROL	0x75
 #define THS_SETTLE_COUNTER_THRESHOLD	0x04
-
-#define GRF_SOC_CON12                           0x0274
-
-#define GRF_EDP_REF_CLK_SEL_INTER_HIWORD_MASK   BIT(20)
-#define GRF_EDP_REF_CLK_SEL_INTER               BIT(4)
-
-#define GRF_EDP_PHY_SIDDQ_HIWORD_MASK           BIT(21)
-#define GRF_EDP_PHY_SIDDQ_ON                    0
-#define GRF_EDP_PHY_SIDDQ_OFF                   BIT(5)
 
 struct hsfreq_range {
 	u16 range_h;
@@ -146,7 +130,7 @@ static const struct dphy_reg rk3399_grf_dphy_regs[] = {
 	[GRF_DPHY_RX0_TESTDOUT] = PHY_REG(RK3399_GRF_SOC_STATUS1, 8, 0),
 };
 
-struct dphy_drv_data {
+struct rk_dphy_drv_data {
 	const char * const *clks;
 	unsigned int num_clks;
 	const struct hsfreq_range *hsfreq_ranges;
@@ -154,16 +138,18 @@ struct dphy_drv_data {
 	const struct dphy_reg *regs;
 };
 
-struct rockchip_dphy {
+struct rk_dphy {
 	struct device *dev;
 	struct regmap *grf;
-	struct clk_bulk_data clks[MAX_DPHY_CLK];
+	struct clk_bulk_data *clks;
 
-	const struct dphy_drv_data *drv_data;
+	const struct rk_dphy_drv_data *drv_data;
 	struct phy_configure_opts_mipi_dphy config;
+
+	u8 hsfreq;
 };
 
-static inline void rk_dphy_write_grf(struct rockchip_dphy *priv,
+static inline void rk_dphy_write_grf(struct rk_dphy *priv,
 				     unsigned int index, u8 value)
 {
 	const struct dphy_reg *reg = &priv->drv_data->regs[index];
@@ -175,8 +161,8 @@ static inline void rk_dphy_write_grf(struct rockchip_dphy *priv,
 	regmap_write(priv->grf, reg->offset, val);
 }
 
-static void rk_dphy_write_rx(struct rockchip_dphy *priv,
-			     u8 test_code, u8 test_data)
+static void rk_dphy_write(struct rk_dphy *priv,
+			  u8 test_code, u8 test_data)
 {
 	/*
 	 * With the falling edge on TESTCLK, the TESTDIN[7:0] signal content
@@ -192,24 +178,8 @@ static void rk_dphy_write_rx(struct rockchip_dphy *priv,
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
 }
 
-static void rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
+static void rk_dphy_enable(struct rk_dphy *priv)
 {
-	const struct dphy_drv_data *drv_data = priv->drv_data;
-	struct phy_configure_opts_mipi_dphy *config = &priv->config;
-	unsigned int i, hsfreq = 0, data_rate_mbps = config->hs_clk_rate;
-
-	do_div(data_rate_mbps, 1000 * 1000);
-
-	dev_dbg(priv->dev, "%s: lanes %d - data_rate_mbps %u\n",
-		__func__, config->lanes, data_rate_mbps);
-
-	for (i = 0; i < drv_data->num_hsfreq_ranges; i++) {
-		if (drv_data->hsfreq_ranges[i].range_h >= data_rate_mbps) {
-			hsfreq = drv_data->hsfreq_ranges[i].cfg_bit;
-			break;
-		}
-	}
-
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
 
@@ -218,7 +188,7 @@ static void rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
 
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_ENABLE,
-			  GENMASK(config->lanes - 1, 0));
+			  GENMASK(priv->config.lanes - 1, 0));
 
 	/* dphy start */
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
@@ -229,56 +199,75 @@ static void rk_dphy_rx_stream_on(struct rockchip_dphy *priv)
 
 	/* set clock lane */
 	/* HS hsfreq_range & lane 0  settle bypass */
-	rk_dphy_write_rx(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
+	rk_dphy_write(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane0 */
-	rk_dphy_write_rx(priv, LANE0_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write(priv, LANE0_HS_RX_CONTROL, priv->hsfreq << 1);
 	/* HS RX Control of lane1 */
-	rk_dphy_write_rx(priv, LANE1_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write(priv, LANE1_HS_RX_CONTROL, priv->hsfreq << 1);
 	/* HS RX Control of lane2 */
-	rk_dphy_write_rx(priv, LANE2_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write(priv, LANE2_HS_RX_CONTROL, priv->hsfreq << 1);
 	/* HS RX Control of lane3 */
-	rk_dphy_write_rx(priv, LANE3_HS_RX_CONTROL, hsfreq << 1);
+	rk_dphy_write(priv, LANE3_HS_RX_CONTROL, priv->hsfreq << 1);
 	/* HS RX Data Lanes Settle State Time Control */
-	rk_dphy_write_rx(priv, HS_RX_DATA_LANES_THS_SETTLE_CONTROL,
-			 THS_SETTLE_COUNTER_THRESHOLD);
+	rk_dphy_write(priv, LANES_THS_SETTLE_CONTROL,
+		      THS_SETTLE_COUNTER_THRESHOLD);
 
 	/* Normal operation */
-	rk_dphy_write_rx(priv, 0x0, 0);
+	rk_dphy_write(priv, 0x0, 0);
 }
 
 static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 {
-	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+	struct rk_dphy *priv = phy_get_drvdata(phy);
+	const struct rk_dphy_drv_data *drv_data = priv->drv_data;
+	struct phy_configure_opts_mipi_dphy *config = &opts->mipi_dphy;
+	unsigned int i, hsfreq = 0, data_rate_mbps = config->hs_clk_rate;
 	int ret;
 
 	/* pass with phy_mipi_dphy_get_default_config (with pixel rate?) */
-	ret = phy_mipi_dphy_config_validate(&opts->mipi_dphy);
+	ret = phy_mipi_dphy_config_validate(config);
 	if (ret)
 		return ret;
+	do_div(data_rate_mbps, 1000 * 1000);
 
-	priv->config = opts->mipi_dphy;
+	dev_dbg(priv->dev, "lanes %d - data_rate_mbps %u\n",
+		config->lanes, data_rate_mbps);
+	for (i = 0; i < drv_data->num_hsfreq_ranges; i++) {
+		if (drv_data->hsfreq_ranges[i].range_h >= data_rate_mbps) {
+			hsfreq = drv_data->hsfreq_ranges[i].cfg_bit;
+			break;
+		}
+	}
+	if (!hsfreq)
+		return -EINVAL;
 
+	priv->hsfreq = hsfreq;
+	priv->config = *config;
 	return 0;
 }
 
 static int rk_dphy_power_on(struct phy *phy)
 {
-	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+	struct rk_dphy *priv = phy_get_drvdata(phy);
 	int ret;
 
+	// TODO: See DSI usage of clocks, do we need to
+	// keep GRF and CFG clocks enabled all the time
+	// or only during register writing?
 	ret = clk_bulk_enable(priv->drv_data->num_clks, priv->clks);
 	if (ret)
 		return ret;
 
-	rk_dphy_rx_stream_on(priv);
+	rk_dphy_enable(priv);
 
 	return 0;
 }
 
 static int rk_dphy_power_off(struct phy *phy)
 {
-	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+	struct rk_dphy *priv = phy_get_drvdata(phy);
 
+	// TODO: I wonder if this is working.
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_ENABLE, 0);
 
 	clk_bulk_disable(priv->drv_data->num_clks, priv->clks);
@@ -287,14 +276,14 @@ static int rk_dphy_power_off(struct phy *phy)
 
 static int rk_dphy_init(struct phy *phy)
 {
-	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+	struct rk_dphy *priv = phy_get_drvdata(phy);
 
 	return clk_bulk_prepare(priv->drv_data->num_clks, priv->clks);
 }
 
 static int rk_dphy_exit(struct phy *phy)
 {
-	struct rockchip_dphy *priv = phy_get_drvdata(phy);
+	struct rk_dphy *priv = phy_get_drvdata(phy);
 
 	clk_bulk_unprepare(priv->drv_data->num_clks, priv->clks);
 	return 0;
@@ -309,7 +298,7 @@ static const struct phy_ops rk_dphy_ops = {
 	.owner		= THIS_MODULE,
 };
 
-static const struct dphy_drv_data rk3399_mipidphy_drv_data = {
+static const struct rk_dphy_drv_data rk3399_mipidphy_drv_data = {
 	.clks = rk3399_mipidphy_clks,
 	.num_clks = ARRAY_SIZE(rk3399_mipidphy_clks),
 	.hsfreq_ranges = rk3399_mipidphy_hsfreq_ranges,
@@ -330,10 +319,10 @@ static int rk_dphy_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
-	const struct dphy_drv_data *drv_data;
+	const struct rk_dphy_drv_data *drv_data;
 	struct phy_provider *phy_provider;
 	const struct of_device_id *of_id;
-	struct rockchip_dphy *priv;
+	struct rk_dphy *priv;
 	struct regmap *grf;
 	struct phy *phy;
 	unsigned int i;
@@ -369,6 +358,10 @@ static int rk_dphy_probe(struct platform_device *pdev)
 
 	drv_data = of_id->data;
 	priv->drv_data = drv_data;
+	priv->clks = devm_kcalloc(&pdev->dev, drv_data->num_clks,
+                                   sizeof(*priv->clks), GFP_KERNEL);
+        if (!priv->clks)
+                return -ENOMEM;
 	for (i = 0; i < drv_data->num_clks; i++)
 		priv->clks[i].id = drv_data->clks[i];
 	ret = devm_clk_bulk_get(&pdev->dev, drv_data->num_clks, priv->clks);
