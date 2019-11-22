@@ -347,6 +347,9 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	isp_dev->media_dev.dev = &pdev->dev;
 	strscpy(isp_dev->media_dev.bus_info,
 		"platform: " DRIVER_NAME, sizeof(isp_dev->media_dev.bus_info));
+	// TODO: use of pm_use, is documented to need link_notify.
+	// maybe this is not needed becuase we don't pm_use in open/close,
+	// but in s_stream?
 	media_device_init(&isp_dev->media_dev);
 
 	v4l2_dev = &isp_dev->v4l2_dev;
