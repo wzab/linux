@@ -36,8 +36,7 @@
 /* One structure per video node */
 struct rkisp1_vdev_node {
 	struct vb2_queue buf_queue;
-	/* vfd lock */
-	struct mutex vlock;
+	struct mutex vlock; /* ioctl serialization mutex */
 	struct video_device vdev;
 	struct media_pad pad;
 };

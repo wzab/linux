@@ -142,7 +142,7 @@ struct rkisp1_stream {
 	struct v4l2_rect dcrop;
 	struct streams_ops *ops;
 	struct stream_config *config;
-	spinlock_t vbq_lock;
+	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
 	struct list_head buf_queue;
 	struct rkisp1_dummy_buffer dummy_buf;
 	struct rkisp1_buffer *curr_buf;
