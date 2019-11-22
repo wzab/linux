@@ -37,8 +37,10 @@
  * available sp source fmts: yuv, rgb
  */
 
-#define CIF_ISP_REQ_BUFS_MIN 1
-#define CIF_ISP_REQ_BUFS_MAX 8
+// TODO: Why min 1? it seems wrong, given the dummy buf thing,
+// shouldn't we ask for at least 3?
+#define CIF_ISP_REQ_BUFS_MIN 3
+//#define CIF_ISP_REQ_BUFS_MAX 8
 
 #define STREAM_PAD_SINK				0
 #define STREAM_PAD_SOURCE			1
@@ -679,6 +681,7 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 	in_c.width = in_y.width / xsubs_in;
 	in_c.height = in_y.height / ysubs_in;
 
+	// TODO: Use pixfmt helpers?
 	if (output_isp_fmt->fmt_type == FMT_YUV) {
 		fcc_xysubs(output_isp_fmt->fourcc, &xsubs_out, &ysubs_out);
 		out_c.width = out_y.width / xsubs_out;
@@ -1212,6 +1215,7 @@ static int rkisp1_pipeline_disable_cb(struct media_entity *from,
 	return 0;
 }
 
+// TODO: this is a core change.
 static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 				     struct media_entity *curr)
 {
@@ -1254,6 +1258,8 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 	if (ret < 0)
 		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
 
+	// TODO: can be moved to the allocation ioctls. this has an impact,
+	// of course.
 	rkisp1_destroy_dummy_buf(stream);
 }
 
@@ -1295,6 +1301,7 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	int ret = -EINVAL;
 
 	if (WARN_ON(stream->streaming))
+		// TODO: looks weird?
 		goto return_queued_buf;
 
 	ret = rkisp1_create_dummy_buf(stream);
@@ -1312,6 +1319,9 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 		dev_err(dev->dev, "open cif pipeline failed %d\n", ret);
 		goto close_pipe;
 	}
+	// TODO: to be symmetric --to be safe in case there's
+	// any correlation between pm_runtime and mc-pm--
+	// the get order should be reversed to the put order.
 
 	/* configure stream hardware to start */
 	ret = rkisp1_stream_start(stream);
