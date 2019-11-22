@@ -923,6 +923,11 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
+// TODO: Good example here of why prefixing type with rkisp1
+// is a good idea. Here we don't know if *sensor is a core
+// type or not. This looks weird when we see sensor->dphy
+// (because is very weird that phy API accepts a type
+// that is part of a subdev API type).
 static int mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 				    struct sensor_async_subdev *sensor)
 {
@@ -1131,7 +1136,6 @@ void rkisp1_mipi_isr(struct rkisp1_device *dev)
 	status = rkisp1_read(dev, CIF_MIPI_MIS);
 	if (!status)
 		return;
-
 	rkisp1_write(dev, ~0, CIF_MIPI_ICR);
 
 	/*

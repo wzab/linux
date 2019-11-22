@@ -819,12 +819,16 @@ static void sp_disable_mi(struct rkisp1_stream *stream)
 	mi_ctrl_spyuv_disable(base);
 }
 
-/* Update buffer info to memory interface, it's called in interrupt */
+/*
+ * Update buffer info to memory interface. Called in interrupt
+ * context by mi_frame_end(), and in process context by vb2_ops.buf_queue().
+ */
 static void update_mi(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
-	/* The dummy space allocated by dma_alloc_coherent is used, we can
+	/*
+	 * The dummy space allocated by dma_alloc_coherent is used, we can
 	 * throw data to it if there is no available buffer.
 	 */
 	if (stream->next_buf) {
@@ -894,6 +898,8 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 	unsigned long lock_flags = 0;
 	int i = 0;
 
+	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
+
 	if (stream->curr_buf) {
 		/* Dequeue a filled buffer */
 		for (i = 0; i < isp_fmt->mplanes; i++) {
@@ -904,7 +910,7 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 		}
 		stream->curr_buf->vb.sequence =
 				atomic_read(&isp_sd->frm_sync_seq) - 1;
-		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_ns();
+		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_bootime_ns();
 		stream->curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&stream->curr_buf->vb.vb2_buf,
 				VB2_BUF_STATE_DONE);
@@ -915,14 +921,12 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 	stream->next_buf = NULL;
 
 	/* Setup an empty buffer for the next-next frame */
-	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
 	if (!list_empty(&stream->buf_queue)) {
 		stream->next_buf = list_first_entry(&stream->buf_queue,
 						    struct rkisp1_buffer,
 						    queue);
 		list_del(&stream->next_buf->queue);
 	}
-
 	spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
 
 	update_mi(stream);
@@ -1053,9 +1057,13 @@ static void rkisp1_buf_queue(struct vb2_buffer *vb)
 			ispbuf->buff_addr[RKISP1_PLANE_CB] +
 			stream->out_fmt.plane_fmt[RKISP1_PLANE_CB].sizeimage;
 	}
+
 	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
 
-	/* XXX: replace dummy to speed up  */
+	/*
+	 * If there's no next buffer assigned, queue this buffer directly
+	 * as the next buffer, and update the memory interface.
+	 */
 	if (stream->streaming && !stream->next_buf &&
 	    atomic_read(&stream->ispdev->isp_sdev.frm_sync_seq) == 0) {
 		stream->next_buf = ispbuf;
@@ -1107,6 +1115,7 @@ static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 		stream->out_fmt.plane_fmt[1].sizeimage,
 		stream->out_fmt.plane_fmt[2].sizeimage);
 
+	// TODO: We don't need a mapping here, do we?
 	dummy_buf->vaddr = dma_alloc_coherent(dev->dev, dummy_buf->size,
 					      &dummy_buf->dma_addr,
 					      GFP_KERNEL);
@@ -1260,6 +1269,15 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 
 	// TODO: can be moved to the allocation ioctls. this has an impact,
 	// of course.
+	// EDIT: not true! vb2 doesn't allow this naturally, the API
+	// doesn't allow to alloc bounce buffers, and I don't want to
+	// be the one extending it!
+	// There are two ioctl for allocation: CREATE_BUF and REQUEST_BUF,
+	// we'd have to hook both - which is a pita.
+	// Also, many drivers (stk1160, coda and hantro) already allocate
+	// auxiliary buffers in start_streaming.
+	// If fragmentation is a concern, see 'keep_buffers' parameter
+	// in stk1160.
 	rkisp1_destroy_dummy_buf(stream);
 }
 
@@ -1300,15 +1318,10 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	struct media_entity *entity = &stream->vnode.vdev.entity;
 	int ret = -EINVAL;
 
-	if (WARN_ON(stream->streaming))
-		// TODO: looks weird?
-		goto return_queued_buf;
-
 	ret = rkisp1_create_dummy_buf(stream);
 	if (ret < 0)
 		goto return_queued_buf;
 
-	/* power up */
 	ret = pm_runtime_get_sync(dev->dev);
 	if (ret < 0) {
 		dev_err(dev->dev, "power up failed %d\n", ret);
@@ -1397,7 +1410,9 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 {
 	const struct stream_config *config = stream->config;
 	struct rkisp1_stream *other_stream =
+	// TODO: In some cases, it's !stream->id, in others it's stream->id ^ 1.
 			&stream->ispdev->streams[!stream->id];
+	// TODO: s/imagsize/image_size
 	unsigned int i, planes, imagsize = 0;
 	const struct capture_fmt *fmt;
 	u32 xsubs = 1, ysubs = 1;
@@ -1419,6 +1434,7 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
 
 	/* can not change quantization when stream-on */
+	// TODO: this checks the _other_ stream.
 	if (other_stream->streaming)
 		pixm->quantization = other_stream->out_fmt.quantization;
 	/* output full range by default, take effect in isp_params */
@@ -1433,12 +1449,14 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 		struct v4l2_plane_pix_format *plane_fmt;
 		int width, height, bytesperline;
 
+		// TODO: should use pixfmt helpers?
 		plane_fmt = pixm->plane_fmt + i;
 		width = pixm->width / (i ? xsubs : 1);
 		height = pixm->height / (i ? ysubs : 1);
 
 		bytesperline = width * DIV_ROUND_UP(fmt->bpp[i], 8);
 		/* stride is only available for sp stream and y plane */
+		// TODO: WHY only for self-path??!
 		if (stream->id != RKISP1_STREAM_SP || i != 0 ||
 		    plane_fmt->bytesperline < bytesperline)
 			plane_fmt->bytesperline = bytesperline;
@@ -1477,6 +1495,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	stream->out_isp_fmt = *fmt;
 	stream->out_fmt = *pixm;
 
+	// TODO:???
 	if (stream->id == RKISP1_STREAM_SP) {
 		stream->u.sp.y_stride =
 			pixm->plane_fmt[0].bytesperline /
@@ -1574,6 +1593,8 @@ static int rkisp1_s_fmt_vid_cap_mplane(struct file *file,
 	struct rkisp1_device *dev = stream->ispdev;
 
 	if (vb2_is_busy(&node->buf_queue)) {
+		// TODO: saying "queue busy" is really the same as
+		// returning EBUSY.
 		dev_err(dev->dev, "%s queue busy\n", __func__);
 		return -EBUSY;
 	}
@@ -1886,6 +1907,7 @@ void rkisp1_mi_isr(struct rkisp1_device *dev)
 			if (stream->ops->is_stream_stopped(dev->base_addr)) {
 				stream->stopping = false;
 				stream->streaming = false;
+				// TODO Use thread IRQ?
 				wake_up(&stream->done);
 			} else {
 				stream->ops->stop_mi(stream);
