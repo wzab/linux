@@ -1392,15 +1392,14 @@ static int rkisp_init_vb2_queue(struct vb2_queue *q,
 	return vb2_queue_init(q);
 }
 
-static void rkisp1_set_fmt(struct rkisp1_stream *stream,
-			   struct v4l2_pix_format_mplane *pixm,
-			   bool try)
+static void rkisp1_try_fmt(struct rkisp1_stream *stream,
+			   struct v4l2_pix_format_mplane *pixm)
 {
-	const struct capture_fmt *fmt;
 	const struct stream_config *config = stream->config;
 	struct rkisp1_stream *other_stream =
 			&stream->ispdev->stream[!stream->id];
 	unsigned int i, planes, imagsize = 0;
+	const struct capture_fmt *fmt;
 	u32 xsubs = 1, ysubs = 1;
 
 	fmt = find_fmt(stream, pixm->pixelformat);
@@ -1456,22 +1455,40 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 	if (fmt->mplanes == 1)
 		pixm->plane_fmt[0].sizeimage = imagsize;
 
-	if (!try) {
-		stream->out_isp_fmt = *fmt;
-		stream->out_fmt = *pixm;
+	dev_dbg(stream->ispdev->dev,
+		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
+		stream->id, pixm->width, pixm->height,
+		stream->out_fmt.width, stream->out_fmt.height);
+}
 
-		if (stream->id == RKISP1_STREAM_SP) {
-			stream->u.sp.y_stride =
-				pixm->plane_fmt[0].bytesperline /
-				DIV_ROUND_UP(fmt->bpp[0], 8);
-		} else {
-			stream->u.mp.raw_enable = (fmt->fmt_type == FMT_BAYER);
-		}
-		dev_dbg(stream->ispdev->dev,
-			"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
-			stream->id, pixm->width, pixm->height,
-			stream->out_fmt.width, stream->out_fmt.height);
+static void rkisp1_set_fmt(struct rkisp1_stream *stream,
+			   struct v4l2_pix_format_mplane *pixm)
+{
+	const struct stream_config *config = stream->config;
+	const struct capture_fmt *fmt;
+
+	rkisp1_try_fmt(stream, pixm);
+
+	fmt = find_fmt(stream, pixm->pixelformat);
+	if (!fmt) {
+		fmt = config->fmts;
+		pixm->pixelformat = fmt->fourcc;
 	}
+	stream->out_isp_fmt = *fmt;
+	stream->out_fmt = *pixm;
+
+	if (stream->id == RKISP1_STREAM_SP) {
+		stream->u.sp.y_stride =
+			pixm->plane_fmt[0].bytesperline /
+			DIV_ROUND_UP(fmt->bpp[0], 8);
+	} else {
+		stream->u.mp.raw_enable = (fmt->fmt_type == FMT_BAYER);
+	}
+
+	dev_dbg(stream->ispdev->dev,
+		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
+		stream->id, pixm->width, pixm->height,
+		stream->out_fmt.width, stream->out_fmt.height);
 }
 
 /************************* v4l2_file_operations***************************/
@@ -1501,7 +1518,9 @@ void rkisp1_stream_init(struct rkisp1_device *dev, u32 id)
 	pixm.pixelformat = V4L2_PIX_FMT_YUYV;
 	pixm.width = RKISP1_DEFAULT_WIDTH;
 	pixm.height = RKISP1_DEFAULT_HEIGHT;
-	rkisp1_set_fmt(stream, &pixm, false);
+	// TODO: bool arguments should be avoided:
+	// it's not clear what it means!
+	rkisp1_set_fmt(stream, &pixm);
 
 	stream->dcrop.left = 0;
 	stream->dcrop.top = 0;
@@ -1526,7 +1545,7 @@ static int rkisp1_try_fmt_vid_cap_mplane(struct file *file, void *fh,
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
 
-	rkisp1_set_fmt(stream, &f->fmt.pix_mp, true);
+	rkisp1_try_fmt(stream, &f->fmt.pix_mp);
 
 	return 0;
 }
@@ -1559,7 +1578,7 @@ static int rkisp1_s_fmt_vid_cap_mplane(struct file *file,
 		return -EBUSY;
 	}
 
-	rkisp1_set_fmt(stream, &f->fmt.pix_mp, false);
+	rkisp1_set_fmt(stream, &f->fmt.pix_mp);
 
 	return 0;
 }
