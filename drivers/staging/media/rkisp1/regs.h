@@ -1282,6 +1282,17 @@ bool sp_is_frame_end_int_masked(void __iomem *base);
 bool mp_is_stream_stopped(void __iomem *base);
 bool sp_is_stream_stopped(void __iomem *base);
 
+static inline void rkisp1_write(struct rkisp1_device *dev, u32 val,
+				unsigned int addr)
+{
+	writel(val, dev->base_addr + addr);
+}
+
+static inline u32 rkisp1_read(struct rkisp1_device *dev, unsigned int addr)
+{
+	return readl(dev->base_addr + addr);
+}
+
 static inline void mi_set_y_size(struct rkisp1_stream *stream, int val)
 {
 	void __iomem *base = stream->ispdev->base_addr;
@@ -1367,6 +1378,19 @@ static inline void mi_frame_end_int_clear(struct rkisp1_stream *stream)
 	void __iomem *addr = base + CIF_MI_ICR;
 
 	writel(CIF_MI_FRAME(stream), addr);
+}
+
+static inline u32 mi_frame_end_int_read_clear(struct rkisp1_device *dev)
+{
+	void __iomem *base = dev->base_addr;
+	void __iomem *addr = base + CIF_MI_ICR;
+	u32 status;
+
+	status = rkisp1_read(dev, CIF_MI_MIS);
+	if (!status)
+		return 0;
+	writel(status, addr);
+	return status;
 }
 
 static inline void mp_set_chain_mode(void __iomem *base)
