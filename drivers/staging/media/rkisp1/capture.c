@@ -965,7 +965,7 @@ static int rkisp1_start(struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 	struct rkisp1_device *dev = stream->ispdev;
-	struct rkisp1_stream *other = &dev->stream[stream->id ^ 1];
+	struct rkisp1_stream *other = &dev->streams[stream->id ^ 1];
 	int ret;
 
 	stream->ops->set_data_path(base);
@@ -1266,7 +1266,7 @@ static void rkisp1_stop_streaming(struct vb2_queue *queue)
 static int rkisp1_stream_start(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
-	struct rkisp1_stream *other = &dev->stream[stream->id ^ 1];
+	struct rkisp1_stream *other = &dev->streams[stream->id ^ 1];
 	bool async = false;
 	int ret;
 
@@ -1397,7 +1397,7 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 {
 	const struct stream_config *config = stream->config;
 	struct rkisp1_stream *other_stream =
-			&stream->ispdev->stream[!stream->id];
+			&stream->ispdev->streams[!stream->id];
 	unsigned int i, planes, imagsize = 0;
 	const struct capture_fmt *fmt;
 	u32 xsubs = 1, ysubs = 1;
@@ -1494,7 +1494,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 /************************* v4l2_file_operations***************************/
 void rkisp1_stream_init(struct rkisp1_device *dev, u32 id)
 {
-	struct rkisp1_stream *stream = &dev->stream[id];
+	struct rkisp1_stream *stream = &dev->streams[id];
 	struct v4l2_pix_format_mplane pixm;
 
 	memset(stream, 0, sizeof(*stream));
@@ -1779,8 +1779,8 @@ static void rkisp1_unregister_stream_vdev(struct rkisp1_stream *stream)
 
 void rkisp1_unregister_stream_vdevs(struct rkisp1_device *dev)
 {
-	struct rkisp1_stream *mp_stream = &dev->stream[RKISP1_STREAM_MP];
-	struct rkisp1_stream *sp_stream = &dev->stream[RKISP1_STREAM_SP];
+	struct rkisp1_stream *mp_stream = &dev->streams[RKISP1_STREAM_MP];
+	struct rkisp1_stream *sp_stream = &dev->streams[RKISP1_STREAM_SP];
 
 	rkisp1_unregister_stream_vdev(mp_stream);
 	rkisp1_unregister_stream_vdev(sp_stream);
@@ -1843,7 +1843,7 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
 	int ret;
 
 	for (i = 0; i < RKISP1_MAX_STREAM; i++) {
-		stream = &dev->stream[i];
+		stream = &dev->streams[i];
 		stream->ispdev = dev;
 		ret = rkisp1_register_stream_vdev(stream);
 		if (ret < 0)
@@ -1853,7 +1853,7 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
 	return 0;
 err:
 	for (j = 0; j < i; j++) {
-		stream = &dev->stream[j];
+		stream = &dev->streams[j];
 		rkisp1_unregister_stream_vdev(stream);
 	}
 
@@ -1867,18 +1867,13 @@ void rkisp1_mi_isr(struct rkisp1_device *dev)
 	unsigned int i;
 	u32 status;
 
-	status = readl(dev->base_addr + CIF_MI_MIS);
-	if (!status)
-		return;
+	status = mi_frame_end_int_read_clear(dev);
 
 	for (i = 0; i < ARRAY_SIZE(dev->stream); ++i) {
-		struct rkisp1_stream *stream = &dev->stream[i];
+		struct rkisp1_stream *stream = &dev->streams[i];
 
 		if (!(status & CIF_MI_FRAME(stream)))
 			continue;
-
-		mi_frame_end_int_clear(stream);
-
 		if (stream->stopping) {
 			/*
 			 * Make sure stream is actually stopped, whose state

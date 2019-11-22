@@ -71,7 +71,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 	/* create ISP internal links */
 	/* SP links */
 	source = &dev->isp_sdev.sd.entity;
-	sink = &dev->stream[RKISP1_STREAM_SP].vnode.vdev.entity;
+	sink = &dev->streams[RKISP1_STREAM_SP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
 	if (ret < 0)
@@ -79,7 +79,7 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 
 	/* MP links */
 	source = &dev->isp_sdev.sd.entity;
-	sink = &dev->stream[RKISP1_STREAM_MP].vnode.vdev.entity;
+	sink = &dev->streams[RKISP1_STREAM_MP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
 	if (ret < 0)
