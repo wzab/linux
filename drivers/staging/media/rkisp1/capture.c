@@ -28,7 +28,7 @@
  */
 
 /*
- * differences between selfpatch and mainpath
+ * differences between selfpath and mainpath
  * available mp sink input: isp
  * available sp sink input : isp, dma(TODO)
  * available mp sink pad fmts: yuv422, raw
@@ -56,45 +56,6 @@
 #define STREAM_MAX_MP_SP_INPUT_HEIGHT STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT
 #define STREAM_MIN_MP_SP_INPUT_WIDTH		32
 #define STREAM_MIN_MP_SP_INPUT_HEIGHT		32
-
-/* Get xsubs and ysubs for fourcc formats
- *
- * @xsubs: horizontal color samples in a 4*4 matrix, for yuv
- * @ysubs: vertical color samples in a 4*4 matrix, for yuv
- */
-static int fcc_xysubs(u32 fcc, u32 *xsubs, u32 *ysubs)
-{
-	switch (fcc) {
-	case V4L2_PIX_FMT_GREY:
-	case V4L2_PIX_FMT_YUV444M:
-		*xsubs = 1;
-		*ysubs = 1;
-		break;
-	case V4L2_PIX_FMT_YUYV:
-	case V4L2_PIX_FMT_YVYU:
-	case V4L2_PIX_FMT_VYUY:
-	case V4L2_PIX_FMT_YUV422P:
-	case V4L2_PIX_FMT_NV16:
-	case V4L2_PIX_FMT_NV61:
-	case V4L2_PIX_FMT_YVU422M:
-		*xsubs = 2;
-		*ysubs = 1;
-		break;
-	case V4L2_PIX_FMT_NV21:
-	case V4L2_PIX_FMT_NV12:
-	case V4L2_PIX_FMT_NV21M:
-	case V4L2_PIX_FMT_NV12M:
-	case V4L2_PIX_FMT_YUV420:
-	case V4L2_PIX_FMT_YVU420:
-		*xsubs = 2;
-		*ysubs = 2;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
 
 static int mbus_code_xysubs(u32 code, u32 *xsubs, u32 *ysubs)
 {
@@ -132,57 +93,35 @@ static const struct capture_fmt mp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVYU,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_VYUY,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
-		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV422P,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV16,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV61,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU422M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 3,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
@@ -190,49 +129,31 @@ static const struct capture_fmt mp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_NV21,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV21M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 2,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 2,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV420,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU420,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
@@ -240,9 +161,6 @@ static const struct capture_fmt mp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_YUV444M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 3,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
@@ -250,9 +168,6 @@ static const struct capture_fmt mp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_GREY,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_MP_WRITE_YUVINT,
 	},
@@ -260,74 +175,50 @@ static const struct capture_fmt mp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_SRGGB8,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 8 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG8,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 8 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG8,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 8 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR8,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 8 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SRGGB10,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 10 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG10,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 10 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG10,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 10 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR10,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 10 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SRGGB12,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 12 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG12,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 12 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG12,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 12 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR12,
 		.fmt_type = FMT_BAYER,
-		.bpp = { 12 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_MP_WRITE_RAW12,
 	},
 };
@@ -337,63 +228,42 @@ static const struct capture_fmt sp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_INT,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVYU,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_INT,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_VYUY,
 		.fmt_type = FMT_YUV,
-		.bpp = { 16 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_INT,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV422P,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV16,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV61,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU422M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 3,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
@@ -402,54 +272,36 @@ static const struct capture_fmt sp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_NV21,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV21M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 2,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 16 },
-		.cplanes = 2,
-		.mplanes = 2,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_SPLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV420,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU420,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 1,
 		.uv_swap = 1,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
@@ -458,9 +310,6 @@ static const struct capture_fmt sp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_YUV444M,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8, 8, 8 },
-		.cplanes = 3,
-		.mplanes = 3,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV444,
@@ -469,9 +318,6 @@ static const struct capture_fmt sp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_GREY,
 		.fmt_type = FMT_YUV,
-		.bpp = { 8 },
-		.cplanes = 1,
-		.mplanes = 1,
 		.uv_swap = 0,
 		.write_format = MI_CTRL_SP_WRITE_INT,
 		.output_format = MI_CTRL_SP_OUTPUT_YUV400,
@@ -480,22 +326,16 @@ static const struct capture_fmt sp_fmts[] = {
 	{
 		.fourcc = V4L2_PIX_FMT_RGB24,
 		.fmt_type = FMT_RGB,
-		.bpp = { 24 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_RGB888,
 	}, {
 		.fourcc = V4L2_PIX_FMT_RGB565,
 		.fmt_type = FMT_RGB,
-		.bpp = { 16 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_RGB565,
 	}, {
 		.fourcc = V4L2_PIX_FMT_BGR666,
 		.fmt_type = FMT_RGB,
-		.bpp = { 18 },
-		.mplanes = 1,
 		.write_format = MI_CTRL_SP_WRITE_PLA,
 		.output_format = MI_CTRL_SP_OUTPUT_RGB666,
 	},
@@ -658,11 +498,11 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
-	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
-	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
+	const struct capture_fmt *output_isp_fmt = stream->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
+	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
-	u32 xsubs_in, ysubs_in, xsubs_out, ysubs_out;
+	u32 xsubs_in, ysubs_in;
 
 	if (input_isp_fmt->fmt_type == FMT_BAYER)
 		goto disable;
@@ -681,11 +521,12 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 	in_c.width = in_y.width / xsubs_in;
 	in_c.height = in_y.height / ysubs_in;
 
-	// TODO: Use pixfmt helpers?
 	if (output_isp_fmt->fmt_type == FMT_YUV) {
-		fcc_xysubs(output_isp_fmt->fourcc, &xsubs_out, &ysubs_out);
-		out_c.width = out_y.width / xsubs_out;
-		out_c.height = out_y.height / ysubs_out;
+		const struct v4l2_format_info *pixfmt_info =
+				v4l2_format_info(output_isp_fmt->fourcc);
+
+		out_c.width = out_y.width / pixfmt_info->hdiv;
+		out_c.height = out_y.height / pixfmt_info->vdiv;
 	} else {
 		out_c.width = out_y.width / xsubs_in;
 		out_c.height = out_y.height / ysubs_in;
@@ -716,29 +557,39 @@ disable:
 
 /***************************** stream operations*******************************/
 
+static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
+				   unsigned int component)
+{
+	/*
+	 * If packed format, then plane_fmt[0].sizeimage is the sum of all
+	 * components, so we need to calculate just the size of Y component.
+	 * See rkisp1_fill_pixfmt_mp().
+	 */
+	if (!component && pixm->num_planes == 1)
+		return pixm->plane_fmt[0].bytesperline * pixm->height;
+	else
+		return pixm->plane_fmt[component].sizeimage;
+}
+
 /*
  * configure memory interface for mainpath
  * This should only be called when stream-on
  */
 static int mp_config_mi(struct rkisp1_stream *stream)
 {
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	void __iomem *base = stream->ispdev->base_addr;
 
-       /*
-	* NOTE: plane_fmt[0].sizeimage is total size of all planes for single
-	* memory plane formats, so calculate the size explicitly.
-	*/
-	mi_set_y_size(stream, stream->out_fmt.plane_fmt[0].bytesperline *
-			 stream->out_fmt.height);
-	mi_set_cb_size(stream, stream->out_fmt.plane_fmt[1].sizeimage);
-	mi_set_cr_size(stream, stream->out_fmt.plane_fmt[2].sizeimage);
+	mi_set_y_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
+	mi_set_cb_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
+	mi_set_cr_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
 	mi_frame_end_int_enable(stream);
-	if (stream->out_isp_fmt.uv_swap)
+	if (stream->out_isp_fmt->uv_swap)
 		mp_set_uv_swap(base);
 
 	config_mi_ctrl(stream);
-	mp_mi_ctrl_set_format(base, stream->out_isp_fmt.write_format);
+	mp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format);
 	mp_mi_ctrl_autoupdate_en(base);
 
 	return 0;
@@ -750,27 +601,24 @@ static int mp_config_mi(struct rkisp1_stream *stream)
  */
 static int sp_config_mi(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
+	const struct capture_fmt *output_isp_fmt = stream->out_isp_fmt;
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *dev = stream->ispdev;
-	struct capture_fmt *output_isp_fmt = &stream->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
+	void __iomem *base = stream->ispdev->base_addr;
 	u32 sp_in_fmt;
 
 	if (mbus_code_sp_in_fmt(input_isp_fmt->mbus_code, &sp_in_fmt)) {
 		dev_err(dev->dev, "Can't find the input format\n");
 		return -EINVAL;
 	}
-       /*
-	* NOTE: plane_fmt[0].sizeimage is total size of all planes for single
-	* memory plane formats, so calculate the size explicitly.
-	*/
-	mi_set_y_size(stream, stream->out_fmt.plane_fmt[0].bytesperline *
-		      stream->out_fmt.height);
-	mi_set_cb_size(stream, stream->out_fmt.plane_fmt[1].sizeimage);
-	mi_set_cr_size(stream, stream->out_fmt.plane_fmt[2].sizeimage);
 
-	sp_set_y_width(base, stream->out_fmt.width);
-	sp_set_y_height(base, stream->out_fmt.height);
+	mi_set_y_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
+	mi_set_cb_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
+	mi_set_cr_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
+
+	sp_set_y_width(base, pixm->width);
+	sp_set_y_height(base, pixm->height);
 	sp_set_y_line_length(base, stream->u.sp.y_stride);
 
 	mi_frame_end_int_enable(stream);
@@ -778,7 +626,7 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 		sp_set_uv_swap(base);
 
 	config_mi_ctrl(stream);
-	sp_mi_ctrl_set_format(base, stream->out_isp_fmt.write_format |
+	sp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format |
 			      sp_in_fmt | output_isp_fmt->output_format);
 
 	sp_mi_ctrl_autoupdate_en(base);
@@ -788,8 +636,8 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 
 static void mp_enable_mi(struct rkisp1_stream *stream)
 {
+	const struct capture_fmt *isp_fmt = stream->out_isp_fmt;
 	void __iomem *base = stream->ispdev->base_addr;
-	struct capture_fmt *isp_fmt = &stream->out_isp_fmt;
 
 	mi_ctrl_mp_disable(base);
 	if (isp_fmt->fmt_type == FMT_BAYER)
@@ -832,12 +680,11 @@ static void update_mi(struct rkisp1_stream *stream)
 	 * throw data to it if there is no available buffer.
 	 */
 	if (stream->next_buf) {
-		mi_set_y_addr(stream,
-			      stream->next_buf->buff_addr[RKISP1_PLANE_Y]);
-		mi_set_cb_addr(stream,
-			       stream->next_buf->buff_addr[RKISP1_PLANE_CB]);
-		mi_set_cr_addr(stream,
-			       stream->next_buf->buff_addr[RKISP1_PLANE_CR]);
+		u32 *buff_addr = stream->next_buf->buff_addr;
+
+		mi_set_y_addr(stream, buff_addr[RKISP1_PLANE_Y]);
+		mi_set_cb_addr(stream, buff_addr[RKISP1_PLANE_CB]);
+		mi_set_cr_addr(stream, buff_addr[RKISP1_PLANE_CR]);
 	} else {
 		dev_dbg(stream->ispdev->dev,
 			"stream %d: to dummy buf\n", stream->id);
@@ -892,28 +739,27 @@ static struct streams_ops rkisp1_sp_streams_ops = {
  */
 static int mi_frame_end(struct rkisp1_stream *stream)
 {
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *isp_dev = stream->ispdev;
 	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
-	struct capture_fmt *isp_fmt = &stream->out_isp_fmt;
+	struct rkisp1_buffer *curr_buf = stream->curr_buf;
 	unsigned long lock_flags = 0;
-	int i = 0;
+	unsigned int i;
 
 	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
 
-	if (stream->curr_buf) {
+	if (curr_buf) {
 		/* Dequeue a filled buffer */
-		for (i = 0; i < isp_fmt->mplanes; i++) {
+		for (i = 0; i < pixm->num_planes; i++) {
 			u32 payload_size =
 				stream->out_fmt.plane_fmt[i].sizeimage;
-			vb2_set_plane_payload(&stream->curr_buf->vb.vb2_buf, i,
+			vb2_set_plane_payload(&curr_buf->vb.vb2_buf, i,
 					      payload_size);
 		}
-		stream->curr_buf->vb.sequence =
-				atomic_read(&isp_sd->frm_sync_seq) - 1;
-		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
-		stream->curr_buf->vb.field = V4L2_FIELD_NONE;
-		vb2_buffer_done(&stream->curr_buf->vb.vb2_buf,
-				VB2_BUF_STATE_DONE);
+		curr_buf->vb.sequence = atomic_read(&isp_sd->frm_sync_seq) - 1;
+		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
+		curr_buf->vb.field = V4L2_FIELD_NONE;
+		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 	}
 
 	/* Next frame is writing to it */
@@ -1007,19 +853,18 @@ static int rkisp1_queue_setup(struct vb2_queue *queue,
 	struct rkisp1_stream *stream = queue->drv_priv;
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
-	const struct capture_fmt *isp_fmt = &stream->out_isp_fmt;
 	unsigned int i;
 
 	if (*num_planes) {
-		if (*num_planes != isp_fmt->mplanes)
+		if (*num_planes != pixm->num_planes)
 			return -EINVAL;
 
-		for (i = 0; i < isp_fmt->mplanes; i++)
+		for (i = 0; i < pixm->num_planes; i++)
 			if (sizes[i] < pixm->plane_fmt[i].sizeimage)
 				return -EINVAL;
 	} else {
-		*num_planes = isp_fmt->mplanes;
-		for (i = 0; i < isp_fmt->mplanes; i++)
+		*num_planes = pixm->num_planes;
+		for (i = 0; i < stream->out_fmt.num_planes; i++)
 			sizes[i] = pixm->plane_fmt[i].sizeimage;
 	}
 
@@ -1039,23 +884,22 @@ static void rkisp1_buf_queue(struct vb2_buffer *vb)
 	struct rkisp1_buffer *ispbuf = to_rkisp1_buffer(vbuf);
 	struct vb2_queue *queue = vb->vb2_queue;
 	struct rkisp1_stream *stream = queue->drv_priv;
-	struct capture_fmt *isp_fmt = &stream->out_isp_fmt;
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	unsigned long lock_flags = 0;
 	unsigned int i;
 
 	memset(ispbuf->buff_addr, 0, sizeof(ispbuf->buff_addr));
-	for (i = 0; i < isp_fmt->mplanes; i++)
+	for (i = 0; i < pixm->num_planes; i++)
 		ispbuf->buff_addr[i] = vb2_dma_contig_plane_dma_addr(vb, i);
 
 	/* Convert to non-MPLANE */
-	if (isp_fmt->mplanes == 1) {
+	if (pixm->num_planes == 1) {
 		ispbuf->buff_addr[RKISP1_PLANE_CB] =
 			ispbuf->buff_addr[RKISP1_PLANE_Y] +
-			stream->out_fmt.plane_fmt[RKISP1_PLANE_Y].bytesperline *
-			stream->out_fmt.height;
+			rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y);
 		ispbuf->buff_addr[RKISP1_PLANE_CR] =
 			ispbuf->buff_addr[RKISP1_PLANE_CB] +
-			stream->out_fmt.plane_fmt[RKISP1_PLANE_CB].sizeimage;
+			rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB);
 	}
 
 	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
@@ -1076,24 +920,14 @@ static void rkisp1_buf_queue(struct vb2_buffer *vb)
 
 static int rkisp1_buf_prepare(struct vb2_buffer *vb)
 {
-	struct vb2_queue *queue = vb->vb2_queue;
-	struct rkisp1_stream *stream = queue->drv_priv;
-	struct rkisp1_device *dev = stream->ispdev;
-	struct capture_fmt *isp_fmt = &stream->out_isp_fmt;
+	struct rkisp1_stream *stream = vb->vb2_queue->drv_priv;
 	unsigned int i;
 
-	for (i = 0; i < isp_fmt->mplanes; i++) {
+	for (i = 0; i < stream->out_fmt.num_planes; i++) {
 		unsigned long size = stream->out_fmt.plane_fmt[i].sizeimage;
 
-		if (isp_fmt->mplanes > 1 && i == 0) {
-			const struct v4l2_plane_pix_format *fmt =
-				&stream->out_fmt.plane_fmt[RKISP1_PLANE_Y];
-
-			size = fmt->bytesperline * stream->out_fmt.height;
-		}
-
 		if (vb2_plane_size(vb, i) < size) {
-			dev_err(dev->dev,
+			dev_err(stream->ispdev->dev,
 				"User buffer too small (%ld < %ld)\n",
 				vb2_plane_size(vb, i), size);
 			return -EINVAL;
@@ -1106,21 +940,20 @@ static int rkisp1_buf_prepare(struct vb2_buffer *vb)
 
 static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 {
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
-	struct rkisp1_device *dev = stream->ispdev;
 
 	/* get a maximum size */
-	dummy_buf->size = max3(stream->out_fmt.plane_fmt[0].bytesperline *
-		stream->out_fmt.height,
-		stream->out_fmt.plane_fmt[1].sizeimage,
-		stream->out_fmt.plane_fmt[2].sizeimage);
+	dummy_buf->size = max3(rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
+			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
+			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
-	// TODO: We don't need a mapping here, do we?
-	dummy_buf->vaddr = dma_alloc_coherent(dev->dev, dummy_buf->size,
+	dummy_buf->vaddr = dma_alloc_coherent(stream->ispdev->dev,
+					      dummy_buf->size,
 					      &dummy_buf->dma_addr,
 					      GFP_KERNEL);
 	if (!dummy_buf->vaddr) {
-		dev_err(dev->dev,
+		dev_err(stream->ispdev->dev,
 			"Failed to allocate the memory for dummy buffer\n");
 		return -ENOMEM;
 	}
@@ -1131,9 +964,8 @@ static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 static void rkisp1_destroy_dummy_buf(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
-	struct rkisp1_device *dev = stream->ispdev;
 
-	dma_free_coherent(dev->dev, dummy_buf->size,
+	dma_free_coherent(stream->ispdev->dev, dummy_buf->size,
 			  dummy_buf->vaddr, dummy_buf->dma_addr);
 }
 
@@ -1405,6 +1237,55 @@ static int rkisp_init_vb2_queue(struct vb2_queue *q,
 	return vb2_queue_init(q);
 }
 
+/* TODO: check how we can integrate with v4l2_fill_pixfmt_mp() */
+static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
+				  bool allow_custom_stride)
+{
+	struct v4l2_plane_pix_format *plane_y = &pixm->plane_fmt[0];
+	const struct v4l2_format_info *info;
+	unsigned int i;
+	u32 stride;
+
+	info = v4l2_format_info(pixm->pixelformat);
+	BUG_ON(!info);
+
+	/*
+	 * TODO: fill out info->block_w and info->block_h and use
+	 * v4l2_format_block_width() and v4l2_format_block_height() to adjust
+	 * alignment (see v4l2_fill_pixfmt_mp()).
+	 * For Y component the line length in 4:2:x planar mode must be a
+	 * multiple of 8, for all other component modes a multiple of 4 and
+	 * for RGB 565 a multiple of 2. There are no restrictions for RGB
+	 * 888/666.
+	 */
+
+	pixm->num_planes = info->mem_planes;
+	stride = info->bpp[0] * pixm->width;
+	if (!allow_custom_stride || plane_y->bytesperline < stride )
+		plane_y->bytesperline = stride;
+	plane_y->sizeimage = plane_y->bytesperline * pixm->height;
+
+	for (i = 1; i < info->comp_planes; i++) {
+		struct v4l2_plane_pix_format *plane = &pixm->plane_fmt[i];
+
+		/* bytesperline for other components derive from Y component */
+		plane->bytesperline = DIV_ROUND_UP(plane_y->bytesperline,
+						   info->hdiv);
+		plane->sizeimage = plane->bytesperline *
+				   DIV_ROUND_UP(pixm->height, info->vdiv);
+	}
+
+	/*
+	 * If pixfmt is packed, then plane_fmt[0] should contain the total size
+	 * considering all components. plane_fmt[i] for i > 0 should be ignored
+	 * by userspace as mem_planes == 1, but we are keeping information there
+	 * for convenience.
+	 */
+	if (info->mem_planes == 1)
+		for (i = 1; i < info->comp_planes; i++)
+			plane_y->sizeimage += pixm->plane_fmt[i].sizeimage;
+}
+
 static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 			   struct v4l2_pix_format_mplane *pixm)
 {
@@ -1412,26 +1293,23 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 	struct rkisp1_stream *other_stream =
 	// TODO: In some cases, it's !stream->id, in others it's stream->id ^ 1.
 			&stream->ispdev->streams[!stream->id];
-	// TODO: s/imagsize/image_size
-	unsigned int i, planes, imagsize = 0;
 	const struct capture_fmt *fmt;
-	u32 xsubs = 1, ysubs = 1;
 
 	fmt = find_fmt(stream, pixm->pixelformat);
-	if (!fmt) {
+	if (!fmt)
 		fmt = config->fmts;
-		pixm->pixelformat = fmt->fourcc;
-	}
 
 	/* do checks on resolution */
 	pixm->width = clamp_t(u32, pixm->width, config->min_rsz_width,
 			      config->max_rsz_width);
 	pixm->height = clamp_t(u32, pixm->height, config->min_rsz_height,
 			       config->max_rsz_height);
-	pixm->num_planes = fmt->mplanes;
 	pixm->field = V4L2_FIELD_NONE;
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
+
+	/* Self path supports custom stride but Main path doesn't */
+	rkisp1_fill_pixfmt_mp(pixm, stream->id == RKISP1_STREAM_SP);
 
 	/* can not change quantization when stream-on */
 	// TODO: this checks the _other_ stream.
@@ -1442,37 +1320,6 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 		 pixm->quantization > V4L2_QUANTIZATION_LIM_RANGE)
 		pixm->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
-	/* calculate size */
-	fcc_xysubs(fmt->fourcc, &xsubs, &ysubs);
-	planes = fmt->cplanes ? fmt->cplanes : fmt->mplanes;
-	for (i = 0; i < planes; i++) {
-		struct v4l2_plane_pix_format *plane_fmt;
-		int width, height, bytesperline;
-
-		// TODO: should use pixfmt helpers?
-		plane_fmt = pixm->plane_fmt + i;
-		width = pixm->width / (i ? xsubs : 1);
-		height = pixm->height / (i ? ysubs : 1);
-
-		bytesperline = width * DIV_ROUND_UP(fmt->bpp[i], 8);
-		/* stride is only available for sp stream and y plane */
-		// TODO: WHY only for self-path??!
-		if (stream->id != RKISP1_STREAM_SP || i != 0 ||
-		    plane_fmt->bytesperline < bytesperline)
-			plane_fmt->bytesperline = bytesperline;
-
-		plane_fmt->sizeimage = plane_fmt->bytesperline * height;
-
-		imagsize += plane_fmt->sizeimage;
-	}
-
-	/* convert to non-MPLANE format.
-	 * it's important since we want to unify none-MPLANE
-	 * and MPLANE.
-	 */
-	if (fmt->mplanes == 1)
-		pixm->plane_fmt[0].sizeimage = imagsize;
-
 	dev_dbg(stream->ispdev->dev,
 		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
 		stream->id, pixm->width, pixm->height,
@@ -1482,27 +1329,21 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 			   struct v4l2_pix_format_mplane *pixm)
 {
-	const struct stream_config *config = stream->config;
+	const struct v4l2_format_info *pixfmt_info;
 	const struct capture_fmt *fmt;
 
 	rkisp1_try_fmt(stream, pixm);
-
+	stream->out_isp_fmt = find_fmt(stream, pixm->pixelformat);
+	pixfmt_info = v4l2_format_info(pixm->pixelformat);
 	fmt = find_fmt(stream, pixm->pixelformat);
-	if (!fmt) {
-		fmt = config->fmts;
-		pixm->pixelformat = fmt->fourcc;
-	}
-	stream->out_isp_fmt = *fmt;
 	stream->out_fmt = *pixm;
 
-	// TODO:???
-	if (stream->id == RKISP1_STREAM_SP) {
-		stream->u.sp.y_stride =
-			pixm->plane_fmt[0].bytesperline /
-			DIV_ROUND_UP(fmt->bpp[0], 8);
-	} else {
+	/* SP supports custom stride in number of pixels of the Y plane */
+	if (stream->id == RKISP1_STREAM_SP)
+		stream->u.sp.y_stride = pixm->plane_fmt[0].bytesperline /
+					pixfmt_info->bpp[0];
+	else
 		stream->u.mp.raw_enable = (fmt->fmt_type == FMT_BAYER);
-	}
 
 	dev_dbg(stream->ispdev->dev,
 		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
@@ -1652,7 +1493,7 @@ static struct v4l2_rect *rkisp1_update_crop(struct rkisp1_stream *stream,
 {
 	/* Not crop for MP bayer raw data */
 	if (stream->id == RKISP1_STREAM_MP &&
-	    stream->out_isp_fmt.fmt_type == FMT_BAYER) {
+	    stream->out_isp_fmt->fmt_type == FMT_BAYER) {
 		sel->left = 0;
 		sel->top = 0;
 		sel->width = in->width;
@@ -1733,7 +1574,7 @@ static int rkisp1_vdev_link_validate(struct media_link *link)
 	const struct v4l2_mbus_framefmt *ispsd_frm;
 	u16 isp_quant, cap_quant;
 
-	if (stream->out_isp_fmt.fmt_type != isp_sd->out_fmt->fmt_type) {
+	if (stream->out_isp_fmt->fmt_type != isp_sd->out_fmt->fmt_type) {
 		dev_err(isp_sd->sd.dev,
 			"format type mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
