@@ -16,10 +16,7 @@ struct rkisp1_stream;
  * @fourcc: pixel format
  * @mbus_code: pixel format over bus
  * @fmt_type: helper filed for pixel format
- * @bpp: bits per pixel
  * @bayer_pat: bayer patten type
- * @cplanes: number of colour planes
- * @mplanes: number of stored memory planes
  * @uv_swap: if cb cr swaped, for yuv
  * @write_format: defines how YCbCr self picture data is written to memory
  * @input_format: defines sp input format
@@ -29,12 +26,9 @@ struct capture_fmt {
 	u32 fourcc;
 	u32 mbus_code;
 	u8 fmt_type;
-	u8 cplanes;
-	u8 mplanes;
 	u8 uv_swap;
 	u32 write_format;
 	u32 output_format;
-	u8 bpp[VIDEO_MAX_PLANES];
 };
 
 enum rkisp1_sp_inp {
@@ -137,7 +131,7 @@ struct rkisp1_stream {
 	unsigned id:1;
 	struct rkisp1_device *ispdev;
 	struct rkisp1_vdev_node vnode;
-	struct capture_fmt out_isp_fmt;
+	const struct capture_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
 	struct v4l2_rect dcrop;
 	struct streams_ops *ops;
