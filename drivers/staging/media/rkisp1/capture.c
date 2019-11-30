@@ -452,15 +452,14 @@ static struct stream_config rkisp1_sp_stream_config = {
 };
 
 static const
-struct capture_fmt *find_fmt(struct rkisp1_stream *stream, const u32 pixelfmt)
+struct capture_fmt *find_fmt(const struct rkisp1_stream *stream,
+			     const u32 pixelfmt)
 {
-	const struct capture_fmt *fmt;
 	unsigned int i;
 
 	for (i = 0; i < stream->config->fmt_size; i++) {
-		fmt = &stream->config->fmts[i];
-		if (fmt->fourcc == pixelfmt)
-			return fmt;
+		if (stream->config->fmts[i].fourcc == pixelfmt)
+			return &stream->config->fmts[i];
 	}
 	return NULL;
 }
@@ -943,7 +942,6 @@ static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
-	/* get a maximum size */
 	dummy_buf->size = max3(rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
@@ -1239,7 +1237,7 @@ static int rkisp_init_vb2_queue(struct vb2_queue *q,
 
 /* TODO: check how we can integrate with v4l2_fill_pixfmt_mp() */
 static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
-				  bool allow_custom_stride)
+				  int stream_id)
 {
 	struct v4l2_plane_pix_format *plane_y = &pixm->plane_fmt[0];
 	const struct v4l2_format_info *info;
@@ -1261,7 +1259,8 @@ static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
 
 	pixm->num_planes = info->mem_planes;
 	stride = info->bpp[0] * pixm->width;
-	if (!allow_custom_stride || plane_y->bytesperline < stride )
+	/* Self path supports custom stride but Main path doesn't */
+	if (stream_id == RKISP1_STREAM_MP || plane_y->bytesperline < stride )
 		plane_y->bytesperline = stride;
 	plane_y->sizeimage = plane_y->bytesperline * pixm->height;
 
@@ -1286,7 +1285,8 @@ static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
 			plane_y->sizeimage += pixm->plane_fmt[i].sizeimage;
 }
 
-static void rkisp1_try_fmt(struct rkisp1_stream *stream,
+static const
+struct capture_fmt *rkisp1_try_fmt(const struct rkisp1_stream *stream,
 			   struct v4l2_pix_format_mplane *pixm)
 {
 	const struct stream_config *config = stream->config;
@@ -1308,8 +1308,7 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
 
-	/* Self path supports custom stride but Main path doesn't */
-	rkisp1_fill_pixfmt_mp(pixm, stream->id == RKISP1_STREAM_SP);
+	rkisp1_fill_pixfmt_mp(pixm, stream->id);
 
 	/* can not change quantization when stream-on */
 	// TODO: this checks the _other_ stream.
@@ -1324,18 +1323,17 @@ static void rkisp1_try_fmt(struct rkisp1_stream *stream,
 		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
 		stream->id, pixm->width, pixm->height,
 		stream->out_fmt.width, stream->out_fmt.height);
+
+	return fmt;
 }
 
 static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 			   struct v4l2_pix_format_mplane *pixm)
 {
 	const struct v4l2_format_info *pixfmt_info;
-	const struct capture_fmt *fmt;
 
-	rkisp1_try_fmt(stream, pixm);
-	stream->out_isp_fmt = find_fmt(stream, pixm->pixelformat);
+	stream->out_isp_fmt = rkisp1_try_fmt(stream, pixm);
 	pixfmt_info = v4l2_format_info(pixm->pixelformat);
-	fmt = find_fmt(stream, pixm->pixelformat);
 	stream->out_fmt = *pixm;
 
 	/* SP supports custom stride in number of pixels of the Y plane */
@@ -1343,7 +1341,8 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 		stream->u.sp.y_stride = pixm->plane_fmt[0].bytesperline /
 					pixfmt_info->bpp[0];
 	else
-		stream->u.mp.raw_enable = (fmt->fmt_type == FMT_BAYER);
+		stream->u.mp.raw_enable =
+			(stream->out_isp_fmt->fmt_type == FMT_BAYER);
 
 	dev_dbg(stream->ispdev->dev,
 		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
@@ -1378,8 +1377,6 @@ void rkisp1_stream_init(struct rkisp1_device *dev, u32 id)
 	pixm.pixelformat = V4L2_PIX_FMT_YUYV;
 	pixm.width = RKISP1_DEFAULT_WIDTH;
 	pixm.height = RKISP1_DEFAULT_HEIGHT;
-	// TODO: bool arguments should be avoided:
-	// it's not clear what it means!
 	rkisp1_set_fmt(stream, &pixm);
 
 	stream->dcrop.left = 0;
@@ -1429,16 +1426,10 @@ static int rkisp1_s_fmt_vid_cap_mplane(struct file *file,
 				       void *priv, struct v4l2_format *f)
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
-	struct video_device *vdev = &stream->vnode.vdev;
-	struct rkisp1_vdev_node *node = vdev_to_node(vdev);
-	struct rkisp1_device *dev = stream->ispdev;
+	struct rkisp1_vdev_node *node = vdev_to_node(&stream->vnode.vdev);
 
-	if (vb2_is_busy(&node->buf_queue)) {
-		// TODO: saying "queue busy" is really the same as
-		// returning EBUSY.
-		dev_err(dev->dev, "%s queue busy\n", __func__);
+	if (vb2_is_busy(&node->buf_queue))
 		return -EBUSY;
-	}
 
 	rkisp1_set_fmt(stream, &f->fmt.pix_mp);
 
