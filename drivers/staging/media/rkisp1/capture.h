@@ -22,7 +22,7 @@ struct rkisp1_stream;
  * @input_format: defines sp input format
  * @output_format: defines sp output format
  */
-struct capture_fmt {
+struct rkisp1_cap_fmt {
 	u32 fourcc;
 	u32 mbus_code;
 	u8 fmt_type;
@@ -47,8 +47,8 @@ struct rkisp1_stream_mp {
 };
 
 /* Different config between selfpath and mainpath */
-struct stream_config {
-	const struct capture_fmt *fmts;
+struct rkisp1_stream_cfg {
+	const struct rkisp1_cap_fmt *fmts;
 	int fmt_size;
 	/* constrains */
 	const int max_rsz_width;
@@ -103,7 +103,7 @@ struct stream_config {
 };
 
 /* Different reg ops between selfpath and mainpath */
-struct streams_ops {
+struct rkisp1_streams_ops {
 	int (*config_mi)(struct rkisp1_stream *stream);
 	void (*stop_mi)(struct rkisp1_stream *stream);
 	void (*enable_mi)(struct rkisp1_stream *stream);
@@ -131,11 +131,11 @@ struct rkisp1_stream {
 	unsigned id:1;
 	struct rkisp1_device *ispdev;
 	struct rkisp1_vdev_node vnode;
-	const struct capture_fmt *out_isp_fmt;
+	const struct rkisp1_cap_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
 	struct v4l2_rect dcrop;
-	struct streams_ops *ops;
-	struct stream_config *config;
+	struct rkisp1_streams_ops *ops;
+	struct rkisp1_stream_cfg *config;
 	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
 	struct list_head buf_queue;
 	struct rkisp1_dummy_buffer dummy_buf;

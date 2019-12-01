@@ -15,19 +15,19 @@
 #include "isp_params.h"
 #include "isp_stats.h"
 
-#define DRIVER_NAME "rkisp1"
-#define ISP_VDEV_NAME DRIVER_NAME  "_ispdev"
-#define SP_VDEV_NAME DRIVER_NAME   "_selfpath"
-#define MP_VDEV_NAME DRIVER_NAME   "_mainpath"
-#define DMA_VDEV_NAME DRIVER_NAME  "_dmapath"
+#define RKISP1_DRIVER_NAME	"rkisp1"
+#define RKISP1_ISP_VDEV_NAME	RKISP1_DRIVER_NAME "_ispdev"
+#define RKISP1_SP_VDEV_NAME	RKISP1_DRIVER_NAME "_selfpath"
+#define RKISP1_MP_VDEV_NAME	RKISP1_DRIVER_NAME "_mainpath"
+#define RKISP1_DMA_VDEV_NAME	RKISP1_DRIVER_NAME "_dmapath"
 
 #define RKISP1_MAX_BUS_CLK	8
 
 /*
- * struct sensor_async_subdev - Sensor information
+ * struct rkisp1_sensor_async - Sensor information
  * @mbus: media bus configuration
  */
-struct sensor_async_subdev {
+struct rkisp1_sensor_async {
 	struct v4l2_async_subdev asd;
 	struct v4l2_mbus_config mbus;
 	unsigned int lanes;
@@ -55,7 +55,7 @@ struct rkisp1_device {
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
-	struct sensor_async_subdev *active_sensor;
+	struct rkisp1_sensor_async *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;

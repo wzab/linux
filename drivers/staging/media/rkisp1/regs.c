@@ -9,7 +9,7 @@
 
 #include "regs.h"
 
-void disable_dcrop(struct rkisp1_stream *stream, bool async)
+void rkisp1_disable_dcrop(struct rkisp1_stream *stream, bool async)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 	void __iomem *dc_ctrl_addr = base + stream->config->dual_crop.ctrl;
@@ -19,14 +19,14 @@ void disable_dcrop(struct rkisp1_stream *stream, bool async)
 	u32 val = dc_ctrl & mask;
 
 	if (async)
-		val |= CIF_DUAL_CROP_GEN_CFG_UPD;
+		val |= RKISP1_CIF_DUAL_CROP_GEN_CFG_UPD;
 	else
-		val |= CIF_DUAL_CROP_CFG_UPD;
+		val |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
 	writel(val, dc_ctrl_addr);
 }
 
-void
-config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect, bool async)
+void rkisp1_config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect,
+			 bool async)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 	void __iomem *dc_ctrl_addr = base + stream->config->dual_crop.ctrl;
@@ -38,13 +38,13 @@ config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect, bool async)
 	writel(rect->height, base + stream->config->dual_crop.v_size);
 	dc_ctrl |= stream->config->dual_crop.yuvmode_mask;
 	if (async)
-		dc_ctrl |= CIF_DUAL_CROP_GEN_CFG_UPD;
+		dc_ctrl |= RKISP1_CIF_DUAL_CROP_GEN_CFG_UPD;
 	else
-		dc_ctrl |= CIF_DUAL_CROP_CFG_UPD;
+		dc_ctrl |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
 	writel(dc_ctrl, dc_ctrl_addr);
 }
 
-void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
+void rkisp1_dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 
@@ -81,21 +81,23 @@ void dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream)
 		readl(base + stream->config->rsz.phase_vc_shd));
 }
 
-static void update_rsz_shadow(struct rkisp1_stream *stream, bool async)
+static void rkisp1_update_rsz_shadow(struct rkisp1_stream *stream, bool async)
 {
 	void __iomem *addr =
 		stream->ispdev->base_addr + stream->config->rsz.ctrl;
 	u32 ctrl_cfg = readl(addr);
 
 	if (async)
-		writel(CIF_RSZ_CTRL_CFG_UPD_AUTO | ctrl_cfg, addr);
+		writel(RKISP1_CIF_RSZ_CTRL_CFG_UPD_AUTO | ctrl_cfg, addr);
 	else
-		writel(CIF_RSZ_CTRL_CFG_UPD | ctrl_cfg, addr);
+		writel(RKISP1_CIF_RSZ_CTRL_CFG_UPD | ctrl_cfg, addr);
 }
 
-static void set_scale(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
-		      struct v4l2_rect *in_c, struct v4l2_rect *out_y,
-		      struct v4l2_rect *out_c)
+static void rkisp1_set_scale(struct rkisp1_stream *stream,
+			     struct v4l2_rect *in_y,
+			     struct v4l2_rect *in_c,
+			     struct v4l2_rect *out_y,
+			     struct v4l2_rect *out_c)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 	void __iomem *scale_hy_addr = base + stream->config->rsz.scale_hy;
@@ -107,62 +109,64 @@ static void set_scale(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 	u32 scale_hy, scale_hc, scale_vy, scale_vc, rsz_ctrl = 0;
 
 	if (in_y->width < out_y->width) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_HY_ENABLE |
-				CIF_RSZ_CTRL_SCALE_HY_UP;
-		scale_hy = ((in_y->width - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(out_y->width - 1);
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_ENABLE |
+			    RKISP1_CIF_RSZ_CTRL_SCALE_HY_UP;
+		scale_hy = ((in_y->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (out_y->width - 1);
 		writel(scale_hy, scale_hy_addr);
 	} else if (in_y->width > out_y->width) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_HY_ENABLE;
-		scale_hy = ((out_y->width - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(in_y->width - 1) + 1;
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_ENABLE;
+		scale_hy = ((out_y->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (in_y->width - 1) + 1;
 		writel(scale_hy, scale_hy_addr);
 	}
 	if (in_c->width < out_c->width) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_HC_ENABLE |
-				CIF_RSZ_CTRL_SCALE_HC_UP;
-		scale_hc = ((in_c->width - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(out_c->width - 1);
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HC_ENABLE |
+			    RKISP1_CIF_RSZ_CTRL_SCALE_HC_UP;
+		scale_hc = ((in_c->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (out_c->width - 1);
 		writel(scale_hc, scale_hcb_addr);
 		writel(scale_hc, scale_hcr_addr);
 	} else if (in_c->width > out_c->width) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_HC_ENABLE;
-		scale_hc = ((out_c->width - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(in_c->width - 1) + 1;
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HC_ENABLE;
+		scale_hc = ((out_c->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (in_c->width - 1) + 1;
 		writel(scale_hc, scale_hcb_addr);
 		writel(scale_hc, scale_hcr_addr);
 	}
 
 	if (in_y->height < out_y->height) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_VY_ENABLE |
-				CIF_RSZ_CTRL_SCALE_VY_UP;
-		scale_vy = ((in_y->height - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(out_y->height - 1);
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VY_ENABLE |
+			    RKISP1_CIF_RSZ_CTRL_SCALE_VY_UP;
+		scale_vy = ((in_y->height - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (out_y->height - 1);
 		writel(scale_vy, scale_vy_addr);
 	} else if (in_y->height > out_y->height) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_VY_ENABLE;
-		scale_vy = ((out_y->height - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(in_y->height - 1) + 1;
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VY_ENABLE;
+		scale_vy = ((out_y->height - 1) *
+			    RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (in_y->height - 1) + 1;
 		writel(scale_vy, scale_vy_addr);
 	}
 
 	if (in_c->height < out_c->height) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_VC_ENABLE |
-				CIF_RSZ_CTRL_SCALE_VC_UP;
-		scale_vc = ((in_c->height - 1) * CIF_RSZ_SCALER_FACTOR) /
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VC_ENABLE |
+			    RKISP1_CIF_RSZ_CTRL_SCALE_VC_UP;
+		scale_vc = ((in_c->height - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
 				(out_c->height - 1);
 		writel(scale_vc, scale_vc_addr);
 	} else if (in_c->height > out_c->height) {
-		rsz_ctrl |= CIF_RSZ_CTRL_SCALE_VC_ENABLE;
-		scale_vc = ((out_c->height - 1) * CIF_RSZ_SCALER_FACTOR) /
-				(in_c->height - 1) + 1;
+		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VC_ENABLE;
+		scale_vc = ((out_c->height - 1) *
+			    RKISP1_CIF_RSZ_SCALER_FACTOR) /
+			   (in_c->height - 1) + 1;
 		writel(scale_vc, scale_vc_addr);
 	}
 
 	writel(rsz_ctrl, rsz_ctrl_addr);
 }
 
-void config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
+void rkisp1_config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 		struct v4l2_rect *in_c, struct v4l2_rect *out_y,
 		struct v4l2_rect *out_c, bool async)
 {
@@ -181,44 +185,46 @@ void config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 		writel(i, base_addr + stream->config->rsz.scale_lut);
 	}
 
-	set_scale(stream, in_y, in_c, out_y, out_c);
+	rkisp1_set_scale(stream, in_y, in_c, out_y, out_c);
 
-	update_rsz_shadow(stream, async);
+	rkisp1_update_rsz_shadow(stream, async);
 }
 
-void disable_rsz(struct rkisp1_stream *stream, bool async)
+void rkisp1_disable_rsz(struct rkisp1_stream *stream, bool async)
 {
 	writel(0, stream->ispdev->base_addr + stream->config->rsz.ctrl);
 
 	if (!async)
-		update_rsz_shadow(stream, async);
+		rkisp1_update_rsz_shadow(stream, async);
 }
 
-void config_mi_ctrl(struct rkisp1_stream *stream)
+void rkisp1_config_mi_ctrl(struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *addr = base + CIF_MI_CTRL;
+	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
 	u32 reg;
 
 	reg = readl(addr) & ~GENMASK(17, 16);
-	writel(reg | CIF_MI_CTRL_BURST_LEN_LUM_64, addr);
+	writel(reg | RKISP1_CIF_MI_CTRL_BURST_LEN_LUM_64, addr);
 	reg = readl(addr) & ~GENMASK(19, 18);
-	writel(reg | CIF_MI_CTRL_BURST_LEN_CHROM_64, addr);
+	writel(reg | RKISP1_CIF_MI_CTRL_BURST_LEN_CHROM_64, addr);
 	reg = readl(addr);
-	writel(reg | CIF_MI_CTRL_INIT_BASE_EN, addr);
+	writel(reg | RKISP1_CIF_MI_CTRL_INIT_BASE_EN, addr);
 	reg = readl(addr);
-	writel(reg | CIF_MI_CTRL_INIT_OFFSET_EN, addr);
+	writel(reg | RKISP1_CIF_MI_CTRL_INIT_OFFSET_EN, addr);
 }
 
-bool mp_is_stream_stopped(void __iomem *base)
+bool rkisp1_mp_is_stream_stopped(void __iomem *base)
 {
 	u32 en;
 
-	en = CIF_MI_CTRL_SHD_MP_IN_ENABLED | CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
-	return !(readl(base + CIF_MI_CTRL_SHD) & en);
+	en = RKISP1_CIF_MI_CTRL_SHD_MP_IN_ENABLED |
+	     RKISP1_CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
+	return !(readl(base + RKISP1_CIF_MI_CTRL_SHD) & en);
 }
 
-bool sp_is_stream_stopped(void __iomem *base)
+bool rkisp1_sp_is_stream_stopped(void __iomem *base)
 {
-	return !(readl(base + CIF_MI_CTRL_SHD) & CIF_MI_CTRL_SHD_SP_IN_ENABLED);
+	return !(readl(base + RKISP1_CIF_MI_CTRL_SHD) &
+		 RKISP1_CIF_MI_CTRL_SHD_SP_IN_ENABLED);
 }

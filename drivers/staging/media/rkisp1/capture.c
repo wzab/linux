@@ -39,23 +39,22 @@
 
 // TODO: Why min 1? it seems wrong, given the dummy buf thing,
 // shouldn't we ask for at least 3?
-#define CIF_ISP_REQ_BUFS_MIN 3
-//#define CIF_ISP_REQ_BUFS_MAX 8
+#define RKISP1_CIF_ISP_REQ_BUFS_MIN 3
+//#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
 
-#define STREAM_PAD_SINK				0
-#define STREAM_PAD_SOURCE			1
+#define RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH		4416
+#define RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT		3312
+#define RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_WIDTH		1920
+#define RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT		1920
+#define RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH		32
+#define RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT		16
 
-#define STREAM_MAX_MP_RSZ_OUTPUT_WIDTH		4416
-#define STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT		3312
-#define STREAM_MAX_SP_RSZ_OUTPUT_WIDTH		1920
-#define STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT		1920
-#define STREAM_MIN_RSZ_OUTPUT_WIDTH		32
-#define STREAM_MIN_RSZ_OUTPUT_HEIGHT		16
-
-#define STREAM_MAX_MP_SP_INPUT_WIDTH STREAM_MAX_MP_RSZ_OUTPUT_WIDTH
-#define STREAM_MAX_MP_SP_INPUT_HEIGHT STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT
-#define STREAM_MIN_MP_SP_INPUT_WIDTH		32
-#define STREAM_MIN_MP_SP_INPUT_HEIGHT		32
+#define RKISP1_STREAM_MAX_MP_SP_INPUT_WIDTH \
+					RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH
+#define RKISP1_STREAM_MAX_MP_SP_INPUT_HEIGHT \
+					RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT
+#define RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH		32
+#define RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT		32
 
 static int mbus_code_xysubs(u32 code, u32 *xsubs, u32 *ysubs)
 {
@@ -79,7 +78,7 @@ static int mbus_code_sp_in_fmt(u32 code, u32 *format)
 {
 	switch (code) {
 	case MEDIA_BUS_FMT_YUYV8_2X8:
-		*format = MI_CTRL_SP_INPUT_YUV422;
+		*format = RKISP1_MI_CTRL_SP_INPUT_YUV422;
 		break;
 	default:
 		return -EINVAL;
@@ -88,372 +87,372 @@ static int mbus_code_sp_in_fmt(u32 code, u32 *format)
 	return 0;
 }
 
-static const struct capture_fmt mp_fmts[] = {
+static const struct rkisp1_cap_fmt mp_fmts[] = {
 	/* yuv422 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUVINT,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVYU,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUVINT,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_VYUY,
-		.fmt_type = FMT_YUV,
-		.write_format = MI_CTRL_MP_WRITE_YUVINT,
+		.fmt_type = RKISP1_FMT_YUV,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUVINT,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV422P,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV16,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV61,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU422M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
 	/* yuv420 */
 	{
 		.fourcc = V4L2_PIX_FMT_NV21,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV21M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_SPLA,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_SPLA,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV420,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU420,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
 	/* yuv444 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUV444M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	},
 	/* yuv400 */
 	{
 		.fourcc = V4L2_PIX_FMT_GREY,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_MP_WRITE_YUVINT,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUVINT,
 	},
 	/* raw */
 	{
 		.fourcc = V4L2_PIX_FMT_SRGGB8,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG8,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG8,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR8,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_YUV_PLA_OR_RAW8,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SRGGB10,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG10,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG10,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR10,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SRGGB12,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGRBG12,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SGBRG12,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	}, {
 		.fourcc = V4L2_PIX_FMT_SBGGR12,
-		.fmt_type = FMT_BAYER,
-		.write_format = MI_CTRL_MP_WRITE_RAW12,
+		.fmt_type = RKISP1_FMT_BAYER,
+		.write_format = RKISP1_MI_CTRL_MP_WRITE_RAW12,
 	},
 };
 
-static const struct capture_fmt sp_fmts[] = {
+static const struct rkisp1_cap_fmt sp_fmts[] = {
 	/* yuv422 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_INT,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_INT,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVYU,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_INT,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_INT,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_VYUY,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_INT,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_INT,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV422P,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV16,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV61,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU422M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV422,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV422,
 	},
 	/* yuv420 */
 	{
 		.fourcc = V4L2_PIX_FMT_NV21,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV21M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_NV12M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_SPLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_SPLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YUV420,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	}, {
 		.fourcc = V4L2_PIX_FMT_YVU420,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 1,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV420,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV420,
 	},
 	/* yuv444 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUV444M,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV444,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV444,
 	},
 	/* yuv400 */
 	{
 		.fourcc = V4L2_PIX_FMT_GREY,
-		.fmt_type = FMT_YUV,
+		.fmt_type = RKISP1_FMT_YUV,
 		.uv_swap = 0,
-		.write_format = MI_CTRL_SP_WRITE_INT,
-		.output_format = MI_CTRL_SP_OUTPUT_YUV400,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_INT,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_YUV400,
 	},
 	/* rgb */
 	{
 		.fourcc = V4L2_PIX_FMT_RGB24,
-		.fmt_type = FMT_RGB,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_RGB888,
+		.fmt_type = RKISP1_FMT_RGB,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_RGB888,
 	}, {
 		.fourcc = V4L2_PIX_FMT_RGB565,
-		.fmt_type = FMT_RGB,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_RGB565,
+		.fmt_type = RKISP1_FMT_RGB,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_RGB565,
 	}, {
 		.fourcc = V4L2_PIX_FMT_BGR666,
-		.fmt_type = FMT_RGB,
-		.write_format = MI_CTRL_SP_WRITE_PLA,
-		.output_format = MI_CTRL_SP_OUTPUT_RGB666,
+		.fmt_type = RKISP1_FMT_RGB,
+		.write_format = RKISP1_MI_CTRL_SP_WRITE_PLA,
+		.output_format = RKISP1_MI_CTRL_SP_OUTPUT_RGB666,
 	},
 };
 
-static struct stream_config rkisp1_mp_stream_config = {
+static struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
 	.fmts = mp_fmts,
 	.fmt_size = ARRAY_SIZE(mp_fmts),
 	/* constraints */
-	.max_rsz_width = STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = STREAM_MIN_RSZ_OUTPUT_HEIGHT,
+	.max_rsz_width = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
+	.max_rsz_height = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT,
+	.min_rsz_width = RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH,
+	.min_rsz_height = RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT,
 	/* registers */
 	.rsz = {
-		.ctrl = CIF_MRSZ_CTRL,
-		.scale_hy = CIF_MRSZ_SCALE_HY,
-		.scale_hcr = CIF_MRSZ_SCALE_HCR,
-		.scale_hcb = CIF_MRSZ_SCALE_HCB,
-		.scale_vy = CIF_MRSZ_SCALE_VY,
-		.scale_vc = CIF_MRSZ_SCALE_VC,
-		.scale_lut = CIF_MRSZ_SCALE_LUT,
-		.scale_lut_addr = CIF_MRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd = CIF_MRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd = CIF_MRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd = CIF_MRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd = CIF_MRSZ_SCALE_VY_SHD,
-		.scale_vc_shd = CIF_MRSZ_SCALE_VC_SHD,
-		.phase_hy = CIF_MRSZ_PHASE_HY,
-		.phase_hc = CIF_MRSZ_PHASE_HC,
-		.phase_vy = CIF_MRSZ_PHASE_VY,
-		.phase_vc = CIF_MRSZ_PHASE_VC,
-		.ctrl_shd = CIF_MRSZ_CTRL_SHD,
-		.phase_hy_shd = CIF_MRSZ_PHASE_HY_SHD,
-		.phase_hc_shd = CIF_MRSZ_PHASE_HC_SHD,
-		.phase_vy_shd = CIF_MRSZ_PHASE_VY_SHD,
-		.phase_vc_shd = CIF_MRSZ_PHASE_VC_SHD,
+		.ctrl =			RKISP1_CIF_MRSZ_CTRL,
+		.scale_hy =		RKISP1_CIF_MRSZ_SCALE_HY,
+		.scale_hcr =		RKISP1_CIF_MRSZ_SCALE_HCR,
+		.scale_hcb =		RKISP1_CIF_MRSZ_SCALE_HCB,
+		.scale_vy =		RKISP1_CIF_MRSZ_SCALE_VY,
+		.scale_vc =		RKISP1_CIF_MRSZ_SCALE_VC,
+		.scale_lut =		RKISP1_CIF_MRSZ_SCALE_LUT,
+		.scale_lut_addr =	RKISP1_CIF_MRSZ_SCALE_LUT_ADDR,
+		.scale_hy_shd =		RKISP1_CIF_MRSZ_SCALE_HY_SHD,
+		.scale_hcr_shd =	RKISP1_CIF_MRSZ_SCALE_HCR_SHD,
+		.scale_hcb_shd =	RKISP1_CIF_MRSZ_SCALE_HCB_SHD,
+		.scale_vy_shd =		RKISP1_CIF_MRSZ_SCALE_VY_SHD,
+		.scale_vc_shd =		RKISP1_CIF_MRSZ_SCALE_VC_SHD,
+		.phase_hy =		RKISP1_CIF_MRSZ_PHASE_HY,
+		.phase_hc =		RKISP1_CIF_MRSZ_PHASE_HC,
+		.phase_vy =		RKISP1_CIF_MRSZ_PHASE_VY,
+		.phase_vc =		RKISP1_CIF_MRSZ_PHASE_VC,
+		.ctrl_shd =		RKISP1_CIF_MRSZ_CTRL_SHD,
+		.phase_hy_shd =		RKISP1_CIF_MRSZ_PHASE_HY_SHD,
+		.phase_hc_shd =		RKISP1_CIF_MRSZ_PHASE_HC_SHD,
+		.phase_vy_shd =		RKISP1_CIF_MRSZ_PHASE_VY_SHD,
+		.phase_vc_shd =		RKISP1_CIF_MRSZ_PHASE_VC_SHD,
 	},
 	.dual_crop = {
-		.ctrl = CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask = CIF_DUAL_CROP_MP_MODE_YUV,
-		.rawmode_mask = CIF_DUAL_CROP_MP_MODE_RAW,
-		.h_offset = CIF_DUAL_CROP_M_H_OFFS,
-		.v_offset = CIF_DUAL_CROP_M_V_OFFS,
-		.h_size = CIF_DUAL_CROP_M_H_SIZE,
-		.v_size = CIF_DUAL_CROP_M_V_SIZE,
+		.ctrl =			RKISP1_CIF_DUAL_CROP_CTRL,
+		.yuvmode_mask =		RKISP1_CIF_DUAL_CROP_MP_MODE_YUV,
+		.rawmode_mask =		RKISP1_CIF_DUAL_CROP_MP_MODE_RAW,
+		.h_offset =		RKISP1_CIF_DUAL_CROP_M_H_OFFS,
+		.v_offset =		RKISP1_CIF_DUAL_CROP_M_V_OFFS,
+		.h_size =		RKISP1_CIF_DUAL_CROP_M_H_SIZE,
+		.v_size =		RKISP1_CIF_DUAL_CROP_M_V_SIZE,
 	},
 	.mi = {
-		.y_size_init = CIF_MI_MP_Y_SIZE_INIT,
-		.cb_size_init = CIF_MI_MP_CB_SIZE_INIT,
-		.cr_size_init = CIF_MI_MP_CR_SIZE_INIT,
-		.y_base_ad_init = CIF_MI_MP_Y_BASE_AD_INIT,
-		.cb_base_ad_init = CIF_MI_MP_CB_BASE_AD_INIT,
-		.cr_base_ad_init = CIF_MI_MP_CR_BASE_AD_INIT,
-		.y_offs_cnt_init = CIF_MI_MP_Y_OFFS_CNT_INIT,
-		.cb_offs_cnt_init = CIF_MI_MP_CB_OFFS_CNT_INIT,
-		.cr_offs_cnt_init = CIF_MI_MP_CR_OFFS_CNT_INIT,
+		.y_size_init =		RKISP1_CIF_MI_MP_Y_SIZE_INIT,
+		.cb_size_init =		RKISP1_CIF_MI_MP_CB_SIZE_INIT,
+		.cr_size_init =		RKISP1_CIF_MI_MP_CR_SIZE_INIT,
+		.y_base_ad_init =	RKISP1_CIF_MI_MP_Y_BASE_AD_INIT,
+		.cb_base_ad_init =	RKISP1_CIF_MI_MP_CB_BASE_AD_INIT,
+		.cr_base_ad_init =	RKISP1_CIF_MI_MP_CR_BASE_AD_INIT,
+		.y_offs_cnt_init =	RKISP1_CIF_MI_MP_Y_OFFS_CNT_INIT,
+		.cb_offs_cnt_init =	RKISP1_CIF_MI_MP_CB_OFFS_CNT_INIT,
+		.cr_offs_cnt_init =	RKISP1_CIF_MI_MP_CR_OFFS_CNT_INIT,
 	},
 };
 
-static struct stream_config rkisp1_sp_stream_config = {
+static struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
 	.fmts = sp_fmts,
 	.fmt_size = ARRAY_SIZE(sp_fmts),
 	/* constraints */
-	.max_rsz_width = STREAM_MAX_SP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = STREAM_MIN_RSZ_OUTPUT_HEIGHT,
+	.max_rsz_width = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_WIDTH,
+	.max_rsz_height = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT,
+	.min_rsz_width = RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH,
+	.min_rsz_height = RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT,
 	/* registers */
 	.rsz = {
-		.ctrl = CIF_SRSZ_CTRL,
-		.scale_hy = CIF_SRSZ_SCALE_HY,
-		.scale_hcr = CIF_SRSZ_SCALE_HCR,
-		.scale_hcb = CIF_SRSZ_SCALE_HCB,
-		.scale_vy = CIF_SRSZ_SCALE_VY,
-		.scale_vc = CIF_SRSZ_SCALE_VC,
-		.scale_lut = CIF_SRSZ_SCALE_LUT,
-		.scale_lut_addr = CIF_SRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd = CIF_SRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd = CIF_SRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd = CIF_SRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd = CIF_SRSZ_SCALE_VY_SHD,
-		.scale_vc_shd = CIF_SRSZ_SCALE_VC_SHD,
-		.phase_hy = CIF_SRSZ_PHASE_HY,
-		.phase_hc = CIF_SRSZ_PHASE_HC,
-		.phase_vy = CIF_SRSZ_PHASE_VY,
-		.phase_vc = CIF_SRSZ_PHASE_VC,
-		.ctrl_shd = CIF_SRSZ_CTRL_SHD,
-		.phase_hy_shd = CIF_SRSZ_PHASE_HY_SHD,
-		.phase_hc_shd = CIF_SRSZ_PHASE_HC_SHD,
-		.phase_vy_shd = CIF_SRSZ_PHASE_VY_SHD,
-		.phase_vc_shd = CIF_SRSZ_PHASE_VC_SHD,
+		.ctrl =			RKISP1_CIF_SRSZ_CTRL,
+		.scale_hy =		RKISP1_CIF_SRSZ_SCALE_HY,
+		.scale_hcr =		RKISP1_CIF_SRSZ_SCALE_HCR,
+		.scale_hcb =		RKISP1_CIF_SRSZ_SCALE_HCB,
+		.scale_vy =		RKISP1_CIF_SRSZ_SCALE_VY,
+		.scale_vc =		RKISP1_CIF_SRSZ_SCALE_VC,
+		.scale_lut =		RKISP1_CIF_SRSZ_SCALE_LUT,
+		.scale_lut_addr =	RKISP1_CIF_SRSZ_SCALE_LUT_ADDR,
+		.scale_hy_shd =		RKISP1_CIF_SRSZ_SCALE_HY_SHD,
+		.scale_hcr_shd =	RKISP1_CIF_SRSZ_SCALE_HCR_SHD,
+		.scale_hcb_shd =	RKISP1_CIF_SRSZ_SCALE_HCB_SHD,
+		.scale_vy_shd =		RKISP1_CIF_SRSZ_SCALE_VY_SHD,
+		.scale_vc_shd =		RKISP1_CIF_SRSZ_SCALE_VC_SHD,
+		.phase_hy =		RKISP1_CIF_SRSZ_PHASE_HY,
+		.phase_hc =		RKISP1_CIF_SRSZ_PHASE_HC,
+		.phase_vy =		RKISP1_CIF_SRSZ_PHASE_VY,
+		.phase_vc =		RKISP1_CIF_SRSZ_PHASE_VC,
+		.ctrl_shd =		RKISP1_CIF_SRSZ_CTRL_SHD,
+		.phase_hy_shd =		RKISP1_CIF_SRSZ_PHASE_HY_SHD,
+		.phase_hc_shd =		RKISP1_CIF_SRSZ_PHASE_HC_SHD,
+		.phase_vy_shd =		RKISP1_CIF_SRSZ_PHASE_VY_SHD,
+		.phase_vc_shd =		RKISP1_CIF_SRSZ_PHASE_VC_SHD,
 	},
 	.dual_crop = {
-		.ctrl = CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask = CIF_DUAL_CROP_SP_MODE_YUV,
-		.rawmode_mask = CIF_DUAL_CROP_SP_MODE_RAW,
-		.h_offset = CIF_DUAL_CROP_S_H_OFFS,
-		.v_offset = CIF_DUAL_CROP_S_V_OFFS,
-		.h_size = CIF_DUAL_CROP_S_H_SIZE,
-		.v_size = CIF_DUAL_CROP_S_V_SIZE,
+		.ctrl =			RKISP1_CIF_DUAL_CROP_CTRL,
+		.yuvmode_mask =		RKISP1_CIF_DUAL_CROP_SP_MODE_YUV,
+		.rawmode_mask =		RKISP1_CIF_DUAL_CROP_SP_MODE_RAW,
+		.h_offset =		RKISP1_CIF_DUAL_CROP_S_H_OFFS,
+		.v_offset =		RKISP1_CIF_DUAL_CROP_S_V_OFFS,
+		.h_size =		RKISP1_CIF_DUAL_CROP_S_H_SIZE,
+		.v_size =		RKISP1_CIF_DUAL_CROP_S_V_SIZE,
 	},
 	.mi = {
-		.y_size_init = CIF_MI_SP_Y_SIZE_INIT,
-		.cb_size_init = CIF_MI_SP_CB_SIZE_INIT,
-		.cr_size_init = CIF_MI_SP_CR_SIZE_INIT,
-		.y_base_ad_init = CIF_MI_SP_Y_BASE_AD_INIT,
-		.cb_base_ad_init = CIF_MI_SP_CB_BASE_AD_INIT,
-		.cr_base_ad_init = CIF_MI_SP_CR_BASE_AD_INIT,
-		.y_offs_cnt_init = CIF_MI_SP_Y_OFFS_CNT_INIT,
-		.cb_offs_cnt_init = CIF_MI_SP_CB_OFFS_CNT_INIT,
-		.cr_offs_cnt_init = CIF_MI_SP_CR_OFFS_CNT_INIT,
+		.y_size_init =		RKISP1_CIF_MI_SP_Y_SIZE_INIT,
+		.cb_size_init =		RKISP1_CIF_MI_SP_CB_SIZE_INIT,
+		.cr_size_init =		RKISP1_CIF_MI_SP_CR_SIZE_INIT,
+		.y_base_ad_init =	RKISP1_CIF_MI_SP_Y_BASE_AD_INIT,
+		.cb_base_ad_init =	RKISP1_CIF_MI_SP_CB_BASE_AD_INIT,
+		.cr_base_ad_init =	RKISP1_CIF_MI_SP_CR_BASE_AD_INIT,
+		.y_offs_cnt_init =	RKISP1_CIF_MI_SP_Y_OFFS_CNT_INIT,
+		.cb_offs_cnt_init =	RKISP1_CIF_MI_SP_CB_OFFS_CNT_INIT,
+		.cr_offs_cnt_init =	RKISP1_CIF_MI_SP_CR_OFFS_CNT_INIT,
 	},
 };
 
 static const
-struct capture_fmt *find_fmt(const struct rkisp1_stream *stream,
-			     const u32 pixelfmt)
+struct rkisp1_cap_fmt *find_fmt(const struct rkisp1_stream *stream,
+				const u32 pixelfmt)
 {
 	unsigned int i;
 
@@ -465,7 +464,7 @@ struct capture_fmt *find_fmt(const struct rkisp1_stream *stream,
 }
 
 /* configure dual-crop unit */
-static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
+static int rkisp1_stream_config_dcrop(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
@@ -479,12 +478,12 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
 	    dcrop->left == 0 && dcrop->top == 0) {
-		disable_dcrop(stream, async);
+		rkisp1_disable_dcrop(stream, async);
 		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
 		return 0;
 	}
 
-	config_dcrop(stream, dcrop, async);
+	rkisp1_config_dcrop(stream, dcrop, async);
 
 	dev_dbg(dev->dev, "stream %d crop: %dx%d -> %dx%d\n", stream->id,
 		input_win->width, input_win->height,
@@ -494,16 +493,16 @@ static int rkisp1_config_dcrop(struct rkisp1_stream *stream, bool async)
 }
 
 /* configure scale unit */
-static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
+static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
-	const struct capture_fmt *output_isp_fmt = stream->out_isp_fmt;
+	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
 	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
 	u32 xsubs_in, ysubs_in;
 
-	if (input_isp_fmt->fmt_type == FMT_BAYER)
+	if (input_isp_fmt->fmt_type == RKISP1_FMT_BAYER)
 		goto disable;
 
 	/* set input and output sizes for scale calculation */
@@ -520,7 +519,7 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 	in_c.width = in_y.width / xsubs_in;
 	in_c.height = in_y.height / ysubs_in;
 
-	if (output_isp_fmt->fmt_type == FMT_YUV) {
+	if (output_isp_fmt->fmt_type == RKISP1_FMT_YUV) {
 		const struct v4l2_format_info *pixfmt_info =
 				v4l2_format_info(output_isp_fmt->fourcc);
 
@@ -542,14 +541,14 @@ static int rkisp1_config_rsz(struct rkisp1_stream *stream, bool async)
 		in_c.width, in_c.height, out_c.width, out_c.height);
 
 	/* calculate and set scale */
-	config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
+	rkisp1_config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
 
-	dump_rsz_regs(dev->dev, stream);
+	rkisp1_dump_rsz_regs(dev->dev, stream);
 
 	return 0;
 
 disable:
-	disable_rsz(stream, async);
+	rkisp1_disable_rsz(stream, async);
 
 	return 0;
 }
@@ -574,22 +573,25 @@ static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
  * configure memory interface for mainpath
  * This should only be called when stream-on
  */
-static int mp_config_mi(struct rkisp1_stream *stream)
+static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
 {
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	void __iomem *base = stream->ispdev->base_addr;
 
-	mi_set_y_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
-	mi_set_cb_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
-	mi_set_cr_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
+	rkisp1_mi_set_y_size(stream,
+			     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
+	rkisp1_mi_set_cb_size(stream,
+			      rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
+	rkisp1_mi_set_cr_size(stream,
+			      rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
-	mi_frame_end_int_enable(stream);
+	rkisp1_mi_frame_end_int_enable(stream);
 	if (stream->out_isp_fmt->uv_swap)
-		mp_set_uv_swap(base);
+		rkisp1_mp_set_uv_swap(base);
 
-	config_mi_ctrl(stream);
-	mp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format);
-	mp_mi_ctrl_autoupdate_en(base);
+	rkisp1_config_mi_ctrl(stream);
+	rkisp1_mp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format);
+	rkisp1_mp_mi_ctrl_autoupdate_en(base);
 
 	return 0;
 }
@@ -598,9 +600,9 @@ static int mp_config_mi(struct rkisp1_stream *stream)
  * configure memory interface for selfpath
  * This should only be called when stream-on
  */
-static int sp_config_mi(struct rkisp1_stream *stream)
+static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 {
-	const struct capture_fmt *output_isp_fmt = stream->out_isp_fmt;
+	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
@@ -612,65 +614,68 @@ static int sp_config_mi(struct rkisp1_stream *stream)
 		return -EINVAL;
 	}
 
-	mi_set_y_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
-	mi_set_cb_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
-	mi_set_cr_size(stream, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
+	rkisp1_mi_set_y_size(stream,
+			     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
+	rkisp1_mi_set_cb_size(stream,
+			      rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB));
+	rkisp1_mi_set_cr_size(stream,
+			      rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
-	sp_set_y_width(base, pixm->width);
-	sp_set_y_height(base, pixm->height);
-	sp_set_y_line_length(base, stream->u.sp.y_stride);
+	rkisp1_sp_set_y_width(base, pixm->width);
+	rkisp1_sp_set_y_height(base, pixm->height);
+	rkisp1_sp_set_y_line_length(base, stream->u.sp.y_stride);
 
-	mi_frame_end_int_enable(stream);
+	rkisp1_mi_frame_end_int_enable(stream);
 	if (output_isp_fmt->uv_swap)
-		sp_set_uv_swap(base);
+		rkisp1_sp_set_uv_swap(base);
 
-	config_mi_ctrl(stream);
-	sp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format |
+	rkisp1_config_mi_ctrl(stream);
+	rkisp1_sp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format |
 			      sp_in_fmt | output_isp_fmt->output_format);
 
-	sp_mi_ctrl_autoupdate_en(base);
+	rkisp1_sp_mi_ctrl_autoupdate_en(base);
 
 	return 0;
 }
 
-static void mp_enable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mp_enable_mi(struct rkisp1_stream *stream)
 {
-	const struct capture_fmt *isp_fmt = stream->out_isp_fmt;
+	const struct rkisp1_cap_fmt *isp_fmt = stream->out_isp_fmt;
 	void __iomem *base = stream->ispdev->base_addr;
 
-	mi_ctrl_mp_disable(base);
-	if (isp_fmt->fmt_type == FMT_BAYER)
-		mi_ctrl_mpraw_enable(base);
-	else if (isp_fmt->fmt_type == FMT_YUV)
-		mi_ctrl_mpyuv_enable(base);
+	rkisp1_mi_ctrl_mp_disable(base);
+	if (isp_fmt->fmt_type == RKISP1_FMT_BAYER)
+		rkisp1_mi_ctrl_mpraw_enable(base);
+	else if (isp_fmt->fmt_type == RKISP1_FMT_YUV)
+		rkisp1_mi_ctrl_mpyuv_enable(base);
 }
 
-static void sp_enable_mi(struct rkisp1_stream *stream)
+static void rkisp1_sp_enable_mi(struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 
-	mi_ctrl_spyuv_enable(base);
+	rkisp1_mi_ctrl_spyuv_enable(base);
 }
 
-static void mp_disable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mp_disable_mi(struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 
-	mi_ctrl_mp_disable(base);
+	rkisp1_mi_ctrl_mp_disable(base);
 }
 
-static void sp_disable_mi(struct rkisp1_stream *stream)
+static void rkisp1_sp_disable_mi(struct rkisp1_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 
-	mi_ctrl_spyuv_disable(base);
+	rkisp1_mi_ctrl_spyuv_disable(base);
 }
 
 /*
  * Update buffer info to memory interface. Called in interrupt
- * context by mi_frame_end(), and in process context by vb2_ops.buf_queue().
+ * context by rkisp1_mi_frame_end(), and in process context by vb2_ops.buf_queue().
  */
-static void update_mi(struct rkisp1_stream *stream)
+static void rkisp1_update_mi(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
@@ -681,54 +686,54 @@ static void update_mi(struct rkisp1_stream *stream)
 	if (stream->next_buf) {
 		u32 *buff_addr = stream->next_buf->buff_addr;
 
-		mi_set_y_addr(stream, buff_addr[RKISP1_PLANE_Y]);
-		mi_set_cb_addr(stream, buff_addr[RKISP1_PLANE_CB]);
-		mi_set_cr_addr(stream, buff_addr[RKISP1_PLANE_CR]);
+		rkisp1_mi_set_y_addr(stream, buff_addr[RKISP1_PLANE_Y]);
+		rkisp1_mi_set_cb_addr(stream, buff_addr[RKISP1_PLANE_CB]);
+		rkisp1_mi_set_cr_addr(stream, buff_addr[RKISP1_PLANE_CR]);
 	} else {
 		dev_dbg(stream->ispdev->dev,
 			"stream %d: to dummy buf\n", stream->id);
-		mi_set_y_addr(stream, dummy_buf->dma_addr);
-		mi_set_cb_addr(stream, dummy_buf->dma_addr);
-		mi_set_cr_addr(stream, dummy_buf->dma_addr);
+		rkisp1_mi_set_y_addr(stream, dummy_buf->dma_addr);
+		rkisp1_mi_set_cb_addr(stream, dummy_buf->dma_addr);
+		rkisp1_mi_set_cr_addr(stream, dummy_buf->dma_addr);
 	}
 
-	mi_set_y_offset(stream, 0);
-	mi_set_cb_offset(stream, 0);
-	mi_set_cr_offset(stream, 0);
+	rkisp1_mi_set_y_offset(stream, 0);
+	rkisp1_mi_set_cb_offset(stream, 0);
+	rkisp1_mi_set_cr_offset(stream, 0);
 }
 
-static void mp_stop_mi(struct rkisp1_stream *stream)
+static void rkisp1_mp_stop_mi(struct rkisp1_stream *stream)
 {
 	if (!stream->streaming)
 		return;
-	mi_frame_end_int_clear(stream);
+	rkisp1_mi_frame_end_int_clear(stream);
 	stream->ops->disable_mi(stream);
 }
 
-static void sp_stop_mi(struct rkisp1_stream *stream)
+static void rkisp1_sp_stop_mi(struct rkisp1_stream *stream)
 {
 	if (!stream->streaming)
 		return;
-	mi_frame_end_int_clear(stream);
+	rkisp1_mi_frame_end_int_clear(stream);
 	stream->ops->disable_mi(stream);
 }
 
-static struct streams_ops rkisp1_mp_streams_ops = {
-	.config_mi = mp_config_mi,
-	.enable_mi = mp_enable_mi,
-	.disable_mi = mp_disable_mi,
-	.stop_mi = mp_stop_mi,
-	.set_data_path = mp_set_data_path,
-	.is_stream_stopped = mp_is_stream_stopped,
+static struct rkisp1_streams_ops rkisp1_mp_streams_ops = {
+	.config_mi = rkisp1_mp_config_mi,
+	.enable_mi = rkisp1_mp_enable_mi,
+	.disable_mi = rkisp1_mp_disable_mi,
+	.stop_mi = rkisp1_mp_stop_mi,
+	.set_data_path = rkisp1_mp_set_data_path,
+	.is_stream_stopped = rkisp1_mp_is_stream_stopped,
 };
 
-static struct streams_ops rkisp1_sp_streams_ops = {
-	.config_mi = sp_config_mi,
-	.enable_mi = sp_enable_mi,
-	.disable_mi = sp_disable_mi,
-	.stop_mi = sp_stop_mi,
-	.set_data_path = sp_set_data_path,
-	.is_stream_stopped = sp_is_stream_stopped,
+static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
+	.config_mi = rkisp1_sp_config_mi,
+	.enable_mi = rkisp1_sp_enable_mi,
+	.disable_mi = rkisp1_sp_disable_mi,
+	.stop_mi = rkisp1_sp_stop_mi,
+	.set_data_path = rkisp1_sp_set_data_path,
+	.is_stream_stopped = rkisp1_sp_is_stream_stopped,
 };
 
 /*
@@ -736,7 +741,7 @@ static struct streams_ops rkisp1_sp_streams_ops = {
  * is processing and we should set up buffer for next-next frame,
  * otherwise it will overflow.
  */
-static int mi_frame_end(struct rkisp1_stream *stream)
+static int rkisp1_mi_frame_end(struct rkisp1_stream *stream)
 {
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *isp_dev = stream->ispdev;
@@ -774,7 +779,7 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 	}
 	spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
 
-	update_mi(stream);
+	rkisp1_update_mi(stream);
 
 	return 0;
 }
@@ -800,8 +805,8 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 		stream->stopping = false;
 		stream->streaming = false;
 	}
-	disable_dcrop(stream, true);
-	disable_rsz(stream, true);
+	rkisp1_disable_dcrop(stream, true);
+	rkisp1_disable_rsz(stream, true);
 }
 
 /*
@@ -823,11 +828,11 @@ static int rkisp1_start(struct rkisp1_stream *stream)
 		return ret;
 
 	/* Setup a buffer for the next frame */
-	mi_frame_end(stream);
+	rkisp1_mi_frame_end(stream);
 	stream->ops->enable_mi(stream);
 	/* It's safe to config ACTIVE and SHADOW regs for the
 	 * first stream. While when the second is starting, do NOT
-	 * force_cfg_update() because it also update the first one.
+	 * rkisp1_force_cfg_update() because it also update the first one.
 	 *
 	 * The latter case would drop one more buf(that is 2) since
 	 * there's not buf in shadow when the second FE received. This's
@@ -835,8 +840,8 @@ static int rkisp1_start(struct rkisp1_stream *stream)
 	 * when run at 120fps.
 	 */
 	if (!other->streaming) {
-		force_cfg_update(base);
-		mi_frame_end(stream);
+		rkisp1_force_cfg_update(base);
+		rkisp1_mi_frame_end(stream);
 	}
 	stream->streaming = true;
 
@@ -880,7 +885,7 @@ static int rkisp1_queue_setup(struct vb2_queue *queue,
 static void rkisp1_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
-	struct rkisp1_buffer *ispbuf = to_rkisp1_buffer(vbuf);
+	struct rkisp1_buffer *ispbuf = rkisp1_to_rkisp1_buffer(vbuf);
 	struct vb2_queue *queue = vb->vb2_queue;
 	struct rkisp1_stream *stream = queue->drv_priv;
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
@@ -910,7 +915,7 @@ static void rkisp1_buf_queue(struct vb2_buffer *vb)
 	if (stream->streaming && !stream->next_buf &&
 	    atomic_read(&stream->ispdev->isp_sdev.frm_sync_seq) == 0) {
 		stream->next_buf = ispbuf;
-		update_mi(stream);
+		rkisp1_update_mi(stream);
 	} else {
 		list_add_tail(&ispbuf->queue, &stream->buf_queue);
 	}
@@ -1121,7 +1126,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	if (other->streaming)
 		async = true;
 
-	ret = rkisp1_config_rsz(stream, async);
+	ret = rkisp1_stream_config_rsz(stream, async);
 	if (ret < 0) {
 		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
@@ -1131,7 +1136,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	 * can't be async now, otherwise the latter started stream fails to
 	 * produce mi interrupt.
 	 */
-	ret = rkisp1_config_dcrop(stream, false);
+	ret = rkisp1_stream_config_dcrop(stream, false);
 	if (ret < 0) {
 		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
 		return ret;
@@ -1219,7 +1224,7 @@ static int rkisp_init_vb2_queue(struct vb2_queue *q,
 {
 	struct rkisp1_vdev_node *node;
 
-	node = queue_to_node(q);
+	node = rkisp1_queue_to_node(q);
 
 	q->type = buf_type;
 	q->io_modes = VB2_MMAP | VB2_DMABUF;
@@ -1227,7 +1232,7 @@ static int rkisp_init_vb2_queue(struct vb2_queue *q,
 	q->ops = &rkisp1_vb2_ops;
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->buf_struct_size = sizeof(struct rkisp1_buffer);
-	q->min_buffers_needed = CIF_ISP_REQ_BUFS_MIN;
+	q->min_buffers_needed = RKISP1_CIF_ISP_REQ_BUFS_MIN;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->lock = &node->vlock;
 	q->dev = stream->ispdev->dev;
@@ -1286,14 +1291,14 @@ static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
 }
 
 static const
-struct capture_fmt *rkisp1_try_fmt(const struct rkisp1_stream *stream,
+struct rkisp1_cap_fmt *rkisp1_try_fmt(const struct rkisp1_stream *stream,
 			   struct v4l2_pix_format_mplane *pixm)
 {
-	const struct stream_config *config = stream->config;
+	const struct rkisp1_stream_cfg *config = stream->config;
 	struct rkisp1_stream *other_stream =
 	// TODO: In some cases, it's !stream->id, in others it's stream->id ^ 1.
 			&stream->ispdev->streams[!stream->id];
-	const struct capture_fmt *fmt;
+	const struct rkisp1_cap_fmt *fmt;
 
 	fmt = find_fmt(stream, pixm->pixelformat);
 	if (!fmt)
@@ -1342,7 +1347,7 @@ static void rkisp1_set_fmt(struct rkisp1_stream *stream,
 					pixfmt_info->bpp[0];
 	else
 		stream->u.mp.raw_enable =
-			(stream->out_isp_fmt->fmt_type == FMT_BAYER);
+			(stream->out_isp_fmt->fmt_type == RKISP1_FMT_BAYER);
 
 	dev_dbg(stream->ispdev->dev,
 		"%s: stream: %d req(%d, %d) out(%d, %d)\n", __func__,
@@ -1411,7 +1416,7 @@ static int rkisp1_enum_fmt_vid_cap_mplane(struct file *file, void *priv,
 					  struct v4l2_fmtdesc *f)
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
-	const struct capture_fmt *fmt = NULL;
+	const struct rkisp1_cap_fmt *fmt = NULL;
 
 	if (f->index >= stream->config->fmt_size)
 		return -EINVAL;
@@ -1426,7 +1431,8 @@ static int rkisp1_s_fmt_vid_cap_mplane(struct file *file,
 				       void *priv, struct v4l2_format *f)
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
-	struct rkisp1_vdev_node *node = vdev_to_node(&stream->vnode.vdev);
+	struct rkisp1_vdev_node *node =
+				rkisp1_vdev_to_node(&stream->vnode.vdev);
 
 	if (vb2_is_busy(&node->buf_queue))
 		return -EBUSY;
@@ -1484,7 +1490,7 @@ static struct v4l2_rect *rkisp1_update_crop(struct rkisp1_stream *stream,
 {
 	/* Not crop for MP bayer raw data */
 	if (stream->id == RKISP1_STREAM_MP &&
-	    stream->out_isp_fmt->fmt_type == FMT_BAYER) {
+	    stream->out_isp_fmt->fmt_type == RKISP1_FMT_BAYER) {
 		sel->left = 0;
 		sel->top = 0;
 		sel->width = in->width;
@@ -1495,12 +1501,14 @@ static struct v4l2_rect *rkisp1_update_crop(struct rkisp1_stream *stream,
 	sel->left = ALIGN(sel->left, 2);
 	sel->width = ALIGN(sel->width, 2);
 	sel->left = clamp_t(u32, sel->left, 0,
-			    in->width - STREAM_MIN_MP_SP_INPUT_WIDTH);
+			    in->width - RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH);
 	sel->top = clamp_t(u32, sel->top, 0,
-			   in->height - STREAM_MIN_MP_SP_INPUT_HEIGHT);
-	sel->width = clamp_t(u32, sel->width, STREAM_MIN_MP_SP_INPUT_WIDTH,
+			   in->height - RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT);
+	sel->width = clamp_t(u32, sel->width,
+			     RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH,
 			     in->width - sel->left);
-	sel->height = clamp_t(u32, sel->height, STREAM_MIN_MP_SP_INPUT_HEIGHT,
+	sel->height = clamp_t(u32, sel->height,
+			      RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT,
 			      in->height - sel->top);
 	return sel;
 }
@@ -1510,7 +1518,7 @@ static int rkisp1_s_selection(struct file *file, void *prv,
 {
 	struct rkisp1_stream *stream = video_drvdata(file);
 	struct video_device *vdev = &stream->vnode.vdev;
-	struct rkisp1_vdev_node *node = vdev_to_node(vdev);
+	struct rkisp1_vdev_node *node = rkisp1_vdev_to_node(vdev);
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
 	const struct v4l2_rect *input_win;
@@ -1551,7 +1559,8 @@ static int rkisp1_querycap(struct file *file, void *priv,
 
 	strscpy(cap->driver, dev->driver->name, sizeof(cap->driver));
 	strscpy(cap->card, dev->driver->name, sizeof(cap->card));
-	strscpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
+	strscpy(cap->bus_info, "platform: " RKISP1_DRIVER_NAME,
+		sizeof(cap->bus_info));
 
 	return 0;
 }
@@ -1648,9 +1657,10 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	int ret;
 
 	strscpy(vdev->name,
-		stream->id == RKISP1_STREAM_SP ? SP_VDEV_NAME : MP_VDEV_NAME,
+		stream->id == RKISP1_STREAM_SP ? RKISP1_SP_VDEV_NAME :
+						 RKISP1_MP_VDEV_NAME,
 		sizeof(vdev->name));
-	node = vdev_to_node(vdev);
+	node = rkisp1_vdev_to_node(vdev);
 	mutex_init(&node->vlock);
 
 	vdev->ioctl_ops = &rkisp1_v4l2_ioctl_ops;
@@ -1720,12 +1730,12 @@ void rkisp1_mi_isr(struct rkisp1_device *dev)
 	unsigned int i;
 	u32 status;
 
-	status = mi_frame_end_int_read_clear(dev);
+	status = rkisp1_mi_frame_end_int_read_clear(dev);
 
 	for (i = 0; i < ARRAY_SIZE(dev->streams); ++i) {
 		struct rkisp1_stream *stream = &dev->streams[i];
 
-		if (!(status & CIF_MI_FRAME(stream)))
+		if (!(status & RKISP1_CIF_MI_FRAME(stream)))
 			continue;
 		if (stream->stopping) {
 			/*
@@ -1745,7 +1755,7 @@ void rkisp1_mi_isr(struct rkisp1_device *dev)
 				stream->ops->stop_mi(stream);
 			}
 		} else {
-			mi_frame_end(stream);
+			rkisp1_mi_frame_end(stream);
 		}
 	}
 }

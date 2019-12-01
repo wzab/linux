@@ -42,18 +42,18 @@ struct rkisp1_vdev_node {
 };
 
 enum rkisp1_fmt_pix_type {
-	FMT_YUV,
-	FMT_RGB,
-	FMT_BAYER,
-	FMT_JPEG,
-	FMT_MAX
+	RKISP1_FMT_YUV,
+	RKISP1_FMT_RGB,
+	RKISP1_FMT_BAYER,
+	RKISP1_FMT_JPEG,
+	RKISP1_FMT_MAX
 };
 
 enum rkisp1_fmt_raw_pat_type {
-	RAW_RGGB = 0,
-	RAW_GRBG,
-	RAW_GBRG,
-	RAW_BGGR,
+	RKISP1_RAW_RGGB = 0,
+	RKISP1_RAW_GRBG,
+	RKISP1_RAW_GBRG,
+	RKISP1_RAW_BGGR,
 };
 
 struct rkisp1_buffer {
@@ -72,26 +72,20 @@ struct rkisp1_dummy_buffer {
 };
 
 static inline
-struct rkisp1_vdev_node *vdev_to_node(struct video_device *vdev)
+struct rkisp1_vdev_node *rkisp1_vdev_to_node(struct video_device *vdev)
 {
 	return container_of(vdev, struct rkisp1_vdev_node, vdev);
 }
 
-static inline struct rkisp1_vdev_node *queue_to_node(struct vb2_queue *q)
+static inline struct rkisp1_vdev_node *rkisp1_queue_to_node(struct vb2_queue *q)
 {
 	return container_of(q, struct rkisp1_vdev_node, buf_queue);
 }
 
-static inline struct rkisp1_buffer *to_rkisp1_buffer(struct vb2_v4l2_buffer *vb)
+static inline
+struct rkisp1_buffer *rkisp1_to_rkisp1_buffer(struct vb2_v4l2_buffer *vb)
 {
 	return container_of(vb, struct rkisp1_buffer, vb);
-}
-
-static inline struct vb2_queue *to_vb2_queue(struct file *file)
-{
-	struct rkisp1_vdev_node *vnode = video_drvdata(file);
-
-	return &vnode->buf_queue;
 }
 
 #endif /* _RKISP1_COMMON_H */
