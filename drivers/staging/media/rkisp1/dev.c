@@ -19,7 +19,7 @@
 #include "common.h"
 #include "regs.h"
 
-struct isp_match_data {
+struct rkisp1_match_data {
 	const char * const *clks;
 	unsigned int size;
 };
@@ -92,15 +92,15 @@ static int rkisp1_create_links(struct rkisp1_device *dev)
 				     sink, 0, flags);
 }
 
-static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
-				 struct v4l2_subdev *sd,
-				 struct v4l2_async_subdev *asd)
+static int rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
+					struct v4l2_subdev *sd,
+					struct v4l2_async_subdev *asd)
 {
 	struct rkisp1_device *isp_dev = container_of(notifier,
 						     struct rkisp1_device,
 						     notifier);
-	struct sensor_async_subdev *s_asd = container_of(asd,
-					struct sensor_async_subdev, asd);
+	struct rkisp1_sensor_async *s_asd = container_of(asd,
+					struct rkisp1_sensor_async, asd);
 
 	s_asd->pixel_rate_ctrl = v4l2_ctrl_find(sd->ctrl_handler,
 						V4L2_CID_PIXEL_RATE);
@@ -117,17 +117,17 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 	return 0;
 }
 
-static void subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
-				   struct v4l2_subdev *sd,
-				   struct v4l2_async_subdev *asd)
+static void rkisp1_subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
+					  struct v4l2_subdev *sd,
+					  struct v4l2_async_subdev *asd)
 {
-	struct sensor_async_subdev *s_asd = container_of(asd,
-					struct sensor_async_subdev, asd);
+	struct rkisp1_sensor_async *s_asd = container_of(asd,
+					struct rkisp1_sensor_async, asd);
 
 	phy_exit(s_asd->dphy);
 }
 
-static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
+static int rkisp1_subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 {
 	struct rkisp1_device *dev = container_of(notifier, struct rkisp1_device,
 						 notifier);
@@ -152,8 +152,8 @@ static int rkisp1_fwnode_parse(struct device *dev,
 			       struct v4l2_fwnode_endpoint *vep,
 			       struct v4l2_async_subdev *asd)
 {
-	struct sensor_async_subdev *s_asd =
-			container_of(asd, struct sensor_async_subdev, asd);
+	struct rkisp1_sensor_async *s_asd =
+			container_of(asd, struct rkisp1_sensor_async, asd);
 
 	if (vep->bus_type != V4L2_MBUS_CSI2_DPHY) {
 		dev_err(dev, "Only CSI2 bus type is currently supported\n");
@@ -189,13 +189,13 @@ static int rkisp1_fwnode_parse(struct device *dev,
 	return 0;
 }
 
-static const struct v4l2_async_notifier_operations subdev_notifier_ops = {
-	.bound = subdev_notifier_bound,
-	.unbind = subdev_notifier_unbind,
-	.complete = subdev_notifier_complete,
+static const struct v4l2_async_notifier_operations rkisp1_subdev_notifier_ops = {
+	.bound = rkisp1_subdev_notifier_bound,
+	.unbind = rkisp1_subdev_notifier_unbind,
+	.complete = rkisp1_subdev_notifier_complete,
 };
 
-static int isp_subdev_notifier(struct rkisp1_device *isp_dev)
+static int rkisp1_subdev_notifier(struct rkisp1_device *isp_dev)
 {
 	struct v4l2_async_notifier *ntf = &isp_dev->notifier;
 	struct device *dev = isp_dev->dev;
@@ -204,7 +204,7 @@ static int isp_subdev_notifier(struct rkisp1_device *isp_dev)
 	v4l2_async_notifier_init(ntf);
 
 	ret = v4l2_async_notifier_parse_fwnode_endpoints_by_port(dev, ntf,
-					sizeof(struct sensor_async_subdev),
+					sizeof(struct rkisp1_sensor_async),
 					0, rkisp1_fwnode_parse);
 	if (ret < 0)
 		return ret;
@@ -212,7 +212,7 @@ static int isp_subdev_notifier(struct rkisp1_device *isp_dev)
 	if (list_empty(&ntf->asd_list))
 		return -ENODEV;	/* no endpoint */
 
-	ntf->ops = &subdev_notifier_ops;
+	ntf->ops = &rkisp1_subdev_notifier_ops;
 
 	return v4l2_async_notifier_register(&isp_dev->v4l2_dev, ntf);
 }
@@ -243,7 +243,7 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *dev)
 	if (ret < 0)
 		goto err_unreg_stats_vdev;
 
-	ret = isp_subdev_notifier(dev);
+	ret = rkisp1_subdev_notifier(dev);
 	if (ret < 0) {
 		dev_err(dev->dev,
 			"Failed to register subdev notifier(%d)\n", ret);
@@ -270,7 +270,7 @@ static const char * const rk3399_isp_clks[] = {
 	"hclk_isp_wrap",
 };
 
-static const struct isp_match_data rk3399_isp_clk_data = {
+static const struct rkisp1_match_data rk3399_isp_clk_data = {
 	.clks = rk3399_isp_clks,
 	.size = ARRAY_SIZE(rk3399_isp_clks),
 };
@@ -299,7 +299,7 @@ static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
 static int rkisp1_plat_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
-	const struct isp_match_data *clk_data;
+	const struct rkisp1_match_data *clk_data;
 	const struct of_device_id *match;
 	struct device *dev = &pdev->dev;
 	struct rkisp1_device *isp_dev;
@@ -346,7 +346,8 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		sizeof(isp_dev->media_dev.model));
 	isp_dev->media_dev.dev = &pdev->dev;
 	strscpy(isp_dev->media_dev.bus_info,
-		"platform: " DRIVER_NAME, sizeof(isp_dev->media_dev.bus_info));
+		"platform: " RKISP1_DRIVER_NAME,
+		sizeof(isp_dev->media_dev.bus_info));
 	// TODO: use of pm_use, is documented to need link_notify.
 	// maybe this is not needed becuase we don't pm_use in open/close,
 	// but in s_stream?
@@ -431,7 +432,7 @@ static const struct dev_pm_ops rkisp1_plat_pm_ops = {
 
 static struct platform_driver rkisp1_plat_drv = {
 	.driver = {
-		.name = DRIVER_NAME,
+		.name = RKISP1_DRIVER_NAME,
 		.of_match_table = of_match_ptr(rkisp1_plat_of_match),
 		.pm = &rkisp1_plat_pm_ops,
 	},

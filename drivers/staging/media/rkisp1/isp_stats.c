@@ -52,9 +52,10 @@ static int rkisp1_stats_querycap(struct file *file,
 {
 	struct video_device *vdev = video_devdata(file);
 
-	strscpy(cap->driver, DRIVER_NAME, sizeof(cap->driver));
+	strscpy(cap->driver, RKISP1_DRIVER_NAME, sizeof(cap->driver));
 	strscpy(cap->card, vdev->name, sizeof(cap->card));
-	strscpy(cap->bus_info, "platform: " DRIVER_NAME, sizeof(cap->bus_info));
+	strscpy(cap->bus_info, "platform: " RKISP1_DRIVER_NAME,
+		sizeof(cap->bus_info));
 
 	return 0;
 }
@@ -110,7 +111,7 @@ static int rkisp1_stats_vb2_queue_setup(struct vb2_queue *vq,
 static void rkisp1_stats_vb2_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
-	struct rkisp1_buffer *stats_buf = to_rkisp1_buffer(vbuf);
+	struct rkisp1_buffer *stats_buf = rkisp1_to_rkisp1_buffer(vbuf);
 	struct vb2_queue *vq = vb->vb2_queue;
 	struct rkisp1_isp_stats_vdev *stats_dev = vq->drv_priv;
 
@@ -183,7 +184,7 @@ static int rkisp1_stats_init_vb2_queue(struct vb2_queue *q,
 {
 	struct rkisp1_vdev_node *node;
 
-	node = queue_to_node(q);
+	node = rkisp1_queue_to_node(q);
 
 	q->type = V4L2_BUF_TYPE_META_CAPTURE;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
@@ -203,27 +204,30 @@ static void rkisp1_stats_get_awb_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 	/* Protect against concurrent access from ISR? */
 	u32 reg_val;
 
-	pbuf->meas_type |= CIFISP_STAT_AWB;
-	reg_val = readl(stats_vdev->dev->base_addr + CIF_ISP_AWB_WHITE_CNT);
-	pbuf->params.awb.awb_mean[0].cnt = CIF_ISP_AWB_GET_PIXEL_CNT(reg_val);
-	reg_val = readl(stats_vdev->dev->base_addr + CIF_ISP_AWB_MEAN);
+	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_AWB;
+	reg_val = readl(stats_vdev->dev->base_addr +
+			RKISP1_CIF_ISP_AWB_WHITE_CNT);
+	pbuf->params.awb.awb_mean[0].cnt =
+				RKISP1_CIF_ISP_AWB_GET_PIXEL_CNT(reg_val);
+	reg_val = readl(stats_vdev->dev->base_addr + RKISP1_CIF_ISP_AWB_MEAN);
 
 	pbuf->params.awb.awb_mean[0].mean_cr_or_r =
-		CIF_ISP_AWB_GET_MEAN_CR_R(reg_val);
+				RKISP1_CIF_ISP_AWB_GET_MEAN_CR_R(reg_val);
 	pbuf->params.awb.awb_mean[0].mean_cb_or_b =
-		CIF_ISP_AWB_GET_MEAN_CB_B(reg_val);
+				RKISP1_CIF_ISP_AWB_GET_MEAN_CB_B(reg_val);
 	pbuf->params.awb.awb_mean[0].mean_y_or_g =
-		CIF_ISP_AWB_GET_MEAN_Y_G(reg_val);
+				RKISP1_CIF_ISP_AWB_GET_MEAN_Y_G(reg_val);
 }
 
 static void rkisp1_stats_get_aec_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	void __iomem *addr = stats_vdev->dev->base_addr + CIF_ISP_EXP_MEAN_00;
+	void __iomem *addr = stats_vdev->dev->base_addr +
+			     RKISP1_CIF_ISP_EXP_MEAN_00;
 	unsigned int i;
 
-	pbuf->meas_type |= CIFISP_STAT_AUTOEXP;
-	for (i = 0; i < CIFISP_AE_MEAN_MAX; i++)
+	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_AUTOEXP;
+	for (i = 0; i < RKISP1_CIF_ISP_AE_MEAN_MAX; i++)
 		pbuf->params.ae.exp_mean[i] = (u8)readl(addr + i * 4);
 }
 
@@ -231,28 +235,29 @@ static void rkisp1_stats_get_afc_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 				      struct rkisp1_stat_buffer *pbuf)
 {
 	void __iomem *base_addr;
-	struct cifisp_af_stat *af;
+	struct rkisp1_cif_isp_af_stat *af;
 
-	pbuf->meas_type = CIFISP_STAT_AFM_FIN;
+	pbuf->meas_type = RKISP1_CIF_ISP_STAT_AFM_FIN;
 
 	af = &pbuf->params.af;
 	base_addr = stats_vdev->dev->base_addr;
-	af->window[0].sum = readl(base_addr + CIF_ISP_AFM_SUM_A);
-	af->window[0].lum = readl(base_addr + CIF_ISP_AFM_LUM_A);
-	af->window[1].sum = readl(base_addr + CIF_ISP_AFM_SUM_B);
-	af->window[1].lum = readl(base_addr + CIF_ISP_AFM_LUM_B);
-	af->window[2].sum = readl(base_addr + CIF_ISP_AFM_SUM_C);
-	af->window[2].lum = readl(base_addr + CIF_ISP_AFM_LUM_C);
+	af->window[0].sum = readl(base_addr + RKISP1_CIF_ISP_AFM_SUM_A);
+	af->window[0].lum = readl(base_addr + RKISP1_CIF_ISP_AFM_LUM_A);
+	af->window[1].sum = readl(base_addr + RKISP1_CIF_ISP_AFM_SUM_B);
+	af->window[1].lum = readl(base_addr + RKISP1_CIF_ISP_AFM_LUM_B);
+	af->window[2].sum = readl(base_addr + RKISP1_CIF_ISP_AFM_SUM_C);
+	af->window[2].lum = readl(base_addr + RKISP1_CIF_ISP_AFM_LUM_C);
 }
 
 static void rkisp1_stats_get_hst_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	void __iomem *addr = stats_vdev->dev->base_addr + CIF_ISP_HIST_BIN_0;
+	void __iomem *addr = stats_vdev->dev->base_addr +
+			     RKISP1_CIF_ISP_HIST_BIN_0;
 	unsigned int i;
 
-	pbuf->meas_type |= CIFISP_STAT_HIST;
-	for (i = 0; i < CIFISP_HIST_BIN_N_MAX; i++)
+	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_HIST;
+	for (i = 0; i < RKISP1_CIF_ISP_HIST_BIN_N_MAX; i++)
 		pbuf->params.hist.hist_bins[i] = readl(addr + (i * 4));
 }
 
@@ -262,29 +267,29 @@ static void rkisp1_stats_get_bls_meas(struct rkisp1_isp_stats_vdev *stats_vdev,
 	struct rkisp1_device *dev = stats_vdev->dev;
 	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
 	void __iomem *base = stats_vdev->dev->base_addr;
-	struct cifisp_bls_meas_val *bls_val;
+	struct rkisp1_cif_isp_bls_meas_val *bls_val;
 
 	bls_val = &pbuf->params.ae.bls_val;
-	if (in_fmt->bayer_pat == RAW_BGGR) {
-		bls_val->meas_b = readl(base + CIF_ISP_BLS_A_MEASURED);
-		bls_val->meas_gb = readl(base + CIF_ISP_BLS_B_MEASURED);
-		bls_val->meas_gr = readl(base + CIF_ISP_BLS_C_MEASURED);
-		bls_val->meas_r = readl(base + CIF_ISP_BLS_D_MEASURED);
-	} else if (in_fmt->bayer_pat == RAW_GBRG) {
-		bls_val->meas_gb = readl(base + CIF_ISP_BLS_A_MEASURED);
-		bls_val->meas_b = readl(base + CIF_ISP_BLS_B_MEASURED);
-		bls_val->meas_r = readl(base + CIF_ISP_BLS_C_MEASURED);
-		bls_val->meas_gr = readl(base + CIF_ISP_BLS_D_MEASURED);
-	} else if (in_fmt->bayer_pat == RAW_GRBG) {
-		bls_val->meas_gr = readl(base + CIF_ISP_BLS_A_MEASURED);
-		bls_val->meas_r = readl(base + CIF_ISP_BLS_B_MEASURED);
-		bls_val->meas_b = readl(base + CIF_ISP_BLS_C_MEASURED);
-		bls_val->meas_gb = readl(base + CIF_ISP_BLS_D_MEASURED);
-	} else if (in_fmt->bayer_pat == RAW_RGGB) {
-		bls_val->meas_r = readl(base + CIF_ISP_BLS_A_MEASURED);
-		bls_val->meas_gr = readl(base + CIF_ISP_BLS_B_MEASURED);
-		bls_val->meas_gb = readl(base + CIF_ISP_BLS_C_MEASURED);
-		bls_val->meas_b = readl(base + CIF_ISP_BLS_D_MEASURED);
+	if (in_fmt->bayer_pat == RKISP1_RAW_BGGR) {
+		bls_val->meas_b = readl(base + RKISP1_CIF_ISP_BLS_A_MEASURED);
+		bls_val->meas_gb = readl(base + RKISP1_CIF_ISP_BLS_B_MEASURED);
+		bls_val->meas_gr = readl(base + RKISP1_CIF_ISP_BLS_C_MEASURED);
+		bls_val->meas_r = readl(base + RKISP1_CIF_ISP_BLS_D_MEASURED);
+	} else if (in_fmt->bayer_pat == RKISP1_RAW_GBRG) {
+		bls_val->meas_gb = readl(base + RKISP1_CIF_ISP_BLS_A_MEASURED);
+		bls_val->meas_b = readl(base + RKISP1_CIF_ISP_BLS_B_MEASURED);
+		bls_val->meas_r = readl(base + RKISP1_CIF_ISP_BLS_C_MEASURED);
+		bls_val->meas_gr = readl(base + RKISP1_CIF_ISP_BLS_D_MEASURED);
+	} else if (in_fmt->bayer_pat == RKISP1_RAW_GRBG) {
+		bls_val->meas_gr = readl(base + RKISP1_CIF_ISP_BLS_A_MEASURED);
+		bls_val->meas_r = readl(base + RKISP1_CIF_ISP_BLS_B_MEASURED);
+		bls_val->meas_b = readl(base + RKISP1_CIF_ISP_BLS_C_MEASURED);
+		bls_val->meas_gb = readl(base + RKISP1_CIF_ISP_BLS_D_MEASURED);
+	} else if (in_fmt->bayer_pat == RKISP1_RAW_RGGB) {
+		bls_val->meas_r = readl(base + RKISP1_CIF_ISP_BLS_A_MEASURED);
+		bls_val->meas_gr = readl(base + RKISP1_CIF_ISP_BLS_B_MEASURED);
+		bls_val->meas_gb = readl(base + RKISP1_CIF_ISP_BLS_C_MEASURED);
+		bls_val->meas_b = readl(base + RKISP1_CIF_ISP_BLS_D_MEASURED);
 	}
 }
 
@@ -320,25 +325,25 @@ rkisp1_stats_send_measurement(struct rkisp1_isp_stats_vdev *stats_vdev,
 	cur_stat_buf =
 		(struct rkisp1_stat_buffer *)(cur_buf->vaddr[0]);
 
-	if (meas_work->isp_ris & CIF_ISP_AWB_DONE) {
+	if (meas_work->isp_ris & RKISP1_CIF_ISP_AWB_DONE) {
 		rkisp1_stats_get_awb_meas(stats_vdev, cur_stat_buf);
-		cur_stat_buf->meas_type |= CIFISP_STAT_AWB;
+		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AWB;
 	}
 
-	if (meas_work->isp_ris & CIF_ISP_AFM_FIN) {
+	if (meas_work->isp_ris & RKISP1_CIF_ISP_AFM_FIN) {
 		rkisp1_stats_get_afc_meas(stats_vdev, cur_stat_buf);
-		cur_stat_buf->meas_type |= CIFISP_STAT_AFM_FIN;
+		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AFM_FIN;
 	}
 
-	if (meas_work->isp_ris & CIF_ISP_EXP_END) {
+	if (meas_work->isp_ris & RKISP1_CIF_ISP_EXP_END) {
 		rkisp1_stats_get_aec_meas(stats_vdev, cur_stat_buf);
 		rkisp1_stats_get_bls_meas(stats_vdev, cur_stat_buf);
-		cur_stat_buf->meas_type |= CIFISP_STAT_AUTOEXP;
+		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AUTOEXP;
 	}
 
-	if (meas_work->isp_ris & CIF_ISP_HIST_MEASURE_RDY) {
+	if (meas_work->isp_ris & RKISP1_CIF_ISP_HIST_MEASURE_RDY) {
 		rkisp1_stats_get_hst_meas(stats_vdev, cur_stat_buf);
-		cur_stat_buf->meas_type |= CIFISP_STAT_HIST;
+		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_HIST;
 	}
 
 	vb2_set_plane_payload(&cur_buf->vb.vb2_buf, 0,
@@ -370,21 +375,23 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 
 	spin_lock(&stats_vdev->irq_lock);
 
-	writel((CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN | CIF_ISP_EXP_END |
-		CIF_ISP_HIST_MEASURE_RDY),
-		stats_vdev->dev->base_addr + CIF_ISP_ICR);
+	writel((RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
+		RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY),
+	       stats_vdev->dev->base_addr + RKISP1_CIF_ISP_ICR);
 
-	isp_mis_tmp = readl(stats_vdev->dev->base_addr + CIF_ISP_MIS);
+	isp_mis_tmp = readl(stats_vdev->dev->base_addr + RKISP1_CIF_ISP_MIS);
 	if (isp_mis_tmp &
-		(CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN |
-		 CIF_ISP_EXP_END | CIF_ISP_HIST_MEASURE_RDY))
+		(RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
+		 RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY))
 		dev_err(stats_vdev->dev->dev, "isp icr 3A info err: 0x%x\n",
 			isp_mis_tmp);
 
 	if (!stats_vdev->streamon)
 		goto unlock;
-	if (isp_ris & (CIF_ISP_AWB_DONE | CIF_ISP_AFM_FIN | CIF_ISP_EXP_END |
-		CIF_ISP_HIST_MEASURE_RDY)) {
+	if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
+		       RKISP1_CIF_ISP_AFM_FIN |
+		       RKISP1_CIF_ISP_EXP_END |
+		       RKISP1_CIF_ISP_HIST_MEASURE_RDY)) {
 		work = (struct rkisp1_isp_readout_work *)
 			kzalloc(sizeof(struct rkisp1_isp_readout_work),
 				GFP_ATOMIC);
