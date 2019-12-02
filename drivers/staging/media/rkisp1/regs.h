@@ -1266,7 +1266,7 @@ void rkisp1_disable_dcrop(struct rkisp1_stream *stream, bool async);
 void rkisp1_config_dcrop(struct rkisp1_stream *stream, struct v4l2_rect *rect,
 			 bool async);
 
-void rkisp1_dump_rsz_regs(struct device *dev, struct rkisp1_stream *stream);
+void rkisp1_dump_rsz_regs(struct rkisp1_stream *stream);
 void rkisp1_disable_rsz(struct rkisp1_stream *stream, bool async);
 void rkisp1_config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 		       struct v4l2_rect *in_c, struct v4l2_rect *out_y,
@@ -1274,13 +1274,13 @@ void rkisp1_config_rsz(struct rkisp1_stream *stream, struct v4l2_rect *in_y,
 
 void rkisp1_config_mi_ctrl(struct rkisp1_stream *stream);
 
-void rkisp1_mp_clr_frame_end_int(void __iomem *base);
-void rkisp1_sp_clr_frame_end_int(void __iomem *base);
+void rkisp1_mp_clr_frame_end_int(struct rkisp1_device *dev);
+void rkisp1_sp_clr_frame_end_int(struct rkisp1_device *dev);
 
-bool rkisp1_mp_is_frame_end_int_masked(void __iomem *base);
-bool rkisp1_sp_is_frame_end_int_masked(void __iomem *base);
-bool rkisp1_mp_is_stream_stopped(void __iomem *base);
-bool rkisp1_sp_is_stream_stopped(void __iomem *base);
+bool rkisp1_mp_is_frame_end_int_masked(struct rkisp1_device *dev);
+bool rkisp1_sp_is_frame_end_int_masked(struct rkisp1_device *dev);
+bool rkisp1_mp_is_stream_stopped(struct rkisp1_stream *stream);
+bool rkisp1_sp_is_stream_stopped(struct rkisp1_stream *stream);
 
 static inline void rkisp1_write(struct rkisp1_device *dev, u32 val,
 				unsigned int addr)
@@ -1295,243 +1295,233 @@ static inline u32 rkisp1_read(struct rkisp1_device *dev, unsigned int addr)
 
 static inline void rkisp1_mi_set_y_size(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.y_size_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.y_size_init);
 }
 
 static inline void rkisp1_mi_set_cb_size(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cb_size_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cb_size_init);
 }
 
 static inline void rkisp1_mi_set_cr_size(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cr_size_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cr_size_init);
 }
 
 static inline void rkisp1_mi_set_y_addr(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.y_base_ad_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.y_base_ad_init);
 }
 
 static inline void rkisp1_mi_set_cb_addr(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cb_base_ad_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cb_base_ad_init);
 }
 
 static inline void rkisp1_mi_set_cr_addr(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cr_base_ad_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cr_base_ad_init);
 }
 
 static inline void rkisp1_mi_set_y_offset(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.y_offs_cnt_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.y_offs_cnt_init);
 }
 
 static inline void rkisp1_mi_set_cb_offset(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cb_offs_cnt_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cb_offs_cnt_init);
 }
 
 static inline void rkisp1_mi_set_cr_offset(struct rkisp1_stream *stream, int val)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	writel(val, base + stream->config->mi.cr_offs_cnt_init);
+	rkisp1_write(stream->ispdev, val, stream->config->mi.cr_offs_cnt_init);
 }
 
 static inline void rkisp1_mi_frame_end_int_enable(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *addr = base + RKISP1_CIF_MI_IMSC;
+	u32 mi_imsc = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_IMSC);
 
-	writel(RKISP1_CIF_MI_FRAME(stream) | readl(addr), addr);
+	mi_imsc |= RKISP1_CIF_MI_FRAME(stream);
+	rkisp1_write(stream->ispdev, mi_imsc, RKISP1_CIF_MI_IMSC);
 }
 
 static inline void rkisp1_mi_frame_end_int_disable(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *addr = base + RKISP1_CIF_MI_IMSC;
+	u32 mi_imsc = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_IMSC);
 
-	writel(~RKISP1_CIF_MI_FRAME(stream) & readl(addr), addr);
+	mi_imsc &= ~RKISP1_CIF_MI_FRAME(stream);
+	rkisp1_write(stream->ispdev, mi_imsc, RKISP1_CIF_MI_IMSC);
 }
 
 static inline void rkisp1_mi_frame_end_int_clear(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-	void __iomem *addr = base + RKISP1_CIF_MI_ICR;
-
-	writel(RKISP1_CIF_MI_FRAME(stream), addr);
+	rkisp1_write(stream->ispdev, RKISP1_CIF_MI_FRAME(stream),
+		     RKISP1_CIF_MI_ICR);
 }
 
-static inline void rkisp1_mp_set_chain_mode(void __iomem *base)
+static inline void rkisp1_mp_set_chain_mode(struct rkisp1_device *dev)
 {
-	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);
+	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
 
 	dpcl |= RKISP1_CIF_VI_DPCL_CHAN_MODE_MP;
-	writel(dpcl, base + RKISP1_CIF_VI_DPCL);
+	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
-static inline void rkisp1_sp_set_chain_mode(void __iomem *base)
+static inline void rkisp1_sp_set_chain_mode(struct rkisp1_device *dev)
 {
-	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);
+	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
 
 	dpcl |= RKISP1_CIF_VI_DPCL_CHAN_MODE_SP;
-	writel(dpcl, base + RKISP1_CIF_VI_DPCL);
+	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
-static inline void rkisp1_mp_set_data_path(void __iomem *base)
+static inline void rkisp1_mp_set_data_path(struct rkisp1_stream *stream)
 {
-	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);
+	struct rkisp1_device *dev = stream->ispdev;
+	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
 
 	dpcl = dpcl | RKISP1_CIF_VI_DPCL_CHAN_MODE_MP |
 	       RKISP1_CIF_VI_DPCL_MP_MUX_MRSZ_MI;
-	writel(dpcl, base + RKISP1_CIF_VI_DPCL);
+	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
-static inline void rkisp1_sp_set_data_path(void __iomem *base)
+static inline void rkisp1_sp_set_data_path(struct rkisp1_stream *stream)
 {
-	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);
+	struct rkisp1_device *dev = stream->ispdev;
+	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
 
 	dpcl |= RKISP1_CIF_VI_DPCL_CHAN_MODE_SP;
-	writel(dpcl, base + RKISP1_CIF_VI_DPCL);
+	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
-static inline void rkisp1_mp_set_uv_swap(void __iomem *base)
+static inline void rkisp1_mp_set_uv_swap(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_XTD_FORMAT_CTRL;
-	u32 reg = readl(addr) & ~BIT(0);
+	u32 reg = rkisp1_read(dev, RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 
-	writel(reg | RKISP1_CIF_MI_XTD_FMT_CTRL_MP_CB_CR_SWAP, addr);
+	reg = (reg & ~BIT(0)) | RKISP1_CIF_MI_XTD_FMT_CTRL_MP_CB_CR_SWAP;
+	rkisp1_write(dev, reg, RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 }
 
-static inline void rkisp1_sp_set_uv_swap(void __iomem *base)
+static inline void rkisp1_sp_set_uv_swap(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_XTD_FORMAT_CTRL;
-	u32 reg = readl(addr) & ~BIT(1);
+	u32 reg = rkisp1_read(dev, RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 
-	writel(reg | RKISP1_CIF_MI_XTD_FMT_CTRL_SP_CB_CR_SWAP, addr);
+	rkisp1_write(dev, reg & ~BIT(1), RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 }
 
-static inline void rkisp1_sp_set_y_width(void __iomem *base, u32 val)
+static inline void rkisp1_sp_set_y_width(struct rkisp1_device *dev, u32 val)
 {
-	writel(val, base + RKISP1_CIF_MI_SP_Y_PIC_WIDTH);
+	rkisp1_write(dev, val, RKISP1_CIF_MI_SP_Y_PIC_WIDTH);
 }
 
-static inline void rkisp1_sp_set_y_height(void __iomem *base, u32 val)
+static inline void rkisp1_sp_set_y_height(struct rkisp1_device *dev, u32 val)
 {
-	writel(val, base + RKISP1_CIF_MI_SP_Y_PIC_HEIGHT);
+	rkisp1_write(dev, val, RKISP1_CIF_MI_SP_Y_PIC_HEIGHT);
 }
 
-static inline void rkisp1_sp_set_y_line_length(void __iomem *base, u32 val)
+static inline void rkisp1_sp_set_y_line_length(struct rkisp1_device *dev, u32 val)
 {
-	writel(val, base + RKISP1_CIF_MI_SP_Y_LLENGTH);
+	rkisp1_write(dev, val, RKISP1_CIF_MI_SP_Y_LLENGTH);
 }
 
-static inline void rkisp1_mp_mi_ctrl_set_format(void __iomem *base, u32 val)
+static inline void rkisp1_mp_mi_ctrl_set_format(struct rkisp1_device *dev, u32 val)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
-	u32 reg = readl(addr) & ~RKISP1_MI_CTRL_MP_FMT_MASK;
+	u32 reg = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(reg | val, addr);
+	reg &= ~RKISP1_MI_CTRL_MP_FMT_MASK;
+	rkisp1_write(dev, reg | val, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_sp_mi_ctrl_set_format(void __iomem *base, u32 val)
+static inline void rkisp1_sp_mi_ctrl_set_format(struct rkisp1_device *dev, u32 val)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
-	u32 reg = readl(addr) & ~RKISP1_MI_CTRL_SP_FMT_MASK;
+	u32 reg = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(reg | val, addr);
+	reg &= ~RKISP1_MI_CTRL_SP_FMT_MASK;
+	rkisp1_write(dev, reg | val, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_mpyuv_enable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_mpyuv_enable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(RKISP1_CIF_MI_CTRL_MP_ENABLE | readl(addr), addr);
+	mi_ctrl = RKISP1_CIF_MI_CTRL_MP_ENABLE | mi_ctrl;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_mpyuv_disable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_mpyuv_disable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(~RKISP1_CIF_MI_CTRL_MP_ENABLE & readl(addr), addr);
+	mi_ctrl &= ~RKISP1_CIF_MI_CTRL_MP_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_mp_disable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_mp_disable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(~(RKISP1_CIF_MI_CTRL_MP_ENABLE | RKISP1_CIF_MI_CTRL_RAW_ENABLE)
-	       & readl(addr), addr);
+	mi_ctrl &= ~(RKISP1_CIF_MI_CTRL_MP_ENABLE |
+		     RKISP1_CIF_MI_CTRL_RAW_ENABLE);
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_spyuv_enable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_spyuv_enable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(RKISP1_CIF_MI_CTRL_SP_ENABLE | readl(addr), addr);
+	mi_ctrl |= RKISP1_CIF_MI_CTRL_SP_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_spyuv_disable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_spyuv_disable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(~RKISP1_CIF_MI_CTRL_SP_ENABLE & readl(addr), addr);
+	mi_ctrl &= ~RKISP1_CIF_MI_CTRL_SP_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_sp_disable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_sp_disable(struct rkisp1_device *dev)
 {
-	rkisp1_mi_ctrl_spyuv_disable(base);
+	rkisp1_mi_ctrl_spyuv_disable(dev);
 }
 
-static inline void rkisp1_mi_ctrl_mpraw_enable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_mpraw_enable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(RKISP1_CIF_MI_CTRL_RAW_ENABLE | readl(addr), addr);
+	mi_ctrl |= RKISP1_CIF_MI_CTRL_RAW_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mi_ctrl_mpraw_disable(void __iomem *base)
+static inline void rkisp1_mi_ctrl_mpraw_disable(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(~RKISP1_CIF_MI_CTRL_RAW_ENABLE & readl(addr), addr);
+	mi_ctrl &= ~RKISP1_CIF_MI_CTRL_RAW_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_mp_mi_ctrl_autoupdate_en(void __iomem *base)
+static inline void rkisp1_mp_mi_ctrl_autoupdate_en(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(readl(addr) | RKISP1_CIF_MI_MP_AUTOUPDATE_ENABLE, addr);
+	mi_ctrl |= RKISP1_CIF_MI_MP_AUTOUPDATE_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_sp_mi_ctrl_autoupdate_en(void __iomem *base)
+static inline void rkisp1_sp_mi_ctrl_autoupdate_en(struct rkisp1_device *dev)
 {
-	void __iomem *addr = base + RKISP1_CIF_MI_CTRL;
+	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
-	writel(readl(addr) | RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE, addr);
+	mi_ctrl |= RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE;
+	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static inline void rkisp1_force_cfg_update(void __iomem *base)
+static inline void rkisp1_force_cfg_update(struct rkisp1_device *dev)
 {
-	writel(RKISP1_CIF_MI_INIT_SOFT_UPD, base + RKISP1_CIF_MI_INIT);
+	rkisp1_write(dev, RKISP1_CIF_MI_INIT_SOFT_UPD, RKISP1_CIF_MI_INIT);
 }
 
 #endif /* _RKISP1_REGS_H */

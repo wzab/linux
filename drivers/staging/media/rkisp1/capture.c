@@ -543,7 +543,7 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 	/* calculate and set scale */
 	rkisp1_config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
 
-	rkisp1_dump_rsz_regs(dev->dev, stream);
+	rkisp1_dump_rsz_regs(stream);
 
 	return 0;
 
@@ -576,7 +576,7 @@ static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
 static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
 {
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
-	void __iomem *base = stream->ispdev->base_addr;
+	struct rkisp1_device *dev = stream->ispdev;
 
 	rkisp1_mi_set_y_size(stream,
 			     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
@@ -587,11 +587,11 @@ static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
 
 	rkisp1_mi_frame_end_int_enable(stream);
 	if (stream->out_isp_fmt->uv_swap)
-		rkisp1_mp_set_uv_swap(base);
+		rkisp1_mp_set_uv_swap(dev);
 
 	rkisp1_config_mi_ctrl(stream);
-	rkisp1_mp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format);
-	rkisp1_mp_mi_ctrl_autoupdate_en(base);
+	rkisp1_mp_mi_ctrl_set_format(dev, stream->out_isp_fmt->write_format);
+	rkisp1_mp_mi_ctrl_autoupdate_en(dev);
 
 	return 0;
 }
@@ -606,7 +606,6 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
-	void __iomem *base = stream->ispdev->base_addr;
 	u32 sp_in_fmt;
 
 	if (mbus_code_sp_in_fmt(input_isp_fmt->mbus_code, &sp_in_fmt)) {
@@ -621,19 +620,21 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 	rkisp1_mi_set_cr_size(stream,
 			      rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
-	rkisp1_sp_set_y_width(base, pixm->width);
-	rkisp1_sp_set_y_height(base, pixm->height);
-	rkisp1_sp_set_y_line_length(base, stream->u.sp.y_stride);
+	rkisp1_sp_set_y_width(dev, pixm->width);
+	rkisp1_sp_set_y_height(dev, pixm->height);
+	rkisp1_sp_set_y_line_length(dev, stream->u.sp.y_stride);
 
 	rkisp1_mi_frame_end_int_enable(stream);
 	if (output_isp_fmt->uv_swap)
-		rkisp1_sp_set_uv_swap(base);
+		rkisp1_sp_set_uv_swap(dev);
 
 	rkisp1_config_mi_ctrl(stream);
-	rkisp1_sp_mi_ctrl_set_format(base, stream->out_isp_fmt->write_format |
-			      sp_in_fmt | output_isp_fmt->output_format);
+	rkisp1_sp_mi_ctrl_set_format(dev,
+				     stream->out_isp_fmt->write_format |
+				     sp_in_fmt |
+				     output_isp_fmt->output_format);
 
-	rkisp1_sp_mi_ctrl_autoupdate_en(base);
+	rkisp1_sp_mi_ctrl_autoupdate_en(dev);
 
 	return 0;
 }
@@ -641,34 +642,28 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 static void rkisp1_mp_enable_mi(struct rkisp1_stream *stream)
 {
 	const struct rkisp1_cap_fmt *isp_fmt = stream->out_isp_fmt;
-	void __iomem *base = stream->ispdev->base_addr;
+	struct rkisp1_device *dev = stream->ispdev;
 
-	rkisp1_mi_ctrl_mp_disable(base);
+	rkisp1_mi_ctrl_mp_disable(dev);
 	if (isp_fmt->fmt_type == RKISP1_FMT_BAYER)
-		rkisp1_mi_ctrl_mpraw_enable(base);
+		rkisp1_mi_ctrl_mpraw_enable(dev);
 	else if (isp_fmt->fmt_type == RKISP1_FMT_YUV)
-		rkisp1_mi_ctrl_mpyuv_enable(base);
+		rkisp1_mi_ctrl_mpyuv_enable(dev);
 }
 
 static void rkisp1_sp_enable_mi(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	rkisp1_mi_ctrl_spyuv_enable(base);
+	rkisp1_mi_ctrl_spyuv_enable(stream->ispdev);
 }
 
 static void rkisp1_mp_disable_mi(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	rkisp1_mi_ctrl_mp_disable(base);
+	rkisp1_mi_ctrl_mp_disable(stream->ispdev);
 }
 
 static void rkisp1_sp_disable_mi(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
-
-	rkisp1_mi_ctrl_spyuv_disable(base);
+	rkisp1_mi_ctrl_spyuv_disable(stream->ispdev);
 }
 
 /*
@@ -809,12 +804,11 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
  */
 static int rkisp1_start(struct rkisp1_stream *stream)
 {
-	void __iomem *base = stream->ispdev->base_addr;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct rkisp1_stream *other = &dev->streams[stream->id ^ 1];
 	int ret;
 
-	stream->ops->set_data_path(base);
+	stream->ops->set_data_path(stream);
 	ret = stream->ops->config_mi(stream);
 	if (ret)
 		return ret;
@@ -832,7 +826,7 @@ static int rkisp1_start(struct rkisp1_stream *stream)
 	 * when run at 120fps.
 	 */
 	if (!other->streaming) {
-		rkisp1_force_cfg_update(base);
+		rkisp1_force_cfg_update(dev);
 		rkisp1_mi_frame_end(stream);
 	}
 	stream->streaming = true;
@@ -1744,7 +1738,7 @@ void rkisp1_mi_isr_thread(struct rkisp1_device *dev)
 			 * frame end that sync the configurations to shadow
 			 * regs.
 			 */
-			if (stream->ops->is_stream_stopped(dev->base_addr)) {
+			if (stream->ops->is_stream_stopped(stream)) {
 				stream->stopping = false;
 				stream->streaming = false;
 				// TODO Use thread IRQ?

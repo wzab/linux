@@ -108,8 +108,8 @@ struct rkisp1_streams_ops {
 	void (*stop_mi)(struct rkisp1_stream *stream);
 	void (*enable_mi)(struct rkisp1_stream *stream);
 	void (*disable_mi)(struct rkisp1_stream *stream);
-	void (*set_data_path)(void __iomem *base);
-	bool (*is_stream_stopped)(void __iomem *base);
+	void (*set_data_path)(struct rkisp1_stream *stream);
+	bool (*is_stream_stopped)(struct rkisp1_stream *stream);
 };
 
 /*
