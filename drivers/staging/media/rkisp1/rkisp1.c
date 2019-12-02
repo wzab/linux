@@ -1135,16 +1135,6 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 
 /****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr_handler(struct rkisp1_device *dev)
-{
-	unsigned long lock_flags = 0;
-
-	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
-	dev->irq_status_mipi = rkisp1_read(dev, RKISP1_CIF_MIPI_MIS);
-	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
-	rkisp1_write(dev, ~0, RKISP1_CIF_MIPI_ICR);
-}
-
 void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
 {
 	unsigned long lock_flags = 0;
@@ -1187,16 +1177,6 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
 	} else {
 		dev_warn(dev->dev, "MIPI status error: 0x%08x\n", status);
 	}
-}
-
-void rkisp1_isp_isr_handler(struct rkisp1_device *dev)
-{
-	unsigned long lock_flags = 0;
-
-	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
-	dev->irq_status_isp = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
-	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
-	rkisp1_write(dev, ~0, RKISP1_CIF_ISP_ICR);
 }
 
 void rkisp1_isp_isr_thread(struct rkisp1_device *dev)

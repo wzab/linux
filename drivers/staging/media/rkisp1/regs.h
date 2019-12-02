@@ -1380,19 +1380,6 @@ static inline void rkisp1_mi_frame_end_int_clear(struct rkisp1_stream *stream)
 	writel(RKISP1_CIF_MI_FRAME(stream), addr);
 }
 
-static inline u32 rkisp1_mi_frame_end_int_read_clear(struct rkisp1_device *dev)
-{
-	void __iomem *base = dev->base_addr;
-	void __iomem *addr = base + RKISP1_CIF_MI_ICR;
-	u32 status;
-
-	status = rkisp1_read(dev, RKISP1_CIF_MI_MIS);
-	if (!status)
-		return 0;
-	writel(status, addr);
-	return status;
-}
-
 static inline void rkisp1_mp_set_chain_mode(void __iomem *base)
 {
 	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);

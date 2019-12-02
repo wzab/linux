@@ -298,12 +298,22 @@ static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
 
 static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
 {
+	unsigned long lock_flags = 0;
 	struct device *dev = ctx;
-	struct rkisp1_device *rkisp1_dev = dev_get_drvdata(dev);
+	struct rkisp1_device *ispdev = dev_get_drvdata(dev);
 
-	rkisp1_isp_isr_handler(rkisp1_dev);
-	rkisp1_mipi_isr_handler(rkisp1_dev);
-	rkisp1_mi_isr_handler(rkisp1_dev);
+	spin_lock_irqsave(&ispdev->irq_status_lock, lock_flags);
+
+	ispdev->irq_status_mipi = rkisp1_read(ispdev, RKISP1_CIF_MIPI_MIS);
+	rkisp1_write(ispdev, ispdev->irq_status_mipi, RKISP1_CIF_MIPI_ICR);
+
+	ispdev->irq_status_isp = rkisp1_read(ispdev, RKISP1_CIF_ISP_MIS);
+	rkisp1_write(ispdev, ispdev->irq_status_isp, RKISP1_CIF_ISP_ICR);
+
+	ispdev->irq_status_mi = rkisp1_read(ispdev, RKISP1_CIF_MI_MIS);
+	rkisp1_write(ispdev, ispdev->irq_status_mi, RKISP1_CIF_MI_ICR);
+
+	spin_unlock_irqrestore(&ispdev->irq_status_lock, lock_flags);
 
 	return IRQ_WAKE_THREAD;
 }
