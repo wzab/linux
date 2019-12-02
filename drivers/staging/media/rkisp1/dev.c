@@ -284,16 +284,28 @@ static const struct of_device_id rkisp1_plat_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rkisp1_plat_of_match);
 
-static irqreturn_t rkisp1_irq_handler(int irq, void *ctx)
+static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
 {
 	struct device *dev = ctx;
 	struct rkisp1_device *rkisp1_dev = dev_get_drvdata(dev);
 
-	rkisp1_isp_isr(rkisp1_dev);
-	rkisp1_mipi_isr(rkisp1_dev);
-	rkisp1_mi_isr(rkisp1_dev);
+	rkisp1_isp_isr_thread(rkisp1_dev);
+	rkisp1_mipi_isr_thread(rkisp1_dev);
+	rkisp1_mi_isr_thread(rkisp1_dev);
 
 	return IRQ_HANDLED;
+}
+
+static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
+{
+	struct device *dev = ctx;
+	struct rkisp1_device *rkisp1_dev = dev_get_drvdata(dev);
+
+	rkisp1_isp_isr_handler(rkisp1_dev);
+	rkisp1_mipi_isr_handler(rkisp1_dev);
+	rkisp1_mi_isr_handler(rkisp1_dev);
+
+	return IRQ_WAKE_THREAD;
 }
 
 static int rkisp1_plat_probe(struct platform_device *pdev)
@@ -323,14 +335,16 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	if (irq < 0)
 		return irq;
 
-	ret = devm_request_irq(dev, irq, rkisp1_irq_handler, IRQF_SHARED,
-			       dev_driver_string(dev), dev);
+	ret = devm_request_threaded_irq(dev, irq, rkisp1_isr_handler,
+					rkisp1_isr_thread, IRQF_SHARED,
+					dev_driver_string(dev), dev);
 	if (ret < 0) {
 		dev_err(dev, "request irq failed: %d\n", ret);
 		return ret;
 	}
 
 	isp_dev->irq = irq;
+	spin_lock_init(&isp_dev->irq_status_lock);
 	clk_data = match->data;
 
 	for (i = 0; i < clk_data->size; i++)

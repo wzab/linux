@@ -85,9 +85,13 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 
 void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev);
 
-void rkisp1_mipi_isr(struct rkisp1_device *dev);
+void rkisp1_mipi_isr_handler(struct rkisp1_device *dev);
 
-void rkisp1_isp_isr(struct rkisp1_device *dev);
+void rkisp1_mipi_isr_thread(struct rkisp1_device *dev);
+
+void rkisp1_isp_isr_handler(struct rkisp1_device *dev);
+
+void rkisp1_isp_isr_thread(struct rkisp1_device *dev);
 
 static inline struct rkisp1_isp_subdev *sd_to_isp_sd(struct v4l2_subdev *sd)
 {

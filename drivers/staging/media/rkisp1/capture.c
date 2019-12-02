@@ -1728,12 +1728,24 @@ err:
 
 /****************  Interrupter Handler ****************/
 
-void rkisp1_mi_isr(struct rkisp1_device *dev)
+void rkisp1_mi_isr_handler(struct rkisp1_device *dev)
 {
+	unsigned long lock_flags = 0;
+
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	dev->irq_status_mi = rkisp1_mi_frame_end_int_read_clear(dev);
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
+}
+
+void rkisp1_mi_isr_thread(struct rkisp1_device *dev)
+{
+	unsigned long lock_flags = 0;
 	unsigned int i;
 	u32 status;
 
-	status = rkisp1_mi_frame_end_int_read_clear(dev);
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	status = dev->irq_status_mi;
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
 
 	for (i = 0; i < ARRAY_SIZE(dev->streams); ++i) {
 		struct rkisp1_stream *stream = &dev->streams[i];

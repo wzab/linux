@@ -62,6 +62,11 @@ struct rkisp1_device {
 	struct rkisp1_isp_params_vdev params_vdev;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
+	u32 irq_status_mi;
+	u32 irq_status_isp;
+	u32 irq_status_mipi;
+	/* protects irq_status_* between irq handler and threads */
+	spinlock_t irq_status_lock;
 };
 
 #endif

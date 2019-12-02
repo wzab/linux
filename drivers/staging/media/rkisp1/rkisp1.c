@@ -1135,14 +1135,26 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 
 /****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr(struct rkisp1_device *dev)
+void rkisp1_mipi_isr_handler(struct rkisp1_device *dev)
 {
+	unsigned long lock_flags = 0;
+
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	dev->irq_status_mipi = rkisp1_read(dev, RKISP1_CIF_MIPI_MIS);
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
+	rkisp1_write(dev, ~0, RKISP1_CIF_MIPI_ICR);
+}
+
+void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
+{
+	unsigned long lock_flags = 0;
 	u32 val, status;
 
-	status = rkisp1_read(dev, RKISP1_CIF_MIPI_MIS);
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	status = dev->irq_status_mipi;
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
 	if (!status)
 		return;
-	rkisp1_write(dev, ~0, RKISP1_CIF_MIPI_ICR);
 
 	/*
 	 * Disable DPHY errctrl interrupt, because this dphy
@@ -1177,11 +1189,24 @@ void rkisp1_mipi_isr(struct rkisp1_device *dev)
 	}
 }
 
-void rkisp1_isp_isr(struct rkisp1_device *dev)
+void rkisp1_isp_isr_handler(struct rkisp1_device *dev)
 {
+	unsigned long lock_flags = 0;
+
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	dev->irq_status_isp = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
+	rkisp1_write(dev, ~0, RKISP1_CIF_ISP_ICR);
+}
+
+void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
+{
+	unsigned long lock_flags = 0;
 	u32 status, status_aux, isp_err;
 
-	status = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
+	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
+	status = dev->irq_status_isp;
+	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
 	if (!status)
 		return;
 
@@ -1189,7 +1214,6 @@ void rkisp1_isp_isr(struct rkisp1_device *dev)
 	if (status & RKISP1_CIF_ISP_V_START) {
 		rkisp1_isp_queue_event_sof(&dev->isp_sdev);
 
-		rkisp1_write(dev, RKISP1_CIF_ISP_V_START, RKISP1_CIF_ISP_ICR);
 		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_V_START)
 			dev_err(dev->dev, "isp icr v_statr err: 0x%x\n",
@@ -1198,20 +1222,17 @@ void rkisp1_isp_isr(struct rkisp1_device *dev)
 
 	if (status & RKISP1_CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
-		rkisp1_write(dev, RKISP1_CIF_ISP_PIC_SIZE_ERROR, RKISP1_CIF_ISP_ICR);
 		isp_err = rkisp1_read(dev, RKISP1_CIF_ISP_ERR);
 		dev_err(dev->dev, "RKISP1_CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
 		rkisp1_write(dev, isp_err, RKISP1_CIF_ISP_ERR_CLR);
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
-		/* Clear data_loss */
-		rkisp1_write(dev, RKISP1_CIF_ISP_DATA_LOSS, RKISP1_CIF_ISP_ICR);
+		/* data_loss */
 		dev_err(dev->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
-		rkisp1_write(dev, RKISP1_CIF_ISP_DATA_LOSS, RKISP1_CIF_ISP_ICR);
 	}
 
 	/* sampled input frame is complete */
 	if (status & RKISP1_CIF_ISP_FRAME_IN) {
-		rkisp1_write(dev, RKISP1_CIF_ISP_FRAME_IN, RKISP1_CIF_ISP_ICR);
+		/* TODO: why does it reads the interrupt status again? */
 		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_FRAME_IN)
 			dev_err(dev->dev, "isp icr frame_in err: 0x%x\n",
@@ -1222,8 +1243,8 @@ void rkisp1_isp_isr(struct rkisp1_device *dev)
 	if (status & RKISP1_CIF_ISP_FRAME) {
 		u32 isp_ris = 0;
 
-		/* Clear Frame In (ISP) */
-		rkisp1_write(dev, RKISP1_CIF_ISP_FRAME, RKISP1_CIF_ISP_ICR);
+		/* Frame In (ISP) */
+		/* TODO: why does it reads the interrupt status again? */
 		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_FRAME)
 			dev_err(dev->dev,
