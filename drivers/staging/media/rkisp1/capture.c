@@ -702,15 +702,7 @@ static void rkisp1_update_mi(struct rkisp1_stream *stream)
 	rkisp1_mi_set_cr_offset(stream, 0);
 }
 
-static void rkisp1_mp_stop_mi(struct rkisp1_stream *stream)
-{
-	if (!stream->streaming)
-		return;
-	rkisp1_mi_frame_end_int_clear(stream);
-	stream->ops->disable_mi(stream);
-}
-
-static void rkisp1_sp_stop_mi(struct rkisp1_stream *stream)
+static void rkisp1_stop_mi(struct rkisp1_stream *stream)
 {
 	if (!stream->streaming)
 		return;
@@ -722,7 +714,7 @@ static struct rkisp1_streams_ops rkisp1_mp_streams_ops = {
 	.config_mi = rkisp1_mp_config_mi,
 	.enable_mi = rkisp1_mp_enable_mi,
 	.disable_mi = rkisp1_mp_disable_mi,
-	.stop_mi = rkisp1_mp_stop_mi,
+	.stop_mi = rkisp1_stop_mi,
 	.set_data_path = rkisp1_mp_set_data_path,
 	.is_stream_stopped = rkisp1_mp_is_stream_stopped,
 };
@@ -731,7 +723,7 @@ static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
 	.config_mi = rkisp1_sp_config_mi,
 	.enable_mi = rkisp1_sp_enable_mi,
 	.disable_mi = rkisp1_sp_disable_mi,
-	.stop_mi = rkisp1_sp_stop_mi,
+	.stop_mi = rkisp1_stop_mi,
 	.set_data_path = rkisp1_sp_set_data_path,
 	.is_stream_stopped = rkisp1_sp_is_stream_stopped,
 };
