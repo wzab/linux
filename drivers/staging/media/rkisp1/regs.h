@@ -1414,7 +1414,7 @@ static inline void rkisp1_mp_set_data_path(void __iomem *base)
 	u32 dpcl = readl(base + RKISP1_CIF_VI_DPCL);
 
 	dpcl = dpcl | RKISP1_CIF_VI_DPCL_CHAN_MODE_MP |
-		RKISP1_CIF_VI_DPCL_MP_MUX_MRSZ_MI;
+	       RKISP1_CIF_VI_DPCL_MP_MUX_MRSZ_MI;
 	writel(dpcl, base + RKISP1_CIF_VI_DPCL);
 }
 

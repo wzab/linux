@@ -216,10 +216,9 @@ void rkisp1_config_mi_ctrl(struct rkisp1_stream *stream)
 
 bool rkisp1_mp_is_stream_stopped(void __iomem *base)
 {
-	u32 en;
+	u32 en = RKISP1_CIF_MI_CTRL_SHD_MP_IN_ENABLED |
+		 RKISP1_CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
 
-	en = RKISP1_CIF_MI_CTRL_SHD_MP_IN_ENABLED |
-	     RKISP1_CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
 	return !(readl(base + RKISP1_CIF_MI_CTRL_SHD) & en);
 }
 
