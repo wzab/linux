@@ -340,7 +340,7 @@ static const struct rkisp1_cap_fmt sp_fmts[] = {
 	},
 };
 
-static struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
+static const struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
 	.fmts = mp_fmts,
 	.fmt_size = ARRAY_SIZE(mp_fmts),
 	/* constraints */
@@ -395,7 +395,7 @@ static struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
 	},
 };
 
-static struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
+static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
 	.fmts = sp_fmts,
 	.fmt_size = ARRAY_SIZE(sp_fmts),
 	/* constraints */

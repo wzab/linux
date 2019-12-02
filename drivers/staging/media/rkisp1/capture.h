@@ -135,7 +135,7 @@ struct rkisp1_stream {
 	struct v4l2_pix_format_mplane out_fmt;
 	struct v4l2_rect dcrop;
 	struct rkisp1_streams_ops *ops;
-	struct rkisp1_stream_cfg *config;
+	const struct rkisp1_stream_cfg *config;
 	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
 	struct list_head buf_queue;
 	struct rkisp1_dummy_buffer dummy_buf;
