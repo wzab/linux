@@ -49,7 +49,8 @@ struct rkisp1_isp_stats_vdev {
 	struct mutex wq_lock;
 };
 
-int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris);
+void rkisp1_stats_isr_thread(struct rkisp1_isp_stats_vdev *stats_vdev,
+			     u32 isp_ris);
 
 int rkisp1_register_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev,
 			       struct v4l2_device *v4l2_dev,

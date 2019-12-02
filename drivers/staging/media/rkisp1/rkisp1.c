@@ -1235,7 +1235,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 			       RKISP1_CIF_ISP_AFM_FIN |
 			       RKISP1_CIF_ISP_EXP_END |
 			       RKISP1_CIF_ISP_HIST_MEASURE_RDY))
-			rkisp1_stats_isr(&dev->stats_vdev, isp_ris);
+			rkisp1_stats_isr_thread(&dev->stats_vdev, isp_ris);
 	}
 
 	/*

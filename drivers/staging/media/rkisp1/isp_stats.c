@@ -364,7 +364,8 @@ static void rkisp1_stats_readout_work(struct work_struct *work)
 	kfree(readout_work);
 }
 
-int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
+void rkisp1_stats_isr_thread(struct rkisp1_isp_stats_vdev *stats_vdev,
+			     u32 isp_ris)
 {
 	unsigned int cur_frame_id =
 		atomic_read(&stats_vdev->dev->isp_sdev.frm_sync_seq) - 1;
@@ -377,6 +378,7 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 
 	val = RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
 	      RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY;
+	/* TODO: why do we need to clear interrupts again? */
 	rkisp1_write(dev, val, RKISP1_CIF_ISP_ICR);
 
 	isp_mis_tmp = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
@@ -413,8 +415,6 @@ int rkisp1_stats_isr(struct rkisp1_isp_stats_vdev *stats_vdev, u32 isp_ris)
 
 unlock:
 	spin_unlock(&stats_vdev->irq_lock);
-
-	return 0;
 }
 
 static void rkisp1_init_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev)
