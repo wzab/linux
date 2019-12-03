@@ -637,14 +637,6 @@ static inline void rkisp1_mp_set_chain_mode(struct rkisp1_device *dev)
 	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
-static inline void rkisp1_sp_set_chain_mode(struct rkisp1_device *dev)
-{
-	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
-
-	dpcl |= RKISP1_CIF_VI_DPCL_CHAN_MODE_SP;
-	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
-}
-
 static inline void rkisp1_mp_set_data_path(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
@@ -761,14 +753,6 @@ static inline void rkisp1_mi_ctrl_mpraw_enable(struct rkisp1_device *dev)
 	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 
 	mi_ctrl |= RKISP1_CIF_MI_CTRL_RAW_ENABLE;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
-}
-
-static inline void rkisp1_mi_ctrl_mpraw_disable(struct rkisp1_device *dev)
-{
-	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
-
-	mi_ctrl &= ~RKISP1_CIF_MI_CTRL_RAW_ENABLE;
 	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
