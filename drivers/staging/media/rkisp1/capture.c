@@ -56,38 +56,13 @@
 #define RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH		32
 #define RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT		32
 
-static int mbus_code_xysubs(u32 code, u32 *xsubs, u32 *ysubs)
-{
-	switch (code) {
-	case MEDIA_BUS_FMT_YUYV8_2X8:
-	case MEDIA_BUS_FMT_YUYV8_1X16:
-	case MEDIA_BUS_FMT_YVYU8_1X16:
-	case MEDIA_BUS_FMT_UYVY8_1X16:
-	case MEDIA_BUS_FMT_VYUY8_1X16:
-		*xsubs = 2;
-		*ysubs = 1;
-		break;
-	default:
-		return -EINVAL;
-	}
+#define RKISP1_MBUS_FMT_HDIV 2
+#define RKISP1_MBUS_FMT_VDIV 1
 
-	return 0;
-}
+/* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
+#define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
-static int mbus_code_sp_in_fmt(u32 code, u32 *format)
-{
-	switch (code) {
-	case MEDIA_BUS_FMT_YUYV8_2X8:
-		*format = RKISP1_MI_CTRL_SP_INPUT_YUV422;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static const struct rkisp1_cap_fmt mp_fmts[] = {
+static const struct rkisp1_cap_fmt rkisp1_mp_fmts[] = {
 	/* yuv422 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
@@ -222,7 +197,7 @@ static const struct rkisp1_cap_fmt mp_fmts[] = {
 	},
 };
 
-static const struct rkisp1_cap_fmt sp_fmts[] = {
+static const struct rkisp1_cap_fmt rkisp1_sp_fmts[] = {
 	/* yuv422 */
 	{
 		.fourcc = V4L2_PIX_FMT_YUYV,
@@ -341,8 +316,8 @@ static const struct rkisp1_cap_fmt sp_fmts[] = {
 };
 
 static const struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
-	.fmts = mp_fmts,
-	.fmt_size = ARRAY_SIZE(mp_fmts),
+	.fmts = rkisp1_mp_fmts,
+	.fmt_size = ARRAY_SIZE(rkisp1_mp_fmts),
 	/* constraints */
 	.max_rsz_width = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
 	.max_rsz_height = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT,
@@ -396,8 +371,8 @@ static const struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
 };
 
 static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
-	.fmts = sp_fmts,
-	.fmt_size = ARRAY_SIZE(sp_fmts),
+	.fmts = rkisp1_sp_fmts,
+	.fmt_size = ARRAY_SIZE(rkisp1_sp_fmts),
 	/* constraints */
 	.max_rsz_width = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_WIDTH,
 	.max_rsz_height = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT,
@@ -450,9 +425,8 @@ static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
 	},
 };
 
-static const
-struct rkisp1_cap_fmt *find_fmt(const struct rkisp1_stream *stream,
-				const u32 pixelfmt)
+static const struct rkisp1_cap_fmt *
+rkisp1_find_fmt(const struct rkisp1_stream *stream, const u32 pixelfmt)
 {
 	unsigned int i;
 
@@ -498,9 +472,9 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
+	u8 hdiv = RKISP1_MBUS_FMT_HDIV, vdiv = RKISP1_MBUS_FMT_VDIV;
 	struct v4l2_pix_format_mplane output_fmt = stream->out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
-	u32 xsubs_in, ysubs_in;
 
 	if (input_isp_fmt->fmt_type == RKISP1_FMT_BAYER)
 		goto disable;
@@ -511,24 +485,18 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 	out_y.width = output_fmt.width;
 	out_y.height = output_fmt.height;
 
-	/* The size of Cb,Cr are related to the format */
-	if (mbus_code_xysubs(input_isp_fmt->mbus_code, &xsubs_in, &ysubs_in)) {
-		dev_err(dev->dev, "Not xsubs/ysubs found\n");
-		return -EINVAL;
-	}
-	in_c.width = in_y.width / xsubs_in;
-	in_c.height = in_y.height / ysubs_in;
+	in_c.width = in_y.width / RKISP1_MBUS_FMT_HDIV;
+	in_c.height = in_y.height / RKISP1_MBUS_FMT_VDIV;
 
 	if (output_isp_fmt->fmt_type == RKISP1_FMT_YUV) {
 		const struct v4l2_format_info *pixfmt_info =
 				v4l2_format_info(output_isp_fmt->fourcc);
 
-		out_c.width = out_y.width / pixfmt_info->hdiv;
-		out_c.height = out_y.height / pixfmt_info->vdiv;
-	} else {
-		out_c.width = out_y.width / xsubs_in;
-		out_c.height = out_y.height / ysubs_in;
+		hdiv = pixfmt_info->hdiv;
+		vdiv = pixfmt_info->vdiv;
 	}
+	out_c.width = out_y.width / hdiv;
+	out_c.height = out_y.height / vdiv;
 
 	if (in_c.width == out_c.width && in_c.height == out_c.height)
 		goto disable;
@@ -565,8 +533,7 @@ static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
 	 */
 	if (!component && pixm->num_planes == 1)
 		return pixm->plane_fmt[0].bytesperline * pixm->height;
-	else
-		return pixm->plane_fmt[component].sizeimage;
+	return pixm->plane_fmt[component].sizeimage;
 }
 
 /*
@@ -602,16 +569,10 @@ static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
  */
 static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 {
-	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
-	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *dev = stream->ispdev;
+	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = dev->isp_sdev.out_fmt;
-	u32 sp_in_fmt;
-
-	if (mbus_code_sp_in_fmt(input_isp_fmt->mbus_code, &sp_in_fmt)) {
-		dev_err(dev->dev, "Can't find the input format\n");
-		return -EINVAL;
-	}
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 
 	rkisp1_mi_set_y_size(stream,
 			     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y));
@@ -631,7 +592,7 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 	rkisp1_config_mi_ctrl(stream);
 	rkisp1_sp_mi_ctrl_set_format(dev,
 				     stream->out_isp_fmt->write_format |
-				     sp_in_fmt |
+				     RKISP1_SP_IN_FMT |
 				     output_isp_fmt->output_format);
 
 	rkisp1_sp_mi_ctrl_autoupdate_en(dev);
@@ -730,8 +691,8 @@ static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
  */
 static int rkisp1_mi_frame_end(struct rkisp1_stream *stream)
 {
-	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *isp_dev = stream->ispdev;
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
 	struct rkisp1_buffer *curr_buf = stream->curr_buf;
 	unsigned long lock_flags = 0;
@@ -744,6 +705,7 @@ static int rkisp1_mi_frame_end(struct rkisp1_stream *stream)
 		for (i = 0; i < pixm->num_planes; i++) {
 			u32 payload_size =
 				stream->out_fmt.plane_fmt[i].sizeimage;
+
 			vb2_set_plane_payload(&curr_buf->vb.vb2_buf, i,
 					      payload_size);
 		}
@@ -872,8 +834,7 @@ static void rkisp1_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct rkisp1_buffer *ispbuf = rkisp1_to_rkisp1_buffer(vbuf);
-	struct vb2_queue *queue = vb->vb2_queue;
-	struct rkisp1_stream *stream = queue->drv_priv;
+	struct rkisp1_stream *stream = vb->vb2_queue->drv_priv;
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	unsigned long lock_flags = 0;
 	unsigned int i;
@@ -1137,7 +1098,7 @@ rkisp1_start_streaming(struct vb2_queue *queue, unsigned int count)
 	struct rkisp1_stream *stream = queue->drv_priv;
 	struct rkisp1_device *dev = stream->ispdev;
 	struct media_entity *entity = &stream->vnode.vdev.entity;
-	int ret = -EINVAL;
+	int ret;
 
 	ret = rkisp1_create_dummy_buf(stream);
 	if (ret < 0)
@@ -1289,7 +1250,7 @@ struct rkisp1_cap_fmt *rkisp1_try_fmt(const struct rkisp1_stream *stream,
 			&stream->ispdev->streams[!stream->id];
 	const struct rkisp1_cap_fmt *fmt;
 
-	fmt = find_fmt(stream, pixm->pixelformat);
+	fmt = rkisp1_find_fmt(stream, pixm->pixelformat);
 	if (!fmt)
 		fmt = config->fmts;
 
@@ -1729,25 +1690,25 @@ void rkisp1_mi_isr_thread(struct rkisp1_device *dev)
 
 		if (!(status & RKISP1_CIF_MI_FRAME(stream)))
 			continue;
-		if (stream->stopping) {
-			/*
-			 * Make sure stream is actually stopped, whose state
-			 * can be read from the shadow register, before
-			 * wake_up() thread which would immediately free all
-			 * frame buffers. stop_mi() takes effect at the next
-			 * frame end that sync the configurations to shadow
-			 * regs.
-			 */
-			if (stream->ops->is_stream_stopped(stream)) {
-				stream->stopping = false;
-				stream->streaming = false;
-				// TODO Use thread IRQ?
-				wake_up(&stream->done);
-			} else {
-				stream->ops->stop_mi(stream);
-			}
-		} else {
+		if (!stream->stopping) {
 			rkisp1_mi_frame_end(stream);
+			continue;
 		}
+		/*
+		 * Make sure stream is actually stopped, whose state
+		 * can be read from the shadow register, before
+		 * wake_up() thread which would immediately free all
+		 * frame buffers. stop_mi() takes effect at the next
+		 * frame end that sync the configurations to shadow
+		 * regs.
+		 */
+		if (!stream->ops->is_stream_stopped(stream)) {
+			stream->ops->stop_mi(stream);
+			continue;
+		}
+		stream->stopping = false;
+		stream->streaming = false;
+		// TODO Use thread IRQ?
+		wake_up(&stream->done);
 	}
 }
