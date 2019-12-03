@@ -17,7 +17,6 @@
 #include <media/v4l2-fwnode.h>
 
 #include "common.h"
-#include "regs.h"
 
 struct rkisp1_match_data {
 	const char * const *clks;

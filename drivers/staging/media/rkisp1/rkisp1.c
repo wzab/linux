@@ -14,7 +14,6 @@
 #include <media/v4l2-event.h>
 
 #include "common.h"
-#include "regs.h"
 
 #define RKISP1_CIF_ISP_INPUT_W_MAX		4032
 #define RKISP1_CIF_ISP_INPUT_H_MAX		3024
@@ -56,6 +55,12 @@
  * | +---------------------------------------------------+   |
  * +---------------------------------------------------------+
  */
+
+static inline struct rkisp1_isp_subdev *
+rkisp1_sd_to_isp_sd(struct v4l2_subdev *sd)
+{
+	return container_of(sd, struct rkisp1_isp_subdev, sd);
+}
 
 static inline struct rkisp1_device *rkisp1_sd_to_isp_dev(struct v4l2_subdev *sd)
 {
@@ -847,7 +852,7 @@ static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_format *fmt)
 {
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
+	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
 
 	fmt->format = *rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, fmt->pad,
 						 fmt->which);
@@ -858,7 +863,7 @@ static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_format *fmt)
 {
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
+	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
 
 	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO)
 		rkisp1_isp_sd_set_in_fmt(isp_sd, cfg, &fmt->format, fmt->which);
@@ -876,7 +881,7 @@ static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_selection *sel)
 {
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
+	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
 
 	if (sel->pad != RKISP1_ISP_PAD_SOURCE_VIDEO &&
 	    sel->pad != RKISP1_ISP_PAD_SINK_VIDEO)
@@ -915,7 +920,7 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_selection *sel)
 {
-	struct rkisp1_isp_subdev *isp_sd = sd_to_isp_sd(sd);
+	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
 	struct rkisp1_device *dev = rkisp1_sd_to_isp_dev(sd);
 
 	if (sel->target != V4L2_SEL_TGT_CROP)
