@@ -635,13 +635,21 @@ static u32 rkisp1_rsz_calc_ratio(u32 len_in, u32 len_out)
 	       (len_in - 1) + 1;
 }
 
+static void rkisp1_rsz_disable(struct rkisp1_stream *stream, bool async)
+{
+	rkisp1_write(stream->ispdev, 0, stream->config->rsz.ctrl);
+
+	if (!async)
+		rkisp1_rsz_update_shadow(stream, async);
+}
+
 /* TODO: remove/change this bool argument */
-static void rkisp1_rsz_config(struct rkisp1_stream *stream,
-			      struct v4l2_rect *in_y,
-			      struct v4l2_rect *in_c,
-			      struct v4l2_rect *out_y,
-			      struct v4l2_rect *out_c,
-			      bool async)
+static void rkisp1_rsz_config_regs(struct rkisp1_stream *stream,
+				   struct v4l2_rect *in_y,
+				   struct v4l2_rect *in_c,
+				   struct v4l2_rect *out_y,
+				   struct v4l2_rect *out_c,
+				   bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 ratio, rsz_ctrl = 0;
@@ -698,15 +706,7 @@ static void rkisp1_rsz_config(struct rkisp1_stream *stream,
 	rkisp1_rsz_update_shadow(stream, async);
 }
 
-static void rkisp1_rsz_disable(struct rkisp1_stream *stream, bool async)
-{
-	rkisp1_write(stream->ispdev, 0, stream->config->rsz.ctrl);
-
-	if (!async)
-		rkisp1_rsz_update_shadow(stream, async);
-}
-
-static int rkisp1_stream_rsz_config(struct rkisp1_stream *stream, bool async)
+static int rkisp1_rsz_config(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_stream_fmt *output_isp_fmt = stream->out_isp_fmt;
@@ -748,7 +748,7 @@ static int rkisp1_stream_rsz_config(struct rkisp1_stream *stream, bool async)
 		in_c.width, in_c.height, out_c.width, out_c.height);
 
 	/* set values in the hw */
-	rkisp1_rsz_config(stream, &in_y, &in_c, &out_y, &out_c, async);
+	rkisp1_rsz_config_regs(stream, &in_y, &in_c, &out_y, &out_c, async);
 
 	rkisp1_rsz_dump_regs(stream);
 
@@ -1481,7 +1481,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	if (other->streaming)
 		async = true;
 
-	ret = rkisp1_stream_rsz_config(stream, async);
+	ret = rkisp1_rsz_config(stream, async);
 	if (ret < 0) {
 		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
