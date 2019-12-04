@@ -1265,12 +1265,15 @@ static void rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm,
 		plane_y->bytesperline = stride;
 	plane_y->sizeimage = plane_y->bytesperline * pixm->height;
 
+	/* normalize stride to pixels per line */
+	stride = DIV_ROUND_UP(plane_y->bytesperline, info->bpp[0]);
+
 	for (i = 1; i < info->comp_planes; i++) {
 		struct v4l2_plane_pix_format *plane = &pixm->plane_fmt[i];
 
 		/* bytesperline for other components derive from Y component */
-		plane->bytesperline = DIV_ROUND_UP(plane_y->bytesperline,
-						   info->hdiv);
+		plane->bytesperline = DIV_ROUND_UP(stride, info->hdiv) *
+				      info->bpp[i];
 		plane->sizeimage = plane->bytesperline *
 				   DIV_ROUND_UP(pixm->height, info->vdiv);
 	}
