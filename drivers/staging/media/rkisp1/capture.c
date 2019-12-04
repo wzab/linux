@@ -1010,7 +1010,7 @@ static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
  * Update buffer info to memory interface. Called in interrupt
  * context by rkisp1_set_next_buf(), and in process context by vb2_ops.buf_queue().
  */
-static void rkisp1_mi_set_next_buf(struct rkisp1_stream *stream)
+static void rkisp1_set_next_buf_regs(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
@@ -1094,7 +1094,7 @@ static int rkisp1_set_next_buf(struct rkisp1_stream *stream)
 	}
 	spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
 
-	rkisp1_mi_set_next_buf(stream);
+	rkisp1_set_next_buf_regs(stream);
 
 	return 0;
 }
@@ -1270,7 +1270,7 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 	if (stream->streaming && !stream->next_buf &&
 	    atomic_read(&stream->ispdev->isp_sdev.frm_sync_seq) == 0) {
 		stream->next_buf = ispbuf;
-		rkisp1_mi_set_next_buf(stream);
+		rkisp1_set_next_buf_regs(stream);
 	} else {
 		list_add_tail(&ispbuf->queue, &stream->buf_queue);
 	}
