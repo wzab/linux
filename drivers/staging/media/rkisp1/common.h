@@ -54,7 +54,6 @@ enum rkisp1_fmt_pix_type {
 	RKISP1_FMT_RGB,
 	RKISP1_FMT_BAYER,
 	RKISP1_FMT_JPEG,
-	RKISP1_FMT_MAX
 };
 
 enum rkisp1_fmt_raw_pat_type {

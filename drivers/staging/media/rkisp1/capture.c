@@ -594,7 +594,7 @@ static void rkisp1_sp_set_data_path(struct rkisp1_stream *stream)
  */
 
 /* TODO: remove/change this bool argument */
-static void rkisp1_disable_dcrop(struct rkisp1_stream *stream, bool async)
+static void rkisp1_dcrop_disable(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 dc_ctrl = rkisp1_read(dev, stream->config->dual_crop.ctrl);
@@ -611,7 +611,7 @@ static void rkisp1_disable_dcrop(struct rkisp1_stream *stream, bool async)
 
 /* TODO: remove/change this bool argument */
 /* configure dual-crop unit */
-static int rkisp1_stream_config_dcrop(struct rkisp1_stream *stream, bool async)
+static int rkisp1_dcrop_config(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
@@ -626,7 +626,7 @@ static int rkisp1_stream_config_dcrop(struct rkisp1_stream *stream, bool async)
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
 	    dcrop->left == 0 && dcrop->top == 0) {
-		rkisp1_disable_dcrop(stream, async);
+		rkisp1_dcrop_disable(stream, async);
 		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
 		return 0;
 	}
@@ -654,7 +654,8 @@ static int rkisp1_stream_config_dcrop(struct rkisp1_stream *stream, bool async)
  * Resizer
  */
 
-static void rkisp1_update_rsz_shadow(struct rkisp1_stream *stream, bool async)
+// TODO: remove bool or change the type
+static void rkisp1_rsz_update_shadow(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 ctrl_cfg = rkisp1_read(dev, stream->config->rsz.ctrl);
@@ -667,14 +668,30 @@ static void rkisp1_update_rsz_shadow(struct rkisp1_stream *stream, bool async)
 	rkisp1_write(dev, ctrl_cfg, stream->config->rsz.ctrl);
 }
 
-static void rkisp1_set_scale(struct rkisp1_stream *stream,
-			     struct v4l2_rect *in_y,
-			     struct v4l2_rect *in_c,
-			     struct v4l2_rect *out_y,
-			     struct v4l2_rect *out_c)
+/* TODO: remove/change this bool argument */
+static void rkisp1_rsz_config(struct rkisp1_stream *stream,
+			      struct v4l2_rect *in_y,
+			      struct v4l2_rect *in_c,
+			      struct v4l2_rect *out_y,
+			      struct v4l2_rect *out_c,
+			      bool async)
 {
 	u32 scale_hy, scale_hc, scale_vy, scale_vc, rsz_ctrl = 0;
 	struct rkisp1_device *dev = stream->ispdev;
+	unsigned int i;
+
+	/* No phase offset */
+	rkisp1_write(dev, 0, stream->config->rsz.phase_hy);
+	rkisp1_write(dev, 0, stream->config->rsz.phase_hc);
+	rkisp1_write(dev, 0, stream->config->rsz.phase_vy);
+	rkisp1_write(dev, 0, stream->config->rsz.phase_vc);
+
+	/* Linear interpolation */
+	// TODO: why do we write all the values from 0 to 64 to the register?
+	for (i = 0; i < 64; i++) {
+		rkisp1_write(dev, i, stream->config->rsz.scale_lut_addr);
+		rkisp1_write(dev, i, stream->config->rsz.scale_lut);
+	}
 
 	if (in_y->width < out_y->width) {
 		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_ENABLE |
@@ -732,40 +749,16 @@ static void rkisp1_set_scale(struct rkisp1_stream *stream,
 	}
 
 	rkisp1_write(dev, rsz_ctrl, stream->config->rsz.ctrl);
+
+	rkisp1_rsz_update_shadow(stream, async);
 }
 
-/* TODO: remove/change this bool argument */
-static void rkisp1_config_rsz(struct rkisp1_stream *stream,
-			      struct v4l2_rect *in_y,
-			      struct v4l2_rect *in_c, struct v4l2_rect *out_y,
-			      struct v4l2_rect *out_c, bool async)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	unsigned int i;
-
-	/* No phase offset */
-	rkisp1_write(dev, 0, stream->config->rsz.phase_hy);
-	rkisp1_write(dev, 0, stream->config->rsz.phase_hc);
-	rkisp1_write(dev, 0, stream->config->rsz.phase_vy);
-	rkisp1_write(dev, 0, stream->config->rsz.phase_vc);
-
-	/* Linear interpolation */
-	for (i = 0; i < 64; i++) {
-		rkisp1_write(dev, i, stream->config->rsz.scale_lut_addr);
-		rkisp1_write(dev, i, stream->config->rsz.scale_lut);
-	}
-
-	rkisp1_set_scale(stream, in_y, in_c, out_y, out_c);
-
-	rkisp1_update_rsz_shadow(stream, async);
-}
-
-static void rkisp1_disable_rsz(struct rkisp1_stream *stream, bool async)
+static void rkisp1_rsz_disable(struct rkisp1_stream *stream, bool async)
 {
 	rkisp1_write(stream->ispdev, 0, stream->config->rsz.ctrl);
 
 	if (!async)
-		rkisp1_update_rsz_shadow(stream, async);
+		rkisp1_rsz_update_shadow(stream, async);
 }
 
 
@@ -804,22 +797,21 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 	if (in_c.width == out_c.width && in_c.height == out_c.height)
 		goto disable;
 
-	/* set RSZ input and output */
 	dev_dbg(dev->dev, "stream %d rsz/scale: %dx%d -> %dx%d\n",
 		stream->id, stream->dcrop.width, stream->dcrop.height,
 		output_fmt.width, output_fmt.height);
 	dev_dbg(dev->dev, "chroma scaling %dx%d -> %dx%d\n",
 		in_c.width, in_c.height, out_c.width, out_c.height);
 
-	/* calculate and set scale */
-	rkisp1_config_rsz(stream, &in_y, &in_c, &out_y, &out_c, async);
+	/* set values in the hw */
+	rkisp1_rsz_config(stream, &in_y, &in_c, &out_y, &out_c, async);
 
 	rkisp1_dump_rsz_regs(stream);
 
 	return 0;
 
 disable:
-	rkisp1_disable_rsz(stream, async);
+	rkisp1_rsz_disable(stream, async);
 
 	return 0;
 }
@@ -1155,8 +1147,8 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 		stream->stopping = false;
 		stream->streaming = false;
 	}
-	rkisp1_disable_dcrop(stream, true);
-	rkisp1_disable_rsz(stream, true);
+	rkisp1_dcrop_disable(stream, true);
+	rkisp1_rsz_disable(stream, true);
 }
 
 /*
@@ -1486,7 +1478,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	 * can't be async now, otherwise the latter started stream fails to
 	 * produce mi interrupt.
 	 */
-	ret = rkisp1_stream_config_dcrop(stream, false);
+	ret = rkisp1_dcrop_config(stream, false);
 	if (ret < 0) {
 		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
 		return ret;
