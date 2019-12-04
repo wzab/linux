@@ -668,6 +668,16 @@ static void rkisp1_rsz_update_shadow(struct rkisp1_stream *stream, bool async)
 	rkisp1_write(dev, ctrl_cfg, stream->config->rsz.ctrl);
 }
 
+static u32 rkisp1_rsz_calc_ratio(u32 len_in, u32 len_out)
+{
+	if (len_in < len_out)
+		return ((len_in - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+		       (len_out - 1);
+
+	return ((len_out - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
+	       (len_in - 1) + 1;
+}
+
 /* TODO: remove/change this bool argument */
 static void rkisp1_rsz_config(struct rkisp1_stream *stream,
 			      struct v4l2_rect *in_y,
@@ -676,8 +686,8 @@ static void rkisp1_rsz_config(struct rkisp1_stream *stream,
 			      struct v4l2_rect *out_c,
 			      bool async)
 {
-	u32 scale_hy, scale_hc, scale_vy, scale_vc, rsz_ctrl = 0;
 	struct rkisp1_device *dev = stream->ispdev;
+	u32 ratio, rsz_ctrl = 0;
 	unsigned int i;
 
 	/* No phase offset */
@@ -693,59 +703,37 @@ static void rkisp1_rsz_config(struct rkisp1_stream *stream,
 		rkisp1_write(dev, i, stream->config->rsz.scale_lut);
 	}
 
-	if (in_y->width < out_y->width) {
-		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_ENABLE |
-			    RKISP1_CIF_RSZ_CTRL_SCALE_HY_UP;
-		scale_hy = ((in_y->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (out_y->width - 1);
-		rkisp1_write(dev, scale_hy, stream->config->rsz.scale_hy);
-	} else if (in_y->width > out_y->width) {
+	if (in_y->width != out_y->width) {
 		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_ENABLE;
-		scale_hy = ((out_y->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (in_y->width - 1) + 1;
-		rkisp1_write(dev, scale_hy, stream->config->rsz.scale_hy);
+		if (in_y->width < out_y->width)
+			rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HY_UP;
+		ratio = rkisp1_rsz_calc_ratio(in_y->width, out_y->width);
+		rkisp1_write(dev, ratio, stream->config->rsz.scale_hy);
 	}
-	if (in_c->width < out_c->width) {
-		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HC_ENABLE |
-			    RKISP1_CIF_RSZ_CTRL_SCALE_HC_UP;
-		scale_hc = ((in_c->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (out_c->width - 1);
-		rkisp1_write(dev, scale_hc, stream->config->rsz.scale_hcb);
-		rkisp1_write(dev, scale_hc, stream->config->rsz.scale_hcr);
-	} else if (in_c->width > out_c->width) {
+
+	if (in_c->width != out_c->width) {
 		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HC_ENABLE;
-		scale_hc = ((out_c->width - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (in_c->width - 1) + 1;
-		rkisp1_write(dev, scale_hc, stream->config->rsz.scale_hcb);
-		rkisp1_write(dev, scale_hc, stream->config->rsz.scale_hcr);
+		if (in_c->width < out_c->width)
+			rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_HC_UP;
+		ratio = rkisp1_rsz_calc_ratio(in_c->width, out_c->width);
+		rkisp1_write(dev, ratio, stream->config->rsz.scale_hcb);
+		rkisp1_write(dev, ratio, stream->config->rsz.scale_hcr);
 	}
 
-	if (in_y->height < out_y->height) {
-		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VY_ENABLE |
-			    RKISP1_CIF_RSZ_CTRL_SCALE_VY_UP;
-		scale_vy = ((in_y->height - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (out_y->height - 1);
-		rkisp1_write(dev, scale_vy, stream->config->rsz.scale_vy);
-	} else if (in_y->height > out_y->height) {
+	if (in_y->height != out_y->height) {
 		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VY_ENABLE;
-		scale_vy = ((out_y->height - 1) *
-			    RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (in_y->height - 1) + 1;
-		rkisp1_write(dev, scale_vy, stream->config->rsz.scale_vy);
+		if (in_y->height < out_y->height)
+			rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VY_UP;
+		ratio = rkisp1_rsz_calc_ratio(in_y->height, out_y->height);
+		rkisp1_write(dev, ratio, stream->config->rsz.scale_vy);
 	}
 
-	if (in_c->height < out_c->height) {
-		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VC_ENABLE |
-			    RKISP1_CIF_RSZ_CTRL_SCALE_VC_UP;
-		scale_vc = ((in_c->height - 1) * RKISP1_CIF_RSZ_SCALER_FACTOR) /
-				(out_c->height - 1);
-		rkisp1_write(dev, scale_vc, stream->config->rsz.scale_vc);
-	} else if (in_c->height > out_c->height) {
+	if (in_c->height != out_c->height) {
 		rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VC_ENABLE;
-		scale_vc = ((out_c->height - 1) *
-			    RKISP1_CIF_RSZ_SCALER_FACTOR) /
-			   (in_c->height - 1) + 1;
-		rkisp1_write(dev, scale_vc, stream->config->rsz.scale_vc);
+		if (in_c->height < out_c->height)
+			rsz_ctrl |= RKISP1_CIF_RSZ_CTRL_SCALE_VC_UP;
+		ratio = rkisp1_rsz_calc_ratio(in_c->height, out_c->height);
+		rkisp1_write(dev, ratio, stream->config->rsz.scale_vc);
 	}
 
 	rkisp1_write(dev, rsz_ctrl, stream->config->rsz.ctrl);
@@ -794,6 +782,7 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 	out_c.width = out_y.width / hdiv;
 	out_c.height = out_y.height / vdiv;
 
+	/* TODO: why this doesn't check in_y out_y ? */
 	if (in_c.width == out_c.width && in_c.height == out_c.height)
 		goto disable;
 
