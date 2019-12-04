@@ -290,7 +290,7 @@ static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
 
 	rkisp1_isp_isr_thread(rkisp1_dev);
 	rkisp1_mipi_isr_thread(rkisp1_dev);
-	rkisp1_mi_isr_thread(rkisp1_dev);
+	rkisp1_stream_isr_thread(rkisp1_dev);
 
 	return IRQ_HANDLED;
 }

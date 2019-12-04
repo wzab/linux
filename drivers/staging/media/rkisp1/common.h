@@ -175,7 +175,7 @@ struct rkisp1_stream {
 	unsigned id:1;
 	struct rkisp1_device *ispdev;
 	struct rkisp1_vdev_node vnode;
-	const struct rkisp1_cap_fmt *out_isp_fmt;
+	const struct rkisp1_stream_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
 	struct v4l2_rect dcrop;
 	struct rkisp1_streams_ops *ops;
@@ -343,7 +343,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev);
 
 void rkisp1_unregister_stream_vdevs(struct rkisp1_device *dev);
 int rkisp1_register_stream_vdevs(struct rkisp1_device *dev);
-void rkisp1_mi_isr_thread(struct rkisp1_device *dev);
+void rkisp1_stream_isr_thread(struct rkisp1_device *dev);
 void rkisp1_stream_init(struct rkisp1_device *dev, u32 id);
 
 void rkisp1_stats_isr_thread(struct rkisp1_isp_stats_vdev *stats_vdev,
