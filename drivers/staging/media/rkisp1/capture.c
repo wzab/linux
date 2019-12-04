@@ -1297,7 +1297,7 @@ static int rkisp1_vb2_buf_prepare(struct vb2_buffer *vb)
 	return 0;
 }
 
-static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
+static int rkisp1_dummy_buf_create(struct rkisp1_stream *stream)
 {
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
@@ -1319,7 +1319,7 @@ static int rkisp1_create_dummy_buf(struct rkisp1_stream *stream)
 	return 0;
 }
 
-static void rkisp1_destroy_dummy_buf(struct rkisp1_stream *stream)
+static void rkisp1_dummy_buf_destroy(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
@@ -1468,7 +1468,7 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 	// auxiliary buffers in start_streaming.
 	// If fragmentation is a concern, see 'keep_buffers' parameter
 	// in stk1160.
-	rkisp1_destroy_dummy_buf(stream);
+	rkisp1_dummy_buf_destroy(stream);
 }
 
 static int rkisp1_stream_start(struct rkisp1_stream *stream)
@@ -1508,7 +1508,7 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 	struct media_entity *entity = &stream->vnode.vdev.entity;
 	int ret;
 
-	ret = rkisp1_create_dummy_buf(stream);
+	ret = rkisp1_dummy_buf_create(stream);
 	if (ret < 0)
 		goto return_queued_buf;
 
@@ -1556,7 +1556,7 @@ power_down:
 close_pipe:
 	v4l2_pipeline_pm_use(entity, 0);
 destroy_dummy_buf:
-	rkisp1_destroy_dummy_buf(stream);
+	rkisp1_dummy_buf_destroy(stream);
 return_queued_buf:
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_QUEUED);
 
