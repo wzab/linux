@@ -57,7 +57,7 @@ struct rkisp1_device {
 	struct v4l2_async_notifier notifier;
 	struct sensor_async_subdev *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
-	struct rkisp1_stream stream[RKISP1_MAX_STREAM];
+	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
 	struct rkisp1_isp_stats_vdev stats_vdev;
 	struct rkisp1_isp_params_vdev params_vdev;
 	struct media_pipeline pipe;

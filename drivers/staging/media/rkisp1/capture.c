@@ -910,7 +910,7 @@ static int mi_frame_end(struct rkisp1_stream *stream)
 		}
 		stream->curr_buf->vb.sequence =
 				atomic_read(&isp_sd->frm_sync_seq) - 1;
-		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_bootime_ns();
+		stream->curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		stream->curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&stream->curr_buf->vb.vb2_buf,
 				VB2_BUF_STATE_DONE);
@@ -1890,7 +1890,7 @@ void rkisp1_mi_isr(struct rkisp1_device *dev)
 
 	status = mi_frame_end_int_read_clear(dev);
 
-	for (i = 0; i < ARRAY_SIZE(dev->stream); ++i) {
+	for (i = 0; i < ARRAY_SIZE(dev->streams); ++i) {
 		struct rkisp1_stream *stream = &dev->streams[i];
 
 		if (!(status & CIF_MI_FRAME(stream)))
