@@ -513,6 +513,19 @@ static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
  * Helpers
  */
 
+static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
+				   unsigned int component)
+{
+	/*
+	 * If packed format, then plane_fmt[0].sizeimage is the sum of all
+	 * components, so we need to calculate just the size of Y component.
+	 * See rkisp1_fill_pixfmt_mp().
+	 */
+	if (!component && pixm->num_planes == 1)
+		return pixm->plane_fmt[0].bytesperline * pixm->height;
+	return pixm->plane_fmt[component].sizeimage;
+}
+
 static const struct rkisp1_cap_fmt *
 rkisp1_find_fmt(const struct rkisp1_stream *stream, const u32 pixelfmt)
 {
@@ -749,9 +762,7 @@ static void rkisp1_rsz_disable(struct rkisp1_stream *stream, bool async)
 		rkisp1_rsz_update_shadow(stream, async);
 }
 
-
-/* configure scale unit */
-static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
+static int rkisp1_stream_rsz_config(struct rkisp1_stream *stream, bool async)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
@@ -764,8 +775,7 @@ static int rkisp1_stream_config_rsz(struct rkisp1_stream *stream, bool async)
 		goto disable;
 
 	/* set input and output sizes for scale calculation */
-	in_y.width = stream->dcrop.width;
-	in_y.height = stream->dcrop.height;
+	in_y = dcrop;
 	out_y.width = output_fmt.width;
 	out_y.height = output_fmt.height;
 
@@ -809,7 +819,7 @@ disable:
  * Memory Interface (MI)
  */
 
-static void rkisp1_config_mi_ctrl(struct rkisp1_stream *stream)
+static void rkisp1_mi_config_ctrl(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
@@ -832,40 +842,11 @@ static void rkisp1_config_mi_ctrl(struct rkisp1_stream *stream)
 	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static bool rkisp1_mp_is_stream_stopped(struct rkisp1_stream *stream)
-{
-	u32 en = RKISP1_CIF_MI_CTRL_SHD_MP_IN_ENABLED |
-		 RKISP1_CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
-
-	return !(rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL_SHD) & en);
-}
-
-static bool rkisp1_sp_is_stream_stopped(struct rkisp1_stream *stream)
-{
-	return !(rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL_SHD) &
-		 RKISP1_CIF_MI_CTRL_SHD_SP_IN_ENABLED);
-}
-
-/***************************** stream operations*******************************/
-
-static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
-				   unsigned int component)
-{
-	/*
-	 * If packed format, then plane_fmt[0].sizeimage is the sum of all
-	 * components, so we need to calculate just the size of Y component.
-	 * See rkisp1_fill_pixfmt_mp().
-	 */
-	if (!component && pixm->num_planes == 1)
-		return pixm->plane_fmt[0].bytesperline * pixm->height;
-	return pixm->plane_fmt[component].sizeimage;
-}
-
 /*
  * configure memory interface for mainpath
  * This should only be called when stream-on
  */
-static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
+static int rkisp1_mi_mp_config(struct rkisp1_stream *stream)
 {
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	struct rkisp1_device *dev = stream->ispdev;
@@ -890,7 +871,7 @@ static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
 		rkisp1_write(dev, reg, RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 	}
 
-	rkisp1_config_mi_ctrl(stream);
+	rkisp1_mi_config_ctrl(stream);
 
 	reg = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 	reg &= ~RKISP1_MI_CTRL_MP_FMT_MASK;
@@ -908,7 +889,7 @@ static int rkisp1_mp_config_mi(struct rkisp1_stream *stream)
  * configure memory interface for selfpath
  * This should only be called when stream-on
  */
-static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
+static int rkisp1_mi_sp_config(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_cap_fmt *output_isp_fmt = stream->out_isp_fmt;
@@ -936,7 +917,7 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 		rkisp1_write(dev, reg & ~BIT(1), RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 	}
 
-	rkisp1_config_mi_ctrl(stream);
+	rkisp1_mi_config_ctrl(stream);
 
 	/* TODO: optimize this */
 	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
@@ -953,7 +934,7 @@ static int rkisp1_sp_config_mi(struct rkisp1_stream *stream)
 	return 0;
 }
 
-static void rkisp1_mp_disable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mi_mp_disable(struct rkisp1_stream *stream)
 {
 	u32 mi_ctrl = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL);
 
@@ -962,7 +943,7 @@ static void rkisp1_mp_disable_mi(struct rkisp1_stream *stream)
 	rkisp1_write(stream->ispdev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static void rkisp1_sp_disable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mi_sp_disable(struct rkisp1_stream *stream)
 {
 	u32 mi_ctrl = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL);
 
@@ -970,12 +951,12 @@ static void rkisp1_sp_disable_mi(struct rkisp1_stream *stream)
 	rkisp1_write(stream->ispdev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static void rkisp1_mp_enable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mi_mp_enable(struct rkisp1_stream *stream)
 {
 	const struct rkisp1_cap_fmt *isp_fmt = stream->out_isp_fmt;
 	u32 mi_ctrl;
 
-	rkisp1_mp_disable_mi(stream);
+	rkisp1_mi_mp_disable(stream);
 
 	mi_ctrl = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL);
 	if (isp_fmt->fmt_type == RKISP1_FMT_BAYER)
@@ -987,13 +968,40 @@ static void rkisp1_mp_enable_mi(struct rkisp1_stream *stream)
 	rkisp1_write(stream->ispdev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
-static void rkisp1_sp_enable_mi(struct rkisp1_stream *stream)
+static void rkisp1_mi_sp_enable(struct rkisp1_stream *stream)
 {
 	u32 mi_ctrl = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL);
 
 	mi_ctrl |= RKISP1_CIF_MI_CTRL_SP_ENABLE;
 	rkisp1_write(stream->ispdev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
+
+static void rkisp1_mi_stop(struct rkisp1_stream *stream)
+{
+	if (!stream->streaming)
+		return;
+	rkisp1_write(stream->ispdev,
+		     RKISP1_CIF_MI_FRAME(stream), RKISP1_CIF_MI_ICR);
+	stream->ops->disable_mi(stream);
+}
+
+static bool rkisp1_mp_is_stream_stopped(struct rkisp1_stream *stream)
+{
+	u32 en = RKISP1_CIF_MI_CTRL_SHD_MP_IN_ENABLED |
+		 RKISP1_CIF_MI_CTRL_SHD_RAW_OUT_ENABLED;
+
+	return !(rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL_SHD) & en);
+}
+
+static bool rkisp1_sp_is_stream_stopped(struct rkisp1_stream *stream)
+{
+	return !(rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL_SHD) &
+		 RKISP1_CIF_MI_CTRL_SHD_SP_IN_ENABLED);
+}
+
+/* ----------------------------------------------------------------------------
+ * Stream operations
+ */
 
 /*
  * Update buffer info to memory interface. Called in interrupt
@@ -1039,29 +1047,20 @@ static void rkisp1_update_mi(struct rkisp1_stream *stream)
 	rkisp1_write(stream->ispdev, 0, stream->config->mi.cr_offs_cnt_init);
 }
 
-static void rkisp1_stop_mi(struct rkisp1_stream *stream)
-{
-	if (!stream->streaming)
-		return;
-	rkisp1_write(stream->ispdev,
-		     RKISP1_CIF_MI_FRAME(stream), RKISP1_CIF_MI_ICR);
-	stream->ops->disable_mi(stream);
-}
-
 static struct rkisp1_streams_ops rkisp1_mp_streams_ops = {
-	.config_mi = rkisp1_mp_config_mi,
-	.enable_mi = rkisp1_mp_enable_mi,
-	.disable_mi = rkisp1_mp_disable_mi,
-	.stop_mi = rkisp1_stop_mi,
+	.config_mi = rkisp1_mi_mp_config,
+	.enable_mi = rkisp1_mi_mp_enable,
+	.disable_mi = rkisp1_mi_mp_disable,
+	.stop_mi = rkisp1_mi_stop,
 	.set_data_path = rkisp1_mp_set_data_path,
 	.is_stream_stopped = rkisp1_mp_is_stream_stopped,
 };
 
 static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
-	.config_mi = rkisp1_sp_config_mi,
-	.enable_mi = rkisp1_sp_enable_mi,
-	.disable_mi = rkisp1_sp_disable_mi,
-	.stop_mi = rkisp1_stop_mi,
+	.config_mi = rkisp1_mi_sp_config,
+	.enable_mi = rkisp1_mi_sp_enable,
+	.disable_mi = rkisp1_mi_sp_disable,
+	.stop_mi = rkisp1_mi_stop,
 	.set_data_path = rkisp1_sp_set_data_path,
 	.is_stream_stopped = rkisp1_sp_is_stream_stopped,
 };
@@ -1457,7 +1456,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	if (other->streaming)
 		async = true;
 
-	ret = rkisp1_stream_config_rsz(stream, async);
+	ret = rkisp1_stream_rsz_config(stream, async);
 	if (ret < 0) {
 		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
