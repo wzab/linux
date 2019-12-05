@@ -1006,6 +1006,36 @@ static struct rkisp1_streams_ops rkisp1_sp_streams_ops = {
  * Frame buffer operations
  */
 
+static int rkisp1_dummy_buf_create(struct rkisp1_stream *stream)
+{
+	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
+	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
+
+	dummy_buf->size = max3(rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
+			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
+			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
+
+	dummy_buf->vaddr = dma_alloc_coherent(stream->ispdev->dev,
+					      dummy_buf->size,
+					      &dummy_buf->dma_addr,
+					      GFP_KERNEL);
+	if (!dummy_buf->vaddr) {
+		dev_err(stream->ispdev->dev,
+			"Failed to allocate the memory for dummy buffer\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+static void rkisp1_dummy_buf_destroy(struct rkisp1_stream *stream)
+{
+	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
+
+	dma_free_coherent(stream->ispdev->dev, dummy_buf->size,
+			  dummy_buf->vaddr, dummy_buf->dma_addr);
+}
+
 /*
  * Update buffer info to memory interface. Called in interrupt
  * context by rkisp1_set_next_buf(), and in process context by vb2_ops.buf_queue().
@@ -1097,69 +1127,6 @@ static int rkisp1_set_next_buf(struct rkisp1_stream *stream)
 	rkisp1_set_next_buf_regs(stream);
 
 	return 0;
-}
-
-/*
- * Most of registers inside rockchip ISP1 have shadow register since
- * they must be not changed during processing a frame.
- * Usually, each sub-module updates its shadow register after
- * processing the last pixel of a frame.
- */
-static int rkisp1_start(struct rkisp1_stream *stream)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	struct rkisp1_stream *other = &dev->streams[stream->id ^ 1];
-	int ret;
-
-	stream->ops->set_data_path(stream);
-	ret = stream->ops->config(stream);
-	if (ret)
-		return ret;
-
-	/* Setup a buffer for the next frame */
-	rkisp1_set_next_buf(stream);
-	stream->ops->enable(stream);
-	/* It's safe to config ACTIVE and SHADOW regs for the
-	 * first stream. While when the second is starting, do NOT
-	 * force update because it also update the first one.
-	 *
-	 * The latter case would drop one more buf(that is 2) since
-	 * there's not buf in shadow when the second FE received. This's
-	 * also required because the second FE maybe corrupt especially
-	 * when run at 120fps.
-	 */
-	if (!other->streaming) {
-		/* force cfg update */
-		rkisp1_write(dev,
-			     RKISP1_CIF_MI_INIT_SOFT_UPD, RKISP1_CIF_MI_INIT);
-		rkisp1_set_next_buf(stream);
-	}
-	stream->streaming = true;
-
-	return 0;
-}
-
-/*
- * Set flags and wait, it should stop in interrupt.
- * If it didn't, stop it by force.
- */
-static void rkisp1_stream_stop(struct rkisp1_stream *stream)
-{
-	struct rkisp1_device *dev = stream->ispdev;
-	int ret;
-
-	stream->stopping = true;
-	ret = wait_event_timeout(stream->done,
-				 !stream->streaming,
-				 msecs_to_jiffies(1000));
-	if (!ret) {
-		dev_warn(dev->dev, "waiting on event return error %d\n", ret);
-		stream->ops->stop(stream);
-		stream->stopping = false;
-		stream->streaming = false;
-	}
-	rkisp1_dcrop_disable(stream, true);
-	rkisp1_rsz_disable(stream, true);
 }
 
 void rkisp1_stream_isr_thread(struct rkisp1_device *dev)
@@ -1297,36 +1264,6 @@ static int rkisp1_vb2_buf_prepare(struct vb2_buffer *vb)
 	return 0;
 }
 
-static int rkisp1_dummy_buf_create(struct rkisp1_stream *stream)
-{
-	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
-	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
-
-	dummy_buf->size = max3(rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
-			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
-			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
-
-	dummy_buf->vaddr = dma_alloc_coherent(stream->ispdev->dev,
-					      dummy_buf->size,
-					      &dummy_buf->dma_addr,
-					      GFP_KERNEL);
-	if (!dummy_buf->vaddr) {
-		dev_err(stream->ispdev->dev,
-			"Failed to allocate the memory for dummy buffer\n");
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-
-static void rkisp1_dummy_buf_destroy(struct rkisp1_stream *stream)
-{
-	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
-
-	dma_free_coherent(stream->ispdev->dev, dummy_buf->size,
-			  dummy_buf->vaddr, dummy_buf->dma_addr);
-}
-
 static void rkisp1_return_all_buffers(struct rkisp1_stream *stream,
 				      enum vb2_buffer_state state)
 {
@@ -1431,6 +1368,29 @@ static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 	return 0;
 }
 
+/*
+ * Set flags and wait, it should stop in interrupt.
+ * If it didn't, stop it by force.
+ */
+static void rkisp1_stream_stop(struct rkisp1_stream *stream)
+{
+	struct rkisp1_device *dev = stream->ispdev;
+	int ret;
+
+	stream->stopping = true;
+	ret = wait_event_timeout(stream->done,
+				 !stream->streaming,
+				 msecs_to_jiffies(1000));
+	if (!ret) {
+		dev_warn(dev->dev, "waiting on event return error %d\n", ret);
+		stream->ops->stop(stream);
+		stream->stopping = false;
+		stream->streaming = false;
+	}
+	rkisp1_dcrop_disable(stream, true);
+	rkisp1_rsz_disable(stream, true);
+}
+
 static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 {
 	struct rkisp1_stream *stream = queue->drv_priv;
@@ -1471,6 +1431,12 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 	rkisp1_dummy_buf_destroy(stream);
 }
 
+/*
+ * Most of registers inside rockchip ISP1 have shadow register since
+ * they must be not changed during processing a frame.
+ * Usually, each sub-module updates its shadow register after
+ * processing the last pixel of a frame.
+ */
 static int rkisp1_stream_start(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
@@ -1497,7 +1463,32 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 		return ret;
 	}
 
-	return rkisp1_start(stream);
+	stream->ops->set_data_path(stream);
+	ret = stream->ops->config(stream);
+	if (ret)
+		return ret;
+
+	/* Setup a buffer for the next frame */
+	rkisp1_set_next_buf(stream);
+	stream->ops->enable(stream);
+	/* It's safe to config ACTIVE and SHADOW regs for the
+	 * first stream. While when the second is starting, do NOT
+	 * force update because it also update the first one.
+	 *
+	 * The latter case would drop one more buf(that is 2) since
+	 * there's not buf in shadow when the second FE received. This's
+	 * also required because the second FE maybe corrupt especially
+	 * when run at 120fps.
+	 */
+	if (!other->streaming) {
+		/* force cfg update */
+		rkisp1_write(dev,
+			     RKISP1_CIF_MI_INIT_SOFT_UPD, RKISP1_CIF_MI_INIT);
+		rkisp1_set_next_buf(stream);
+	}
+	stream->streaming = true;
+
+	return 0;
 }
 
 static int
