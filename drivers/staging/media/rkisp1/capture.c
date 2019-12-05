@@ -1330,7 +1330,7 @@ static int rkisp1_pipeline_sink_walk(struct media_entity *from,
 			break;
 
 		ret = cb(from, entity);
-		if (ret < 0)
+		if (ret)
 			return ret;
 	}
 
@@ -1344,7 +1344,7 @@ static int rkisp1_pipeline_disable_cb(struct media_entity *from,
 	int ret;
 
 	ret = v4l2_subdev_call(sd, video, s_stream, false);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(sd->dev, "%s: could not disable stream.\n", sd->name);
 		return ret;
 	}
@@ -1359,7 +1359,7 @@ static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 	int ret;
 
 	ret = v4l2_subdev_call(sd, video, s_stream, true);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(sd->dev, "%s: could not enable stream.\n", sd->name);
 		rkisp1_pipeline_sink_walk(from, curr,
 					  rkisp1_pipeline_disable_cb);
@@ -1403,18 +1403,18 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 	media_pipeline_stop(&node->vdev.entity);
 	ret = rkisp1_pipeline_sink_walk(&node->vdev.entity, NULL,
 					rkisp1_pipeline_disable_cb);
-	if (ret < 0)
+	if (ret)
 		dev_err(dev->dev, "pipeline stream-off failed error:%d\n", ret);
 
 	/* release buffers */
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_ERROR);
 
 	ret = pm_runtime_put(dev->dev);
-	if (ret < 0)
+	if (ret)
 		dev_err(dev->dev, "power down failed error:%d\n", ret);
 
 	ret = v4l2_pipeline_pm_use(&node->vdev.entity, 0);
-	if (ret < 0)
+	if (ret)
 		dev_err(dev->dev, "pipeline close failed error:%d\n", ret);
 
 	// TODO: can be moved to the allocation ioctls. this has an impact,
@@ -1448,7 +1448,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 		async = true;
 
 	ret = rkisp1_rsz_config(stream, async);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
 	}
@@ -1458,7 +1458,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	 * produce mi interrupt.
 	 */
 	ret = rkisp1_dcrop_config(stream, false);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
 		return ret;
 	}
@@ -1500,16 +1500,16 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 	int ret;
 
 	ret = rkisp1_dummy_buf_create(stream);
-	if (ret < 0)
+	if (ret)
 		goto return_queued_buf;
 
 	ret = pm_runtime_get_sync(dev->dev);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "power up failed %d\n", ret);
 		goto destroy_dummy_buf;
 	}
 	ret = v4l2_pipeline_pm_use(entity, 1);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "open cif pipeline failed %d\n", ret);
 		goto close_pipe;
 	}
@@ -1519,7 +1519,7 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 
 	/* configure stream hardware to start */
 	ret = rkisp1_stream_start(stream);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "start streaming failed\n");
 		goto power_down;
 	}
@@ -1527,11 +1527,11 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 	/* start sub-devices */
 	ret = rkisp1_pipeline_sink_walk(entity, NULL,
 					rkisp1_pipeline_enable_cb);
-	if (ret < 0)
+	if (ret)
 		goto stop_stream;
 
 	ret = media_pipeline_start(entity, &dev->pipe);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev, "start pipeline failed %d\n", ret);
 		goto pipe_stream_off;
 	}
@@ -2006,7 +2006,7 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	vdev->queue = q;
 
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev->dev,
 			"video_register_device failed with error %d\n", ret);
 		return ret;
@@ -2015,7 +2015,7 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 		  vdev->num);
 
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
-	if (ret < 0) {
+	if (ret) {
 		video_unregister_device(vdev);
 		return ret;
 	}
@@ -2033,7 +2033,7 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
 		stream = &dev->streams[i];
 		stream->ispdev = dev;
 		ret = rkisp1_register_stream_vdev(stream);
-		if (ret < 0)
+		if (ret)
 			goto err;
 	}
 
