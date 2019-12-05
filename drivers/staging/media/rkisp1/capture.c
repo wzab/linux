@@ -793,7 +793,7 @@ static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
 	/*
 	 * If packed format, then plane_fmt[0].sizeimage is the sum of all
 	 * components, so we need to calculate just the size of Y component.
-	 * See rkisp1_fill_pixfmt_mp().
+	 * See rkisp1_fill_pixfmt().
 	 */
 	if (!component && pixm->num_planes == 1)
 		return pixm->plane_fmt[0].bytesperline * pixm->height;
@@ -1570,7 +1570,7 @@ static struct vb2_ops rkisp1_vb2_ops = {
 
 /* TODO: check how we can integrate with v4l2_fill_pixfmt_mp() */
 static void
-rkisp1_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pixm, int stream_id)
+rkisp1_fill_pixfmt(struct v4l2_pix_format_mplane *pixm, int stream_id)
 {
 	struct v4l2_plane_pix_format *plane_y = &pixm->plane_fmt[0];
 	const struct v4l2_format_info *info;
@@ -1656,7 +1656,7 @@ rkisp1_try_fmt(const struct rkisp1_stream *stream,
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
 	pixm->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
 
-	rkisp1_fill_pixfmt_mp(pixm, stream->id);
+	rkisp1_fill_pixfmt(pixm, stream->id);
 
 	/* can not change quantization when stream-on */
 	// TODO: this checks the _other_ stream.
