@@ -523,9 +523,8 @@ static void rkisp1_dcrop_disable(struct rkisp1_stream *stream, bool async)
 	rkisp1_write(dev, dc_ctrl, stream->config->dual_crop.ctrl);
 }
 
-/* TODO: remove/change this bool argument */
 /* configure dual-crop unit */
-static int rkisp1_dcrop_config(struct rkisp1_stream *stream, bool async)
+static int rkisp1_dcrop_config(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_rect *dcrop = &stream->dcrop;
@@ -540,7 +539,7 @@ static int rkisp1_dcrop_config(struct rkisp1_stream *stream, bool async)
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
 	    dcrop->left == 0 && dcrop->top == 0) {
-		rkisp1_dcrop_disable(stream, async);
+		rkisp1_dcrop_disable(stream, false);
 		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
 		return 0;
 	}
@@ -551,10 +550,7 @@ static int rkisp1_dcrop_config(struct rkisp1_stream *stream, bool async)
 	rkisp1_write(dev, dcrop->width, stream->config->dual_crop.h_size);
 	rkisp1_write(dev, dcrop->height, stream->config->dual_crop.v_size);
 	dc_ctrl |= stream->config->dual_crop.yuvmode_mask;
-	if (async)
-		dc_ctrl |= RKISP1_CIF_DUAL_CROP_GEN_CFG_UPD;
-	else
-		dc_ctrl |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
+	dc_ctrl |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
 	rkisp1_write(dev, dc_ctrl, stream->config->dual_crop.ctrl);
 
 	dev_dbg(dev->dev, "stream %d crop: %dx%d -> %dx%d\n", stream->id,
@@ -1451,7 +1447,7 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 	 * can't be async now, otherwise the latter started stream fails to
 	 * produce mi interrupt.
 	 */
-	ret = rkisp1_dcrop_config(stream, false);
+	ret = rkisp1_dcrop_config(stream);
 	if (ret) {
 		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
 		return ret;
