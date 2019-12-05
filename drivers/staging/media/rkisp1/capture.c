@@ -1009,6 +1009,7 @@ static int rkisp1_dummy_buf_create(struct rkisp1_stream *stream)
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
+	// Use alloc_attrs, pass a flag to avoid a CPU mapping.
 	dummy_buf->vaddr = dma_alloc_coherent(stream->ispdev->dev,
 					      dummy_buf->size,
 					      &dummy_buf->dma_addr,
@@ -1304,6 +1305,7 @@ static int rkisp1_pipeline_sink_walk(struct media_entity *from,
 	unsigned int i;
 	int ret;
 
+	// TODO while (1) are dangerous
 	while (1) {
 		pad = NULL;
 		/* Find remote source pad */
@@ -1393,14 +1395,12 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 	int ret;
 
 	rkisp1_stream_stop(stream);
-	/* call to the other devices */
 	media_pipeline_stop(&node->vdev.entity);
 	ret = rkisp1_pipeline_sink_walk(&node->vdev.entity, NULL,
 					rkisp1_pipeline_disable_cb);
 	if (ret)
 		dev_err(dev->dev, "pipeline stream-off failed error:%d\n", ret);
 
-	/* release buffers */
 	rkisp1_return_all_buffers(stream, VB2_BUF_STATE_ERROR);
 
 	ret = pm_runtime_put(dev->dev);
@@ -1633,8 +1633,7 @@ rkisp1_try_fmt(const struct rkisp1_stream *stream,
 {
 	const struct rkisp1_stream_cfg *config = stream->config;
 	struct rkisp1_stream *other_stream =
-	// TODO: In some cases, it's !stream->id, in others it's stream->id ^ 1.
-			&stream->ispdev->streams[!stream->id];
+			&stream->ispdev->streams[stream->id ^ 1];
 	const struct rkisp1_stream_fmt *fmt;
 
 	fmt = rkisp1_find_fmt(stream, pixm->pixelformat);
@@ -1816,6 +1815,7 @@ rkisp1_s_selection(struct file *file, void *prv, struct v4l2_selection *sel)
 
 	if (vb2_is_busy(&node->buf_queue)) {
 		dev_err(dev->dev, "%s queue busy\n", __func__);
+		// TODO rule of silence violation.
 		return -EBUSY;
 	}
 
@@ -1956,11 +1956,12 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	struct rkisp1_vdev_node *node;
 	struct vb2_queue *q;
 	int ret;
+	const char * const dev_names[] = {RKISP1_SP_VDEV_NAME,
+					  RKISP1_MP_VDEV_NAME};
 
-	strscpy(vdev->name,
-		stream->id == RKISP1_STREAM_SP ? RKISP1_SP_VDEV_NAME :
-						 RKISP1_MP_VDEV_NAME,
-		sizeof(vdev->name));
+	// TODO: maybe this is more readable? i'm always wary of conditionals
+	// where a more expressive form is possible.
+	strscpy(vdev->name, dev_names[stream->id], sizeof(vdev->name));
 	node = rkisp1_vdev_to_node(vdev);
 	mutex_init(&node->vlock);
 
@@ -1971,7 +1972,7 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	vdev->v4l2_dev = v4l2_dev;
 	vdev->lock = &node->vlock;
 	vdev->device_caps = V4L2_CAP_VIDEO_CAPTURE_MPLANE |
-				V4L2_CAP_STREAMING;
+			    V4L2_CAP_STREAMING;
 	vdev->entity.ops = &rkisp1_isp_vdev_media_ops;
 	video_set_drvdata(vdev, stream);
 	vdev->vfl_dir = VFL_DIR_RX;
@@ -1979,7 +1980,7 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 
 	q = &node->buf_queue;
 	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-	q->io_modes = VB2_MMAP | VB2_DMABUF;
+	q->io_modes = VB2_MMAP | VB2_DMABUF; // TODO: probably USER_PTR works as well?
 	q->drv_priv = stream;
 	q->ops = &rkisp1_vb2_ops;
 	q->mem_ops = &vb2_dma_contig_memops;
@@ -2029,6 +2030,7 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
 	}
 
 	return 0;
+// XXX use meaningful label names
 err:
 	for (j = 0; j < i; j++) {
 		stream = &dev->streams[j];

@@ -248,6 +248,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
 	u32 val, input_sel;
 
+	// TODO: bus_w move info to core
 	switch (in_fmt->bus_width) {
 	case 8:
 		input_sel = RKISP1_CIF_ISP_ACQ_PROP_IN_SEL_8B_ZERO;
@@ -497,6 +498,8 @@ static const struct rkisp1_fmt rkisp1_isp_formats[] = {
 		.fmt_type	= RKISP1_FMT_BAYER,
 		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RKISP1_RAW_RGGB,
+		// TODO: Move bus_width to a helper, with a note that it can be moved
+		// to v4l2-common.c
 		.bus_width	= 10,
 		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
@@ -1199,6 +1202,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 	if (status & RKISP1_CIF_ISP_V_START) {
 		rkisp1_isp_queue_event_sof(&dev->isp_sdev);
 
+		// TODO: Let's just get rid of this debugging stuff entirely.
 		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_V_START)
 			dev_err(dev->dev, "isp icr v_statr err: 0x%x\n",
@@ -1207,26 +1211,29 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 
 	if (status & RKISP1_CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
+
+		// TODO just keep an err counter and debugfs-it
 		isp_err = rkisp1_read(dev, RKISP1_CIF_ISP_ERR);
 		dev_err(dev->dev, "RKISP1_CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
 		rkisp1_write(dev, isp_err, RKISP1_CIF_ISP_ERR_CLR);
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
 		/* data_loss */
+
+		// TODO just keep an err counter and debugfs-it
 		dev_err(dev->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
 	}
 
-	/* sampled input frame is complete */
 	if (status & RKISP1_CIF_ISP_FRAME_IN) {
 		/* TODO: why does it reads the interrupt status again? */
 		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_FRAME_IN)
 			dev_err(dev->dev, "isp icr frame_in err: 0x%x\n",
 				status_aux);
+		// TODO drop it.
 	}
 
-	/* frame was completely put out */
 	if (status & RKISP1_CIF_ISP_FRAME) {
-		u32 isp_ris = 0;
+		u32 isp_ris;
 
 		/* Frame In (ISP) */
 		/* TODO: why does it reads the interrupt status again? */
@@ -1234,12 +1241,19 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 		if (status_aux & RKISP1_CIF_ISP_FRAME)
 			dev_err(dev->dev,
 				"isp icr frame end err: 0x%x\n", status_aux);
+		// TODO drop
 
 		isp_ris = rkisp1_read(dev, RKISP1_CIF_ISP_RIS);
 		if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 			       RKISP1_CIF_ISP_AFM_FIN |
 			       RKISP1_CIF_ISP_EXP_END |
 			       RKISP1_CIF_ISP_HIST_MEASURE_RDY))
+			// TODO instead of calling isr_thread, i'd call it
+			// stats_handle or something like that.
+			// I like to reserve the name isr for the top level ISR itself.
+			// but that's a matter of taste, naming isr to each
+			// function that handles the interrupts can also help
+			// to navigate the code i guess.
 			rkisp1_stats_isr_thread(&dev->stats_vdev, isp_ris);
 	}
 

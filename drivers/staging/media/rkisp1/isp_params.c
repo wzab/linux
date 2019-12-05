@@ -29,6 +29,7 @@
 #define RKISP1_ISP_CC_COEFF(n) \
 				(RKISP1_CIF_ISP_CC_COEFF_0 + (n) * 4)
 
+// TODO: not needed, just use writel/readl
 static inline void rkisp1_iowrite32(struct rkisp1_isp_params_vdev *params_vdev,
 				    u32 value, u32 addr)
 {

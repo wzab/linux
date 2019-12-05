@@ -314,6 +314,11 @@ static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
 
 	spin_unlock_irqrestore(&ispdev->irq_status_lock, lock_flags);
 
+	// TODO
+	// Only use threaded interrupt for stats, not for the rest.
+	// Pass the status as arguments to the handlers, don't store
+	// as state. BTW, never store state for data that can be passed
+	// in a call chain, as it's creates unneeded state.
 	return IRQ_WAKE_THREAD;
 }
 
@@ -390,7 +395,6 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		goto err_unreg_v4l2_dev;
 	}
 
-	/* create & register platform subdev (from of_node) */
 	ret = rkisp1_register_platform_subdevs(isp_dev);
 	if (ret < 0)
 		goto err_unreg_media_dev;
