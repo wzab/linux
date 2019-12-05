@@ -1957,34 +1957,13 @@ void rkisp1_unregister_stream_vdevs(struct rkisp1_device *dev)
 	rkisp1_unregister_stream_vdev(sp_stream);
 }
 
-static int rkisp_init_vb2_queue(struct vb2_queue *q,
-				struct rkisp1_stream *stream,
-				enum v4l2_buf_type buf_type)
-{
-	struct rkisp1_vdev_node *node;
-
-	node = rkisp1_queue_to_node(q);
-
-	q->type = buf_type;
-	q->io_modes = VB2_MMAP | VB2_DMABUF;
-	q->drv_priv = stream;
-	q->ops = &rkisp1_vb2_ops;
-	q->mem_ops = &vb2_dma_contig_memops;
-	q->buf_struct_size = sizeof(struct rkisp1_buffer);
-	q->min_buffers_needed = RKISP1_CIF_ISP_REQ_BUFS_MIN;
-	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
-	q->lock = &node->vlock;
-	q->dev = stream->ispdev->dev;
-
-	return vb2_queue_init(q);
-}
-
 static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct v4l2_device *v4l2_dev = &dev->v4l2_dev;
 	struct video_device *vdev = &stream->vnode.vdev;
 	struct rkisp1_vdev_node *node;
+	struct vb2_queue *q;
 	int ret;
 
 	strscpy(vdev->name,
@@ -2007,9 +1986,24 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	vdev->vfl_dir = VFL_DIR_RX;
 	node->pad.flags = MEDIA_PAD_FL_SINK;
 
-	rkisp_init_vb2_queue(&node->buf_queue, stream,
-			     V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
-	vdev->queue = &node->buf_queue;
+	q = &node->buf_queue;
+	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	q->io_modes = VB2_MMAP | VB2_DMABUF;
+	q->drv_priv = stream;
+	q->ops = &rkisp1_vb2_ops;
+	q->mem_ops = &vb2_dma_contig_memops;
+	q->buf_struct_size = sizeof(struct rkisp1_buffer);
+	q->min_buffers_needed = RKISP1_CIF_ISP_REQ_BUFS_MIN;
+	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+	q->lock = &node->vlock;
+	q->dev = stream->ispdev->dev;
+	ret = vb2_queue_init(q);
+	if (ret) {
+		dev_err(dev->dev, "vb2 queue init failed (err=%d)\n", ret);
+		return ret;
+	}
+
+	vdev->queue = q;
 
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret < 0) {
@@ -2021,13 +2015,12 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 		  vdev->num);
 
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
-	if (ret < 0)
-		goto unreg;
+	if (ret < 0) {
+		video_unregister_device(vdev);
+		return ret;
+	}
 
 	return 0;
-unreg:
-	video_unregister_device(vdev);
-	return ret;
 }
 
 int rkisp1_register_stream_vdevs(struct rkisp1_device *dev)
