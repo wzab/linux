@@ -36,24 +36,18 @@
  * available sp source fmts: yuv, rgb
  */
 
-// TODO: Why min 1? it seems wrong, given the dummy buf thing,
-// shouldn't we ask for at least 3?
-#define RKISP1_CIF_ISP_REQ_BUFS_MIN 3
+#define RKISP1_MIN_BUFFERS_NEEDED 3
 //#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
 
-#define RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH		4416
-#define RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT		3312
-#define RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_WIDTH		1920
-#define RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT		1920
-#define RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH		32
-#define RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT		16
+#define RKISP1_RSZ_MP_OUT_MAX_WIDTH		4416
+#define RKISP1_RSZ_MP_OUT_MAX_HEIGHT		3312
+#define RKISP1_RSZ_SP_OUT_MAX_WIDTH		1920
+#define RKISP1_RSZ_SP_OUT_MAX_HEIGHT		1920
+#define RKISP1_RSZ_OUT_MIN_WIDTH		32
+#define RKISP1_RSZ_OUT_MIN_HEIGHT		16
 
-#define RKISP1_STREAM_MAX_MP_SP_INPUT_WIDTH \
-					RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH
-#define RKISP1_STREAM_MAX_MP_SP_INPUT_HEIGHT \
-					RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT
-#define RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH		32
-#define RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT		32
+#define RKISP1_IN_MIN_WIDTH		32
+#define RKISP1_IN_MIN_HEIGHT		32
 
 #define RKISP1_MBUS_FMT_HDIV 2
 #define RKISP1_MBUS_FMT_VDIV 1
@@ -403,10 +397,10 @@ static const struct rkisp1_stream_cfg rkisp1_mp_stream_config = {
 	.fmts = rkisp1_mp_fmts,
 	.fmt_size = ARRAY_SIZE(rkisp1_mp_fmts),
 	/* constraints */
-	.max_rsz_width = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = RKISP1_STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT,
+	.max_rsz_width = RKISP1_RSZ_MP_OUT_MAX_WIDTH,
+	.max_rsz_height = RKISP1_RSZ_MP_OUT_MAX_HEIGHT,
+	.min_rsz_width = RKISP1_RSZ_OUT_MIN_WIDTH,
+	.min_rsz_height = RKISP1_RSZ_OUT_MIN_HEIGHT,
 	/* registers */
 	.rsz = {
 		.ctrl =			RKISP1_CIF_MRSZ_CTRL,
@@ -458,10 +452,10 @@ static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
 	.fmts = rkisp1_sp_fmts,
 	.fmt_size = ARRAY_SIZE(rkisp1_sp_fmts),
 	/* constraints */
-	.max_rsz_width = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_WIDTH,
-	.max_rsz_height = RKISP1_STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT,
-	.min_rsz_width = RKISP1_STREAM_MIN_RSZ_OUTPUT_WIDTH,
-	.min_rsz_height = RKISP1_STREAM_MIN_RSZ_OUTPUT_HEIGHT,
+	.max_rsz_width = RKISP1_RSZ_SP_OUT_MAX_WIDTH,
+	.max_rsz_height = RKISP1_RSZ_SP_OUT_MAX_HEIGHT,
+	.min_rsz_width = RKISP1_RSZ_OUT_MIN_WIDTH,
+	.min_rsz_height = RKISP1_RSZ_OUT_MIN_HEIGHT,
 	/* registers */
 	.rsz = {
 		.ctrl =			RKISP1_CIF_SRSZ_CTRL,
@@ -1797,16 +1791,13 @@ static struct v4l2_rect *rkisp1_crop_adjust(struct rkisp1_stream *stream,
 	/* TODO: use v4l2_rect_set_min_size() and v4l2_rect_map_inside() */
 	sel->left = ALIGN(sel->left, 2);
 	sel->width = ALIGN(sel->width, 2);
-	sel->left = clamp_t(u32, sel->left, 0,
-			    in->width - RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH);
+	sel->left = clamp_t(u32, sel->left, 0, in->width - RKISP1_IN_MIN_WIDTH);
 	sel->top = clamp_t(u32, sel->top, 0,
-			   in->height - RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT);
+			   in->height - RKISP1_IN_MIN_HEIGHT);
 	sel->width = clamp_t(u32, sel->width,
-			     RKISP1_STREAM_MIN_MP_SP_INPUT_WIDTH,
-			     in->width - sel->left);
+			     RKISP1_IN_MIN_WIDTH, in->width - sel->left);
 	sel->height = clamp_t(u32, sel->height,
-			      RKISP1_STREAM_MIN_MP_SP_INPUT_HEIGHT,
-			      in->height - sel->top);
+			      RKISP1_IN_MIN_HEIGHT, in->height - sel->top);
 	return sel;
 }
 
@@ -1993,7 +1984,7 @@ static int rkisp1_register_stream_vdev(struct rkisp1_stream *stream)
 	q->ops = &rkisp1_vb2_ops;
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->buf_struct_size = sizeof(struct rkisp1_buffer);
-	q->min_buffers_needed = RKISP1_CIF_ISP_REQ_BUFS_MIN;
+	q->min_buffers_needed = RKISP1_MIN_BUFFERS_NEEDED;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->lock = &node->vlock;
 	q->dev = stream->ispdev->dev;
