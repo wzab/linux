@@ -1016,11 +1016,12 @@ static int rkisp1_dummy_buf_create(struct rkisp1_stream *stream)
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR));
 
-	// Use alloc_attrs, pass a flag to avoid a CPU mapping.
-	dummy_buf->vaddr = dma_alloc_coherent(stream->ispdev->dev,
-					      dummy_buf->size,
-					      &dummy_buf->dma_addr,
-					      GFP_KERNEL);
+	/* The driver never acess vaddr, no mapping is required */
+	dummy_buf->vaddr = dma_alloc_attrs(stream->ispdev->dev,
+					   dummy_buf->size,
+					   &dummy_buf->dma_addr,
+					   GFP_KERNEL,
+					   DMA_ATTR_NO_KERNEL_MAPPING);
 	if (!dummy_buf->vaddr) {
 		dev_err(stream->ispdev->dev,
 			"Failed to allocate the memory for dummy buffer\n");
@@ -1034,8 +1035,8 @@ static void rkisp1_dummy_buf_destroy(struct rkisp1_stream *stream)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &stream->dummy_buf;
 
-	dma_free_coherent(stream->ispdev->dev, dummy_buf->size,
-			  dummy_buf->vaddr, dummy_buf->dma_addr);
+	dma_free_attrs(stream->ispdev->dev, dummy_buf->size, dummy_buf->vaddr,
+		       dummy_buf->dma_addr, DMA_ATTR_NO_KERNEL_MAPPING);
 }
 
 /*
