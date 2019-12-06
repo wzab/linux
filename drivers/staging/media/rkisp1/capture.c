@@ -891,17 +891,12 @@ static int rkisp1_stream_sp_config(struct rkisp1_stream *stream)
 
 	rkisp1_mi_config_ctrl(stream);
 
-	/* TODO: optimize this */
 	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
 	mi_ctrl &= ~RKISP1_MI_CTRL_SP_FMT_MASK;
-	mi_ctrl = mi_ctrl |
-		  stream->out_isp_fmt->write_format |
-		  RKISP1_SP_IN_FMT |
-		  output_isp_fmt->output_format;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
-
-	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
-	mi_ctrl |= RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE;
+	mi_ctrl |= stream->out_isp_fmt->write_format |
+		   RKISP1_SP_IN_FMT |
+		   output_isp_fmt->output_format |
+		   RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE;
 	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 	return 0;
 }
