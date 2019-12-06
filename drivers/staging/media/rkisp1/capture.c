@@ -55,6 +55,20 @@
 /* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
 #define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
+/**
+ * enum rkisp1_shadow_regs_when - define when to update shadow registers
+ *
+ * @RKISP1_SHADOW_REGS_SYNC	update shadow registers immediatly
+ * @RKISP1_SHADOW_REGS_ASYNC	update shadow registers syncronized with frames
+ *
+ * Struct which matches the MEDIA_BUS_FMT_* codes with the corresponding
+ * V4L2_PIX_FMT_* fourcc pixelformat and its bytes per pixel (bpp)
+ */
+enum rkisp1_shadow_regs_when {
+	RKISP1_SHADOW_REGS_SYNC,
+	RKISP1_SHADOW_REGS_ASYNC,
+};
+
 /*
  * @fourcc: pixel format
  * @mbus_code: pixel format over bus
@@ -508,7 +522,8 @@ static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
  */
 
 /* TODO: remove/change this bool argument */
-static void rkisp1_dcrop_disable(struct rkisp1_stream *stream, bool async)
+static void rkisp1_dcrop_disable(struct rkisp1_stream *stream,
+				 enum rkisp1_shadow_regs_when when)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 dc_ctrl = rkisp1_read(dev, stream->config->dual_crop.ctrl);
@@ -516,7 +531,7 @@ static void rkisp1_dcrop_disable(struct rkisp1_stream *stream, bool async)
 			stream->config->dual_crop.rawmode_mask);
 
 	dc_ctrl &= mask;
-	if (async)
+	if (when == RKISP1_SHADOW_REGS_ASYNC)
 		dc_ctrl |= RKISP1_CIF_DUAL_CROP_GEN_CFG_UPD;
 	else
 		dc_ctrl |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
@@ -539,7 +554,7 @@ static int rkisp1_dcrop_config(struct rkisp1_stream *stream)
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
 	    dcrop->left == 0 && dcrop->top == 0) {
-		rkisp1_dcrop_disable(stream, false);
+		rkisp1_dcrop_disable(stream, RKISP1_SHADOW_REGS_SYNC);
 		dev_dbg(dev->dev, "stream %d crop disabled\n", stream->id);
 		return 0;
 	}
@@ -601,13 +616,13 @@ static void rkisp1_rsz_dump_regs(struct rkisp1_stream *stream)
 		rkisp1_read(dev, stream->config->rsz.phase_vc_shd));
 }
 
-// TODO: remove bool or change the type
-static void rkisp1_rsz_update_shadow(struct rkisp1_stream *stream, bool async)
+static void rkisp1_rsz_update_shadow(struct rkisp1_stream *stream,
+				     enum rkisp1_shadow_regs_when when)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 ctrl_cfg = rkisp1_read(dev, stream->config->rsz.ctrl);
 
-	if (async)
+	if (when == RKISP1_SHADOW_REGS_ASYNC)
 		ctrl_cfg |= RKISP1_CIF_RSZ_CTRL_CFG_UPD_AUTO;
 	else
 		ctrl_cfg |= RKISP1_CIF_RSZ_CTRL_CFG_UPD;
@@ -625,21 +640,21 @@ static u32 rkisp1_rsz_calc_ratio(u32 len_in, u32 len_out)
 	       (len_in - 1) + 1;
 }
 
-static void rkisp1_rsz_disable(struct rkisp1_stream *stream, bool async)
+static void rkisp1_rsz_disable(struct rkisp1_stream *stream,
+			       enum rkisp1_shadow_regs_when when)
 {
 	rkisp1_write(stream->ispdev, 0, stream->config->rsz.ctrl);
 
-	if (!async)
-		rkisp1_rsz_update_shadow(stream, async);
+	if (when == RKISP1_SHADOW_REGS_SYNC)
+		rkisp1_rsz_update_shadow(stream, when);
 }
 
-/* TODO: remove/change this bool argument */
 static void rkisp1_rsz_config_regs(struct rkisp1_stream *stream,
 				   struct v4l2_rect *in_y,
 				   struct v4l2_rect *in_c,
 				   struct v4l2_rect *out_y,
 				   struct v4l2_rect *out_c,
-				   bool async)
+				   enum rkisp1_shadow_regs_when when)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	u32 ratio, rsz_ctrl = 0;
@@ -693,10 +708,11 @@ static void rkisp1_rsz_config_regs(struct rkisp1_stream *stream,
 
 	rkisp1_write(dev, rsz_ctrl, stream->config->rsz.ctrl);
 
-	rkisp1_rsz_update_shadow(stream, async);
+	rkisp1_rsz_update_shadow(stream, when);
 }
 
-static int rkisp1_rsz_config(struct rkisp1_stream *stream, bool async)
+static int rkisp1_rsz_config(struct rkisp1_stream *stream,
+			     enum rkisp1_shadow_regs_when when)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	const struct rkisp1_stream_fmt *output_isp_fmt = stream->out_isp_fmt;
@@ -738,14 +754,14 @@ static int rkisp1_rsz_config(struct rkisp1_stream *stream, bool async)
 		in_c.width, in_c.height, out_c.width, out_c.height);
 
 	/* set values in the hw */
-	rkisp1_rsz_config_regs(stream, &in_y, &in_c, &out_y, &out_c, async);
+	rkisp1_rsz_config_regs(stream, &in_y, &in_c, &out_y, &out_c, when);
 
 	rkisp1_rsz_dump_regs(stream);
 
 	return 0;
 
 disable:
-	rkisp1_rsz_disable(stream, async);
+	rkisp1_rsz_disable(stream, when);
 
 	return 0;
 }
@@ -1379,8 +1395,8 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 		stream->stopping = false;
 		stream->streaming = false;
 	}
-	rkisp1_dcrop_disable(stream, true);
-	rkisp1_rsz_disable(stream, true);
+	rkisp1_dcrop_disable(stream, RKISP1_SHADOW_REGS_ASYNC);
+	rkisp1_rsz_disable(stream, RKISP1_SHADOW_REGS_ASYNC);
 }
 
 static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
@@ -1431,22 +1447,18 @@ static int rkisp1_stream_start(struct rkisp1_stream *stream)
 {
 	struct rkisp1_device *dev = stream->ispdev;
 	struct rkisp1_stream *other = &dev->streams[stream->id ^ 1];
-	bool async = false;
+	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
 	int ret;
 
 	if (other->streaming)
-		async = true;
+		when = RKISP1_SHADOW_REGS_ASYNC;
 
-	ret = rkisp1_rsz_config(stream, async);
+	ret = rkisp1_rsz_config(stream, when);
 	if (ret) {
 		dev_err(dev->dev, "config rsz failed with error %d\n", ret);
 		return ret;
 	}
 
-	/*
-	 * can't be async now, otherwise the latter started stream fails to
-	 * produce mi interrupt.
-	 */
 	ret = rkisp1_dcrop_config(stream);
 	if (ret) {
 		dev_err(dev->dev, "config dcrop failed with error %d\n", ret);
