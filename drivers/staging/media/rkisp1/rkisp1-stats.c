@@ -16,6 +16,11 @@
 #define RKISP1_ISP_STATS_REQ_BUFS_MIN 2
 #define RKISP1_ISP_STATS_REQ_BUFS_MAX 8
 
+enum rkisp1_isp_readout_cmd {
+	RKISP1_ISP_READOUT_MEAS,
+	RKISP1_ISP_READOUT_META,
+};
+
 struct rkisp1_isp_readout_work {
 	struct work_struct work;
 	struct rkisp1_stats *stats;
@@ -120,7 +125,9 @@ static int rkisp1_stats_vb2_queue_setup(struct vb2_queue *vq,
 static void rkisp1_stats_vb2_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
-	struct rkisp1_buffer *stats_buf = rkisp1_to_rkisp1_buffer(vbuf);
+	struct rkisp1_buffer *stats_buf = container_of(vbuf,
+						       struct rkisp1_buffer,
+						       vb);
 	struct vb2_queue *vq = vb->vb2_queue;
 	struct rkisp1_stats *stats_dev = vq->drv_priv;
 
@@ -193,7 +200,7 @@ static int rkisp1_stats_init_vb2_queue(struct vb2_queue *q,
 {
 	struct rkisp1_vdev_node *node;
 
-	node = rkisp1_queue_to_node(q);
+	node = container_of(q, struct rkisp1_vdev_node, buf_queue);
 
 	q->type = V4L2_BUF_TYPE_META_CAPTURE;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;

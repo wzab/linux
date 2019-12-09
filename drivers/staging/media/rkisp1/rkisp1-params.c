@@ -1446,7 +1446,9 @@ static int rkisp1_params_vb2_queue_setup(struct vb2_queue *vq,
 static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
-	struct rkisp1_buffer *params_buf = rkisp1_to_rkisp1_buffer(vbuf);
+	struct rkisp1_buffer *params_buf = container_of(vbuf,
+						       struct rkisp1_buffer,
+						       vb);
 	struct vb2_queue *vq = vb->vb2_queue;
 	struct rkisp1_params *params = vq->drv_priv;
 	struct rkisp1_params_cfg *new_params;
@@ -1553,7 +1555,7 @@ rkisp1_params_init_vb2_queue(struct vb2_queue *q,
 {
 	struct rkisp1_vdev_node *node;
 
-	node = rkisp1_queue_to_node(q);
+	node = container_of(q, struct rkisp1_vdev_node, buf_queue);
 
 	q->type = V4L2_BUF_TYPE_META_OUTPUT;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;

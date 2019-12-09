@@ -29,6 +29,14 @@
 #define RKISP1_DEFAULT_WIDTH		800
 #define RKISP1_DEFAULT_HEIGHT		600
 
+#define RKISP1_DRIVER_NAME	"rkisp1"
+
+#define RKISP1_MAX_BUS_CLK	8
+
+#define RKISP1_DIR_OUT BIT(0)
+#define RKISP1_DIR_IN BIT(1)
+#define RKISP1_DIR_IN_OUT (RKISP1_DIR_IN | RKISP1_DIR_OUT)
+
 enum rkisp1_capture_id {
 	RKISP1_CAPTURE_MP,
 	RKISP1_CAPTURE_SP,
@@ -39,14 +47,6 @@ enum rkisp1_plane {
 	RKISP1_PLANE_CB	= 1,
 	RKISP1_PLANE_CR	= 2
 };
-
-#define RKISP1_DRIVER_NAME	"rkisp1"
-
-#define RKISP1_MAX_BUS_CLK	8
-
-#define RKISP1_DIR_OUT BIT(0)
-#define RKISP1_DIR_IN BIT(1)
-#define RKISP1_DIR_IN_OUT (RKISP1_DIR_IN | RKISP1_DIR_OUT)
 
 enum rkisp1_fmt_pix_type {
 	RKISP1_FMT_YUV,
@@ -70,15 +70,9 @@ enum rkisp1_isp_pad {
 	RKISP1_ISP_PAD_MAX
 };
 
-enum rkisp1_isp_readout_cmd {
-	RKISP1_ISP_READOUT_MEAS,
-	RKISP1_ISP_READOUT_META,
-};
-
 enum rkisp1_sp_inp {
 	RKISP1_SP_INP_ISP,
 	RKISP1_SP_INP_DMA_SP,
-	RKISP1_SP_INP_MAX
 };
 
 /*
@@ -283,17 +277,6 @@ struct rkisp1_fmt {
 	enum rkisp1_fmt_raw_pat_type bayer_pat;
 	unsigned int direction;
 };
-
-static inline struct rkisp1_vdev_node *rkisp1_queue_to_node(struct vb2_queue *q)
-{
-	return container_of(q, struct rkisp1_vdev_node, buf_queue);
-}
-
-static inline struct rkisp1_buffer *
-rkisp1_to_rkisp1_buffer(struct vb2_v4l2_buffer *vb)
-{
-	return container_of(vb, struct rkisp1_buffer, vb);
-}
 
 static inline void
 rkisp1_write(struct rkisp1_device *rkisp1, u32 val, unsigned int addr)

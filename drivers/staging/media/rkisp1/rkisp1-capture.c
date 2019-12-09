@@ -1188,7 +1188,9 @@ static int rkisp1_vb2_queue_setup(struct vb2_queue *queue,
 static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
-	struct rkisp1_buffer *ispbuf = rkisp1_to_rkisp1_buffer(vbuf);
+	struct rkisp1_buffer *ispbuf = container_of(vbuf,
+						    struct rkisp1_buffer,
+						    vb);
 	struct rkisp1_capture *cap = vb->vb2_queue->drv_priv;
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
 	unsigned long lock_flags = 0;
