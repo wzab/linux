@@ -508,6 +508,12 @@ static const struct rkisp1_capture_config rkisp1_capture_config_sp = {
 	},
 };
 
+static inline struct rkisp1_vdev_node *
+rkisp1_vdev_to_node(struct video_device *vdev)
+{
+	return container_of(vdev, struct rkisp1_vdev_node, vdev);
+}
+
 /* ----------------------------------------------------------------------------
  * Dual crop
  */

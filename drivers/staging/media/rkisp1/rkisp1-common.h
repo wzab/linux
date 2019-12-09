@@ -291,12 +291,6 @@ struct rkisp1_fmt {
 	unsigned int direction;
 };
 
-static inline struct rkisp1_vdev_node *
-rkisp1_vdev_to_node(struct video_device *vdev)
-{
-	return container_of(vdev, struct rkisp1_vdev_node, vdev);
-}
-
 static inline struct rkisp1_vdev_node *rkisp1_queue_to_node(struct vb2_queue *q)
 {
 	return container_of(q, struct rkisp1_vdev_node, buf_queue);
