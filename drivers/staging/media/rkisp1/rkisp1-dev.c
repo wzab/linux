@@ -23,8 +23,11 @@ struct rkisp1_match_data {
 	unsigned int size;
 };
 
-/***************************** media controller *******************************/
 /* See http://opensource.rock-chips.com/wiki_Rockchip-isp1 for Topology */
+
+/* ----------------------------------------------------------------------------
+ * Sensor DT bindings
+ */
 
 static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 {
@@ -217,9 +220,44 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 	return v4l2_async_notifier_register(&rkisp1->v4l2_dev, ntf);
 }
 
-/***************************** platform device *******************************/
+/* ----------------------------------------------------------------------------
+ * Power
+ */
 
-static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
+static int __maybe_unused rkisp1_runtime_suspend(struct device *dev)
+{
+	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
+
+	clk_bulk_disable_unprepare(rkisp1->clk_size, rkisp1->clks);
+	return pinctrl_pm_select_sleep_state(dev);
+}
+
+static int __maybe_unused rkisp1_runtime_resume(struct device *dev)
+{
+	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
+	int ret;
+
+	ret = pinctrl_pm_select_default_state(dev);
+	if (ret < 0)
+		return ret;
+	ret = clk_bulk_prepare_enable(rkisp1->clk_size, rkisp1->clks);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+static const struct dev_pm_ops rkisp1_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				pm_runtime_force_resume)
+	SET_RUNTIME_PM_OPS(rkisp1_runtime_suspend, rkisp1_runtime_resume, NULL)
+};
+
+/* ----------------------------------------------------------------------------
+ * Core
+ */
+
+static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 {
 	int ret;
 
@@ -258,28 +296,6 @@ err_unreg_isp_subdev:
 	rkisp1_isp_unregister(rkisp1);
 	return ret;
 }
-
-static const char * const rk3399_isp_clks[] = {
-	"clk_isp",
-	"aclk_isp",
-	"hclk_isp",
-	"aclk_isp_wrap",
-	"hclk_isp_wrap",
-};
-
-static const struct rkisp1_match_data rk3399_isp_clk_data = {
-	.clks = rk3399_isp_clks,
-	.size = ARRAY_SIZE(rk3399_isp_clks),
-};
-
-static const struct of_device_id rkisp1_plat_of_match[] = {
-	{
-		.compatible = "rockchip,rk3399-cif-isp",
-		.data = &rk3399_isp_clk_data,
-	},
-	{},
-};
-MODULE_DEVICE_TABLE(of, rkisp1_plat_of_match);
 
 static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
 {
@@ -320,7 +336,29 @@ static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
 	return IRQ_WAKE_THREAD;
 }
 
-static int rkisp1_plat_probe(struct platform_device *pdev)
+static const char * const rk3399_isp_clks[] = {
+	"clk_isp",
+	"aclk_isp",
+	"hclk_isp",
+	"aclk_isp_wrap",
+	"hclk_isp_wrap",
+};
+
+static const struct rkisp1_match_data rk3399_isp_clk_data = {
+	.clks = rk3399_isp_clks,
+	.size = ARRAY_SIZE(rk3399_isp_clks),
+};
+
+static const struct of_device_id rkisp1_of_match[] = {
+	{
+		.compatible = "rockchip,rk3399-cif-isp",
+		.data = &rk3399_isp_clk_data,
+	},
+	{},
+};
+MODULE_DEVICE_TABLE(of, rkisp1_of_match);
+
+static int rkisp1_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
 	const struct rkisp1_match_data *clk_data;
@@ -331,7 +369,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 	unsigned int i;
 	int ret, irq;
 
-	match = of_match_node(rkisp1_plat_of_match, node);
+	match = of_match_node(rkisp1_of_match, node);
 	rkisp1 = devm_kzalloc(dev, sizeof(*rkisp1), GFP_KERNEL);
 	if (!rkisp1)
 		return -ENOMEM;
@@ -393,7 +431,7 @@ static int rkisp1_plat_probe(struct platform_device *pdev)
 		goto err_unreg_v4l2_dev;
 	}
 
-	ret = rkisp1_register_platform_subdevs(rkisp1);
+	ret = rkisp1_entities_register(rkisp1);
 	if (ret < 0)
 		goto err_unreg_media_dev;
 
@@ -407,7 +445,7 @@ err_unreg_v4l2_dev:
 	return ret;
 }
 
-static int rkisp1_plat_remove(struct platform_device *pdev)
+static int rkisp1_remove(struct platform_device *pdev)
 {
 	struct rkisp1_device *rkisp1 = platform_get_drvdata(pdev);
 
@@ -426,46 +464,17 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int __maybe_unused rkisp1_runtime_suspend(struct device *dev)
-{
-	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
-
-	clk_bulk_disable_unprepare(rkisp1->clk_size, rkisp1->clks);
-	return pinctrl_pm_select_sleep_state(dev);
-}
-
-static int __maybe_unused rkisp1_runtime_resume(struct device *dev)
-{
-	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
-	int ret;
-
-	ret = pinctrl_pm_select_default_state(dev);
-	if (ret < 0)
-		return ret;
-	ret = clk_bulk_prepare_enable(rkisp1->clk_size, rkisp1->clks);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-static const struct dev_pm_ops rkisp1_plat_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
-				pm_runtime_force_resume)
-	SET_RUNTIME_PM_OPS(rkisp1_runtime_suspend, rkisp1_runtime_resume, NULL)
-};
-
-static struct platform_driver rkisp1_plat_drv = {
+static struct platform_driver rkisp1_drv = {
 	.driver = {
 		.name = RKISP1_DRIVER_NAME,
-		.of_match_table = of_match_ptr(rkisp1_plat_of_match),
-		.pm = &rkisp1_plat_pm_ops,
+		.of_match_table = of_match_ptr(rkisp1_of_match),
+		.pm = &rkisp1_pm_ops,
 	},
-	.probe = rkisp1_plat_probe,
-	.remove = rkisp1_plat_remove,
+	.probe = rkisp1_probe,
+	.remove = rkisp1_remove,
 };
 
-module_platform_driver(rkisp1_plat_drv);
+module_platform_driver(rkisp1_drv);
 MODULE_AUTHOR("Rockchip Camera/ISP team");
 MODULE_DESCRIPTION("Rockchip ISP1 platform driver");
 MODULE_LICENSE("Dual BSD/GPL");
