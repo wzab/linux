@@ -70,7 +70,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	/* create ISP internal links */
 	/* SP links */
 	source = &rkisp1->isp_sdev.sd.entity;
-	sink = &rkisp1->streams[RKISP1_STREAM_SP].vnode.vdev.entity;
+	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
 	if (ret < 0)
@@ -78,7 +78,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* MP links */
 	source = &rkisp1->isp_sdev.sd.entity;
-	sink = &rkisp1->streams[RKISP1_STREAM_MP].vnode.vdev.entity;
+	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
 	if (ret < 0)
@@ -227,16 +227,16 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	if (ret < 0)
 		return ret;
 
-	rkisp1_stream_init(rkisp1, RKISP1_STREAM_SP);
-	rkisp1_stream_init(rkisp1, RKISP1_STREAM_MP);
+	rkisp1_capture_init(rkisp1, RKISP1_CAPTURE_SP);
+	rkisp1_capture_init(rkisp1, RKISP1_CAPTURE_MP);
 
-	ret = rkisp1_register_stream_vdevs(rkisp1);
+	ret = rkisp1_register_capture_devs(rkisp1);
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
 
 	ret = rkisp1_register_stats(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
-		goto err_unreg_stream_vdev;
+		goto err_unreg_capture_devs;
 
 	ret = rkisp1_register_params(&rkisp1->params,
 				     &rkisp1->v4l2_dev, rkisp1);
@@ -255,8 +255,8 @@ err_unreg_params:
 	rkisp1_unregister_params(&rkisp1->params);
 err_unreg_stats:
 	rkisp1_unregister_stats(&rkisp1->stats);
-err_unreg_stream_vdev:
-	rkisp1_unregister_stream_vdevs(rkisp1);
+err_unreg_capture_devs:
+	rkisp1_unregister_capture_devs(rkisp1);
 err_unreg_isp_subdev:
 	rkisp1_unregister_isp_subdev(rkisp1);
 	return ret;
@@ -291,7 +291,7 @@ static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
 
 	rkisp1_isp_isr_thread(rkisp1);
 	rkisp1_mipi_isr_thread(rkisp1);
-	rkisp1_stream_isr_thread(rkisp1);
+	rkisp1_capture_isr_thread(rkisp1);
 
 	return IRQ_HANDLED;
 }
@@ -419,7 +419,7 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 
 	rkisp1_unregister_params(&rkisp1->params);
 	rkisp1_unregister_stats(&rkisp1->stats);
-	rkisp1_unregister_stream_vdevs(rkisp1);
+	rkisp1_unregister_capture_devs(rkisp1);
 	rkisp1_unregister_isp_subdev(rkisp1);
 
 	media_device_unregister(&rkisp1->media_dev);

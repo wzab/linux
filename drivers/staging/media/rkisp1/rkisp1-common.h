@@ -29,13 +29,16 @@
 #define RKISP1_DEFAULT_WIDTH		800
 #define RKISP1_DEFAULT_HEIGHT		600
 
-#define RKISP1_MAX_STREAM		2
-#define RKISP1_STREAM_MP		0
-#define RKISP1_STREAM_SP		1
+enum rkisp1_capture_id {
+	RKISP1_CAPTURE_MP,
+	RKISP1_CAPTURE_SP,
+};
 
-#define RKISP1_PLANE_Y			0
-#define RKISP1_PLANE_CB			1
-#define RKISP1_PLANE_CR			2
+enum rkisp1_plane {
+	RKISP1_PLANE_Y	= 0,
+	RKISP1_PLANE_CB	= 1,
+	RKISP1_PLANE_CR	= 2
+};
 
 // TODO If something is used locally, then don't "export it" in a header. I.e.
 // move the define to where it's needed. This helps separate local vs. shared,
@@ -148,19 +151,19 @@ struct rkisp1_dummy_buffer {
 	u32 size;
 };
 
-struct rkisp1_stream_sp {
+struct rkisp1_capture_sp {
 	int y_stride;
 	enum rkisp1_sp_inp input_sel;
 };
 
-struct rkisp1_stream_mp {
+struct rkisp1_capture_mp {
 	bool raw_enable;
 };
 
 struct rkisp1_device;
 
 /*
- * struct rkisp1_stream - ISP capture video device
+ * struct rkisp1_capture - ISP capture video device
  *
  * @out_isp_fmt: output ISP format
  * @out_fmt: output buffer size
@@ -174,15 +177,15 @@ struct rkisp1_device;
  * @curr_buf: the buffer used for current frame
  * @next_buf: the buffer used for next frame
  */
-struct rkisp1_stream {
-	unsigned id:1;
+struct rkisp1_capture {
+	enum rkisp1_capture_id id;
 	struct rkisp1_device *rkisp1;
 	struct rkisp1_vdev_node vnode;
-	const struct rkisp1_stream_fmt *out_isp_fmt;
+	const struct rkisp1_capture_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
 	struct v4l2_rect dcrop;
-	struct rkisp1_streams_ops *ops;
-	const struct rkisp1_stream_cfg *config;
+	struct rkisp1_capture_ops *ops;
+	const struct rkisp1_capture_config *config;
 	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
 	struct list_head buf_queue;
 	struct rkisp1_dummy_buffer dummy_buf;
@@ -192,8 +195,8 @@ struct rkisp1_stream {
 	bool stopping;
 	wait_queue_head_t done;
 	union {
-		struct rkisp1_stream_sp sp;
-		struct rkisp1_stream_mp mp;
+		struct rkisp1_capture_sp sp;
+		struct rkisp1_capture_mp mp;
 	} u;
 };
 
@@ -243,7 +246,7 @@ struct rkisp1_params {
  * @base_addr: base register address
  * @active_sensor: sensor in-use, set when streaming on
  * @isp_sdev: ISP sub-device
- * @rkisp1_stream: capture video device
+ * @rkisp1_capture: capture video device
  * @stats: ISP statistics output device
  * @params: ISP input parameters device
  */
@@ -259,7 +262,7 @@ struct rkisp1_device {
 	struct v4l2_async_notifier notifier;
 	struct rkisp1_sensor_async *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
-	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
+	struct rkisp1_capture capture_devs[2];
 	struct rkisp1_stats stats;
 	struct rkisp1_params params;
 	struct media_pipeline pipe;
@@ -334,10 +337,11 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1);
 
 void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1);
 
-void rkisp1_unregister_stream_vdevs(struct rkisp1_device *rkisp1);
-int rkisp1_register_stream_vdevs(struct rkisp1_device *rkisp1);
-void rkisp1_stream_isr_thread(struct rkisp1_device *rkisp1);
-void rkisp1_stream_init(struct rkisp1_device *rkisp1, u32 id);
+void rkisp1_unregister_capture_devs(struct rkisp1_device *rkisp1);
+int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1);
+void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1);
+void rkisp1_capture_init(struct rkisp1_device *rkisp1,
+			 enum rkisp1_capture_id id);
 
 void rkisp1_stats_isr_thread(struct rkisp1_stats *stats, u32 isp_ris);
 int rkisp1_register_stats(struct rkisp1_stats *stats,

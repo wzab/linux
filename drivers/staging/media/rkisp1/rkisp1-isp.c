@@ -358,8 +358,8 @@ static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 	int ret;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->streams[RKISP1_STREAM_SP].streaming,
-		rkisp1->streams[RKISP1_STREAM_MP].streaming);
+		rkisp1->capture_devs[RKISP1_CAPTURE_SP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_MP].streaming);
 
 	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
 	dev_dbg(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
@@ -381,8 +381,8 @@ static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 	u32 val;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->streams[RKISP1_STREAM_SP].streaming,
-		rkisp1->streams[RKISP1_STREAM_MP].streaming);
+		rkisp1->capture_devs[RKISP1_CAPTURE_SP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_MP].streaming);
 
 	/*
 	 * ISP(mi) stop in mi frame end -> Stop ISP(mipi) ->
@@ -414,8 +414,8 @@ static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 			   val, val & RKISP1_CIF_ISP_OFF, 20, 100);
 	dev_dbg(rkisp1->dev,
 		"streaming(MP:%d, SP:%d), MI_CTRL:%x, ISP_CTRL:%x, MIPI_CTRL:%x\n",
-		rkisp1->streams[RKISP1_STREAM_SP].streaming,
-		rkisp1->streams[RKISP1_STREAM_MP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_SP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_MP].streaming,
 		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
@@ -446,8 +446,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	u32 val;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->streams[RKISP1_STREAM_SP].streaming,
-		rkisp1->streams[RKISP1_STREAM_MP].streaming);
+		rkisp1->capture_devs[RKISP1_CAPTURE_SP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_MP].streaming);
 
 	rkisp1_config_clk(rkisp1);
 
@@ -473,8 +473,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	dev_dbg(rkisp1->dev,
 		"SP streaming = %d, MP streaming = %d MI_CTRL 0x%08x\n"
 		"  ISP_CTRL 0x%08x MIPI_CTRL 0x%08x\n",
-		rkisp1->streams[RKISP1_STREAM_SP].streaming,
-		rkisp1->streams[RKISP1_STREAM_MP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_SP].streaming,
+		rkisp1->capture_devs[RKISP1_CAPTURE_MP].streaming,
 		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
