@@ -563,6 +563,7 @@ static int rkisp1_dcrop_config(struct rkisp1_stream *stream)
 	rkisp1_write(dev, dcrop->top, stream->config->dual_crop.v_offset);
 	rkisp1_write(dev, dcrop->width, stream->config->dual_crop.h_size);
 	rkisp1_write(dev, dcrop->height, stream->config->dual_crop.v_size);
+	/* TODO: this is a mask, shouldn't it be dc_ctrl & ~mask ?*/
 	dc_ctrl |= stream->config->dual_crop.yuvmode_mask;
 	dc_ctrl |= RKISP1_CIF_DUAL_CROP_CFG_UPD;
 	rkisp1_write(dev, dc_ctrl, stream->config->dual_crop.ctrl);
@@ -618,15 +619,14 @@ static void rkisp1_rsz_dump_regs(struct rkisp1_stream *stream)
 static void rkisp1_rsz_update_shadow(struct rkisp1_stream *stream,
 				     enum rkisp1_shadow_regs_when when)
 {
-	struct rkisp1_device *dev = stream->ispdev;
-	u32 ctrl_cfg = rkisp1_read(dev, stream->config->rsz.ctrl);
+	u32 ctrl_cfg = rkisp1_read(stream->ispdev, stream->config->rsz.ctrl);
 
 	if (when == RKISP1_SHADOW_REGS_ASYNC)
 		ctrl_cfg |= RKISP1_CIF_RSZ_CTRL_CFG_UPD_AUTO;
 	else
 		ctrl_cfg |= RKISP1_CIF_RSZ_CTRL_CFG_UPD;
 
-	rkisp1_write(dev, ctrl_cfg, stream->config->rsz.ctrl);
+	rkisp1_write(stream->ispdev, ctrl_cfg, stream->config->rsz.ctrl);
 }
 
 static u32 rkisp1_rsz_calc_ratio(u32 len_in, u32 len_out)
@@ -666,7 +666,6 @@ static void rkisp1_rsz_config_regs(struct rkisp1_stream *stream,
 	rkisp1_write(dev, 0, stream->config->rsz.phase_vc);
 
 	/* Linear interpolation */
-	// TODO: why do we write all the values from 0 to 64 to the register?
 	for (i = 0; i < 64; i++) {
 		rkisp1_write(dev, i, stream->config->rsz.scale_lut_addr);
 		rkisp1_write(dev, i, stream->config->rsz.scale_lut);
@@ -723,7 +722,6 @@ static int rkisp1_rsz_config(struct rkisp1_stream *stream,
 	if (input_isp_fmt->fmt_type == RKISP1_FMT_BAYER)
 		goto disable;
 
-	/* set input and output sizes for scale calculation */
 	in_y.width = stream->dcrop.width;
 	in_y.height = stream->dcrop.height;
 	out_y.width = output_fmt.width;
@@ -860,14 +858,11 @@ static int rkisp1_stream_sp_config(struct rkisp1_stream *stream)
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
 	u32 mi_ctrl;
 
-	rkisp1_write(stream->ispdev,
-		     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
+	rkisp1_write(dev, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
 		     stream->config->mi.y_size_init);
-	rkisp1_write(stream->ispdev,
-		     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
+	rkisp1_write(dev, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
 		     stream->config->mi.cb_size_init);
-	rkisp1_write(stream->ispdev,
-		     rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR),
+	rkisp1_write(dev, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR),
 		     stream->config->mi.cr_size_init);
 
 	rkisp1_write(dev, pixm->width, RKISP1_CIF_MI_SP_Y_PIC_WIDTH);
@@ -960,21 +955,19 @@ static bool rkisp1_stream_sp_is_stopped(struct rkisp1_stream *stream)
 
 static void rkisp1_stream_mp_set_data_path(struct rkisp1_stream *stream)
 {
-	struct rkisp1_device *dev = stream->ispdev;
-	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
+	u32 dpcl = rkisp1_read(stream->ispdev, RKISP1_CIF_VI_DPCL);
 
 	dpcl = dpcl | RKISP1_CIF_VI_DPCL_CHAN_MODE_MP |
 	       RKISP1_CIF_VI_DPCL_MP_MUX_MRSZ_MI;
-	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
+	rkisp1_write(stream->ispdev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
 static void rkisp1_stream_sp_set_data_path(struct rkisp1_stream *stream)
 {
-	struct rkisp1_device *dev = stream->ispdev;
-	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
+	u32 dpcl = rkisp1_read(stream->ispdev, RKISP1_CIF_VI_DPCL);
 
 	dpcl |= RKISP1_CIF_VI_DPCL_CHAN_MODE_SP;
-	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
+	rkisp1_write(stream->ispdev, dpcl, RKISP1_CIF_VI_DPCL);
 }
 
 static struct rkisp1_streams_ops rkisp1_mp_streams_ops = {
@@ -1082,9 +1075,8 @@ static void rkisp1_set_next_buf_regs(struct rkisp1_stream *stream)
  */
 static int rkisp1_set_next_buf(struct rkisp1_stream *stream)
 {
-	struct rkisp1_device *isp_dev = stream->ispdev;
 	const struct v4l2_pix_format_mplane *pixm = &stream->out_fmt;
-	struct rkisp1_isp_subdev *isp_sd = &isp_dev->isp_sdev;
+	struct rkisp1_isp_subdev *isp_sd = &stream->ispdev->isp_sdev;
 	struct rkisp1_buffer *curr_buf = stream->curr_buf;
 	unsigned long lock_flags = 0;
 	unsigned int i;
@@ -1809,11 +1801,8 @@ rkisp1_s_selection(struct file *file, void *prv, struct v4l2_selection *sel)
 	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
-	if (vb2_is_busy(&node->buf_queue)) {
-		dev_err(dev->dev, "%s queue busy\n", __func__);
-		// TODO rule of silence violation.
+	if (vb2_is_busy(&node->buf_queue))
 		return -EBUSY;
-	}
 
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;
