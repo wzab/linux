@@ -521,7 +521,6 @@ static const struct rkisp1_stream_cfg rkisp1_sp_stream_config = {
  * Dual crop
  */
 
-/* TODO: remove/change this bool argument */
 static void rkisp1_dcrop_disable(struct rkisp1_stream *stream,
 				 enum rkisp1_shadow_regs_when when)
 {
@@ -772,25 +771,18 @@ disable:
 
 static void rkisp1_mi_config_ctrl(struct rkisp1_stream *stream)
 {
-	struct rkisp1_device *dev = stream->ispdev;
-	u32 mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
+	u32 mi_ctrl = rkisp1_read(stream->ispdev, RKISP1_CIF_MI_CTRL);
 
-	/* TODO: do we need to re-read the register all the time? */
-	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL) & ~GENMASK(17, 16);
+	mi_ctrl &= ~GENMASK(17, 16);
 	mi_ctrl |= RKISP1_CIF_MI_CTRL_BURST_LEN_LUM_64;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 
-	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL) & ~GENMASK(19, 18);
+	mi_ctrl &= ~GENMASK(19, 18);
 	mi_ctrl |= RKISP1_CIF_MI_CTRL_BURST_LEN_CHROM_64;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 
-	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
-	mi_ctrl |= RKISP1_CIF_MI_CTRL_INIT_BASE_EN;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
+	mi_ctrl |= RKISP1_CIF_MI_CTRL_INIT_BASE_EN |
+		   RKISP1_CIF_MI_CTRL_INIT_OFFSET_EN;
 
-	mi_ctrl = rkisp1_read(dev, RKISP1_CIF_MI_CTRL);
-	mi_ctrl |= RKISP1_CIF_MI_CTRL_INIT_OFFSET_EN;
-	rkisp1_write(dev, mi_ctrl, RKISP1_CIF_MI_CTRL);
+	rkisp1_write(stream->ispdev, mi_ctrl, RKISP1_CIF_MI_CTRL);
 }
 
 static u32 rkisp1_pixfmt_comp_size(const struct v4l2_pix_format_mplane *pixm,
