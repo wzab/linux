@@ -36,6 +36,9 @@
  * available sp source fmts: yuv, rgb
  */
 
+#define RKISP1_SP_DEV_NAME	RKISP1_DRIVER_NAME "_selfpath"
+#define RKISP1_MP_DEV_NAME	RKISP1_DRIVER_NAME "_mainpath"
+
 #define RKISP1_MIN_BUFFERS_NEEDED 3
 //#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
 
@@ -1927,8 +1930,8 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	struct rkisp1_vdev_node *node;
 	struct vb2_queue *q;
 	int ret;
-	const char * const dev_names[] = {RKISP1_SP_VDEV_NAME,
-					  RKISP1_MP_VDEV_NAME};
+	const char * const dev_names[] = {RKISP1_SP_DEV_NAME,
+					  RKISP1_MP_DEV_NAME};
 
 	// TODO: maybe this is more readable? i'm always wary of conditionals
 	// where a more expressive form is possible.

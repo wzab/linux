@@ -40,14 +40,7 @@ enum rkisp1_plane {
 	RKISP1_PLANE_CR	= 2
 };
 
-// TODO If something is used locally, then don't "export it" in a header. I.e.
-// move the define to where it's needed. This helps separate local vs. shared,
-// private vs. exposed.
 #define RKISP1_DRIVER_NAME	"rkisp1"
-#define RKISP1_ISP_VDEV_NAME	RKISP1_DRIVER_NAME "_ispdev"
-#define RKISP1_SP_VDEV_NAME	RKISP1_DRIVER_NAME "_selfpath"
-#define RKISP1_MP_VDEV_NAME	RKISP1_DRIVER_NAME "_mainpath"
-#define RKISP1_DMA_VDEV_NAME	RKISP1_DRIVER_NAME "_dmapath"
 
 #define RKISP1_MAX_BUS_CLK	8
 
