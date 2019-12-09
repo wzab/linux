@@ -622,8 +622,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
  */
 
 static int rkisp1_isp_enum_mbus_code(struct v4l2_subdev *sd,
-					struct v4l2_subdev_pad_config *cfg,
-					struct v4l2_subdev_mbus_code_enum *code)
+				     struct v4l2_subdev_pad_config *cfg,
+				     struct v4l2_subdev_mbus_code_enum *code)
 {
 	unsigned int i, dir;
 	int pos = 0;
@@ -975,8 +975,8 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_pad_ops = {
  * Stream operations
  */
 
-static int rkisp1_mipi_csi2_s_stream_start(struct rkisp1_isp *isp,
-					   struct rkisp1_sensor_async *sensor)
+static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
+				  struct rkisp1_sensor_async *sensor)
 {
 	union phy_configure_opts opts;
 	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
@@ -1002,7 +1002,7 @@ static int rkisp1_mipi_csi2_s_stream_start(struct rkisp1_isp *isp,
 	return 0;
 }
 
-static void rkisp1_mipi_csi2_s_stream_stop(struct rkisp1_sensor_async *sensor)
+static void rkisp1_mipi_csi2_stop(struct rkisp1_sensor_async *sensor)
 {
 	phy_power_off(sensor->dphy);
 }
@@ -1019,7 +1019,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 		ret = rkisp1_isp_stop(rkisp1);
 		if (ret < 0)
 			return ret;
-		rkisp1_mipi_csi2_s_stream_stop(rkisp1->active_sensor);
+		rkisp1_mipi_csi2_stop(rkisp1->active_sensor);
 		return 0;
 	}
 
@@ -1038,14 +1038,13 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 	if (rkisp1->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
-	ret = rkisp1_mipi_csi2_s_stream_start(&rkisp1->isp,
-				       rkisp1->active_sensor);
+	ret = rkisp1_mipi_csi2_start(&rkisp1->isp, rkisp1->active_sensor);
 	if (ret < 0)
 		return ret;
 
 	ret = rkisp1_isp_start(rkisp1);
 	if (ret)
-		rkisp1_mipi_csi2_s_stream_stop(rkisp1->active_sensor);
+		rkisp1_mipi_csi2_stop(rkisp1->active_sensor);
 
 	return ret;
 }
