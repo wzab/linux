@@ -96,8 +96,8 @@ static int rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 					struct v4l2_async_subdev *asd)
 {
 	struct rkisp1_device *rkisp1 = container_of(notifier,
-						     struct rkisp1_device,
-						     notifier);
+						    struct rkisp1_device,
+						    notifier);
 	struct rkisp1_sensor_async *s_asd = container_of(asd,
 					struct rkisp1_sensor_async, asd);
 
