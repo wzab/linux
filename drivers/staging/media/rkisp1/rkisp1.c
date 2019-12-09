@@ -1190,7 +1190,7 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
 void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 {
 	unsigned long lock_flags = 0;
-	u32 status, status_aux, isp_err;
+	u32 status, isp_err;
 
 	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
 	status = rkisp1->irq_status_isp;
@@ -1199,19 +1199,11 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 		return;
 
 	/* start edge of v_sync */
-	if (status & RKISP1_CIF_ISP_V_START) {
+	if (status & RKISP1_CIF_ISP_V_START)
 		rkisp1_isp_queue_event_sof(&rkisp1->isp_sdev);
-
-		// TODO: Let's just get rid of this debugging stuff entirely.
-		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
-		if (status_aux & RKISP1_CIF_ISP_V_START)
-			dev_err(rkisp1->dev, "isp icr v_statr err: 0x%x\n",
-				status_aux);
-	}
 
 	if (status & RKISP1_CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
-
 		// TODO just keep an err counter and debugfs-it
 		isp_err = rkisp1_read(rkisp1, RKISP1_CIF_ISP_ERR);
 		dev_err(rkisp1->dev,
@@ -1219,31 +1211,14 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 		rkisp1_write(rkisp1, isp_err, RKISP1_CIF_ISP_ERR_CLR);
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
 		/* data_loss */
-
 		// TODO just keep an err counter and debugfs-it
 		dev_err(rkisp1->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
-	}
-
-	if (status & RKISP1_CIF_ISP_FRAME_IN) {
-		/* TODO: why does it reads the interrupt status again? */
-		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
-		if (status_aux & RKISP1_CIF_ISP_FRAME_IN)
-			dev_err(rkisp1->dev,
-				"isp icr frame_in err: 0x%x\n", status_aux);
-		// TODO drop it.
 	}
 
 	if (status & RKISP1_CIF_ISP_FRAME) {
 		u32 isp_ris;
 
 		/* Frame In (ISP) */
-		/* TODO: why does it reads the interrupt status again? */
-		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
-		if (status_aux & RKISP1_CIF_ISP_FRAME)
-			dev_err(rkisp1->dev,
-				"isp icr frame end err: 0x%x\n", status_aux);
-		// TODO drop
-
 		isp_ris = rkisp1_read(rkisp1, RKISP1_CIF_ISP_RIS);
 		if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 			       RKISP1_CIF_ISP_AFM_FIN |
