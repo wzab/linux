@@ -288,16 +288,6 @@ struct rkisp1_fmt {
 	unsigned int direction;
 };
 
-struct rkisp1_isp_readout_work {
-	struct work_struct work;
-	struct rkisp1_isp_stats_vdev *stats_vdev;
-
-	unsigned int frame_id;
-	unsigned int isp_ris;
-	enum rkisp1_isp_readout_cmd readout;
-	struct vb2_buffer *vb;
-};
-
 static inline struct rkisp1_vdev_node *
 rkisp1_vdev_to_node(struct video_device *vdev)
 {
