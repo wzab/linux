@@ -254,11 +254,6 @@ struct rkisp1_device {
 	struct rkisp1_params params;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
-	u32 irq_status_mi;
-	u32 irq_status_isp;
-	u32 irq_status_mipi;
-	/* protects irq_status_* between irq handler and threads */
-	spinlock_t irq_status_lock;
 };
 
 /*
@@ -303,17 +298,17 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 
 void rkisp1_isp_unregister(struct rkisp1_device *rkisp1);
 
-void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1);
+void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1);
 
-void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1);
+void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1);
 
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
 
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1);
 
-void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1);
+void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1);
 
-void rkisp1_stats_isr_thread(struct rkisp1_stats *stats, u32 isp_ris);
+void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris);
 
 int rkisp1_stats_register(struct rkisp1_stats *stats,
 			  struct v4l2_device *v4l2_dev,
@@ -334,7 +329,7 @@ int rkisp1_params_register(struct rkisp1_params *params,
 
 void rkisp1_params_unregister(struct rkisp1_params *params);
 
-void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
+void rkisp1_params_isr_handler(struct rkisp1_device *rkisp1, u32 isp_mis);
 
 
 #endif /* _RKISP1_COMMON_H */

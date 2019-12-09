@@ -1110,15 +1110,13 @@ static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 	return 0;
 }
 
-void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1)
+void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1)
 {
-	unsigned long lock_flags = 0;
 	unsigned int i;
 	u32 status;
 
-	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
-	status = rkisp1->irq_status_mi;
-	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
+	status = rkisp1_read(rkisp1, RKISP1_CIF_MI_MIS);
+	rkisp1_write(rkisp1, status, RKISP1_CIF_MI_ICR);
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); ++i) {
 		struct rkisp1_capture *cap = &rkisp1->capture_devs[i];
@@ -1143,7 +1141,6 @@ void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1)
 		}
 		cap->stopping = false;
 		cap->streaming = false;
-		// TODO Use thread IRQ?
 		wake_up(&cap->done);
 	}
 }

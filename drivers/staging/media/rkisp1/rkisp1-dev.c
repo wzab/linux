@@ -297,43 +297,16 @@ err_unreg_isp_subdev:
 	return ret;
 }
 
-static irqreturn_t rkisp1_isr_thread(int irq, void *ctx)
-{
-	struct device *dev = ctx;
-	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
-
-	rkisp1_isp_isr_thread(rkisp1);
-	rkisp1_mipi_isr_thread(rkisp1);
-	rkisp1_capture_isr_thread(rkisp1);
-
-	return IRQ_HANDLED;
-}
-
 static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
 {
-	unsigned long lock_flags = 0;
 	struct device *dev = ctx;
 	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
 
-	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
+	rkisp1_isp_isr_handler(rkisp1);
+	rkisp1_mipi_isr_handler(rkisp1);
+	rkisp1_capture_isr_handler(rkisp1);
 
-	rkisp1->irq_status_mipi = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_MIS);
-	rkisp1_write(rkisp1, rkisp1->irq_status_mipi, RKISP1_CIF_MIPI_ICR);
-
-	rkisp1->irq_status_isp = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
-	rkisp1_write(rkisp1, rkisp1->irq_status_isp, RKISP1_CIF_ISP_ICR);
-
-	rkisp1->irq_status_mi = rkisp1_read(rkisp1, RKISP1_CIF_MI_MIS);
-	rkisp1_write(rkisp1, rkisp1->irq_status_mi, RKISP1_CIF_MI_ICR);
-
-	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
-
-	// TODO
-	// Only use threaded interrupt for stats, not for the rest.
-	// Pass the status as arguments to the handlers, don't store
-	// as state. BTW, never store state for data that can be passed
-	// in a call chain, as it's creates unneeded state.
-	return IRQ_WAKE_THREAD;
+	return IRQ_HANDLED;
 }
 
 static const char * const rk3399_isp_clks[] = {
@@ -385,16 +358,14 @@ static int rkisp1_probe(struct platform_device *pdev)
 	if (irq < 0)
 		return irq;
 
-	ret = devm_request_threaded_irq(dev, irq, rkisp1_isr_handler,
-					rkisp1_isr_thread, IRQF_SHARED,
-					dev_driver_string(dev), dev);
+	ret = devm_request_irq(dev, irq, rkisp1_isr_handler, IRQF_SHARED,
+			       dev_driver_string(dev), dev);
 	if (ret < 0) {
 		dev_err(dev, "request irq failed: %d\n", ret);
 		return ret;
 	}
 
 	rkisp1->irq = irq;
-	spin_lock_init(&rkisp1->irq_status_lock);
 	clk_data = match->data;
 
 	for (i = 0; i < clk_data->size; i++)

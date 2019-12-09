@@ -1131,16 +1131,15 @@ void rkisp1_isp_unregister(struct rkisp1_device *rkisp1)
 
 /****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
+void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1)
 {
-	unsigned long lock_flags = 0;
 	u32 val, status;
 
-	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
-	status = rkisp1->irq_status_mipi;
-	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
+	status = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_MIS);
 	if (!status)
 		return;
+
+	rkisp1_write(rkisp1, status, RKISP1_CIF_MIPI_ICR);
 
 	/*
 	 * Disable DPHY errctrl interrupt, because this dphy
@@ -1175,16 +1174,15 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
 	}
 }
 
-void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
+void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
 {
-	unsigned long lock_flags = 0;
 	u32 status, isp_err;
 
-	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
-	status = rkisp1->irq_status_isp;
-	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
+	status = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
 	if (!status)
 		return;
+
+	rkisp1_write(rkisp1, status, RKISP1_CIF_ISP_ICR);
 
 	/* start edge of v_sync */
 	if (status & RKISP1_CIF_ISP_V_START)
@@ -1218,7 +1216,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 			// but that's a matter of taste, naming isr to each
 			// function that handles the interrupts can also help
 			// to navigate the code i guess.
-			rkisp1_stats_isr_thread(&rkisp1->stats, isp_ris);
+			rkisp1_stats_isr_handler(&rkisp1->stats, isp_ris);
 	}
 
 	/*
@@ -1226,5 +1224,5 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 	 * lot of register writes. Do those only one per frame.
 	 * Do the updates in the order of the processing flow.
 	 */
-	rkisp1_params_isr(rkisp1, status);
+	rkisp1_params_isr_handler(rkisp1, status);
 }

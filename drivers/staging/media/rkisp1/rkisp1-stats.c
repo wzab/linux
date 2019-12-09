@@ -380,8 +380,7 @@ static void rkisp1_stats_readout_work(struct work_struct *work)
 	kfree(readout_work);
 }
 
-void rkisp1_stats_isr_thread(struct rkisp1_stats *stats,
-			     u32 isp_ris)
+void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris)
 {
 	unsigned int cur_frame_id =
 		atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
@@ -410,6 +409,7 @@ void rkisp1_stats_isr_thread(struct rkisp1_stats *stats,
 		       RKISP1_CIF_ISP_AFM_FIN |
 		       RKISP1_CIF_ISP_EXP_END |
 		       RKISP1_CIF_ISP_HIST_MEASURE_RDY)) {
+		/* TODO: use threaded irq instead of workqueues */
 		work = (struct rkisp1_isp_readout_work *)
 			kzalloc(sizeof(struct rkisp1_isp_readout_work),
 				GFP_ATOMIC);

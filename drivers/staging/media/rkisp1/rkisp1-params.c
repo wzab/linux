@@ -1191,7 +1191,7 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params *params,
 	}
 }
 
-void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
+void rkisp1_params_isr_handler(struct rkisp1_device *rkisp1, u32 isp_mis)
 {
 	struct rkisp1_params *params = &rkisp1->params;
 	struct rkisp1_params_cfg *new_params;
