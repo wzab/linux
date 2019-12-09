@@ -62,11 +62,6 @@ rkisp1_sd_to_isp_sd(struct v4l2_subdev *sd)
 	return container_of(sd, struct rkisp1_isp_subdev, sd);
 }
 
-static inline struct rkisp1_device *rkisp1_sd_to_isp_dev(struct v4l2_subdev *sd)
-{
-	return container_of(sd->v4l2_dev, struct rkisp1_device, v4l2_dev);
-}
-
 /* Get sensor by enabled media link */
 static struct v4l2_subdev *rkisp1_get_remote_sensor(struct v4l2_subdev *sd)
 {
@@ -114,34 +109,34 @@ struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
  * This should only be called when configuring CIF
  * or at the frame end interrupt
  */
-static void rkisp1_config_ism(struct rkisp1_device *dev)
+static void rkisp1_config_ism(struct rkisp1_device *rkisp1)
 {
 	struct v4l2_rect *out_crop =
-		rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
+		rkisp1_isp_sd_get_pad_crop(&rkisp1->isp_sdev, NULL,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
 	u32 val;
 
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_IS_RECENTER);
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_IS_MAX_DX);
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_IS_MAX_DY);
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_IS_DISPLACE);
-	rkisp1_write(dev, out_crop->left, RKISP1_CIF_ISP_IS_H_OFFS);
-	rkisp1_write(dev, out_crop->top, RKISP1_CIF_ISP_IS_V_OFFS);
-	rkisp1_write(dev, out_crop->width, RKISP1_CIF_ISP_IS_H_SIZE);
-	rkisp1_write(dev, out_crop->height, RKISP1_CIF_ISP_IS_V_SIZE);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_IS_RECENTER);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_IS_MAX_DX);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_IS_MAX_DY);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_IS_DISPLACE);
+	rkisp1_write(rkisp1, out_crop->left, RKISP1_CIF_ISP_IS_H_OFFS);
+	rkisp1_write(rkisp1, out_crop->top, RKISP1_CIF_ISP_IS_V_OFFS);
+	rkisp1_write(rkisp1, out_crop->width, RKISP1_CIF_ISP_IS_H_SIZE);
+	rkisp1_write(rkisp1, out_crop->height, RKISP1_CIF_ISP_IS_V_SIZE);
 
 	/* IS(Image Stabilization) is always on, working as output crop */
-	rkisp1_write(dev, 1, RKISP1_CIF_ISP_IS_CTRL);
-	val = rkisp1_read(dev, RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, 1, RKISP1_CIF_ISP_IS_CTRL);
+	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
 	val |= RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD;
-	rkisp1_write(dev, val, RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, val, RKISP1_CIF_ISP_CTRL);
 }
 
 /*
  * configure ISP blocks with input format, size......
  */
-static int rkisp1_config_isp(struct rkisp1_device *dev)
+static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 {
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
 	const struct rkisp1_fmt *out_fmt, *in_fmt;
@@ -149,13 +144,13 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	struct rkisp1_sensor_async *sensor;
 	struct v4l2_mbus_framefmt *in_frm;
 
-	sensor = dev->active_sensor;
-	in_fmt = dev->isp_sdev.in_fmt;
-	out_fmt = dev->isp_sdev.out_fmt;
-	in_frm = rkisp1_isp_sd_get_pad_fmt(&dev->isp_sdev, NULL,
+	sensor = rkisp1->active_sensor;
+	in_fmt = rkisp1->isp_sdev.in_fmt;
+	out_fmt = rkisp1->isp_sdev.out_fmt;
+	in_frm = rkisp1_isp_sd_get_pad_fmt(&rkisp1->isp_sdev, NULL,
 					   RKISP1_ISP_PAD_SINK_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
-	in_crop = rkisp1_isp_sd_get_pad_crop(&dev->isp_sdev, NULL,
+	in_crop = rkisp1_isp_sd_get_pad_crop(&rkisp1->isp_sdev, NULL,
 					     RKISP1_ISP_PAD_SINK_VIDEO,
 					     V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -167,7 +162,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 			else
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_RAW_PICT;
 		} else {
-			rkisp1_write(dev, RKISP1_CIF_ISP_DEMOSAIC_TH(0xc),
+			rkisp1_write(rkisp1, RKISP1_CIF_ISP_DEMOSAIC_TH(0xc),
 				     RKISP1_CIF_ISP_DEMOSAIC);
 
 			if (sensor->mbus.type == V4L2_MBUS_BT656)
@@ -204,48 +199,49 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 			signal |= RKISP1_CIF_ISP_ACQ_PROP_HSYNC_LOW;
 	}
 
-	rkisp1_write(dev, isp_ctrl, RKISP1_CIF_ISP_CTRL);
-	rkisp1_write(dev, signal | in_fmt->yuv_seq |
+	rkisp1_write(rkisp1, isp_ctrl, RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, signal | in_fmt->yuv_seq |
 		     RKISP1_CIF_ISP_ACQ_PROP_BAYER_PAT(in_fmt->bayer_pat) |
 		     RKISP1_CIF_ISP_ACQ_PROP_FIELD_SEL_ALL,
 		     RKISP1_CIF_ISP_ACQ_PROP);
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_ACQ_NR_FRAMES);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_ACQ_NR_FRAMES);
 
 	/* Acquisition Size */
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_ACQ_H_OFFS);
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_ACQ_V_OFFS);
-	rkisp1_write(dev, acq_mult * in_frm->width, RKISP1_CIF_ISP_ACQ_H_SIZE);
-	rkisp1_write(dev, in_frm->height, RKISP1_CIF_ISP_ACQ_V_SIZE);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_ACQ_H_OFFS);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_ACQ_V_OFFS);
+	rkisp1_write(rkisp1,
+		     acq_mult * in_frm->width, RKISP1_CIF_ISP_ACQ_H_SIZE);
+	rkisp1_write(rkisp1, in_frm->height, RKISP1_CIF_ISP_ACQ_V_SIZE);
 
 	/* ISP Out Area */
-	rkisp1_write(dev, in_crop->left, RKISP1_CIF_ISP_OUT_H_OFFS);
-	rkisp1_write(dev, in_crop->top, RKISP1_CIF_ISP_OUT_V_OFFS);
-	rkisp1_write(dev, in_crop->width, RKISP1_CIF_ISP_OUT_H_SIZE);
-	rkisp1_write(dev, in_crop->height, RKISP1_CIF_ISP_OUT_V_SIZE);
+	rkisp1_write(rkisp1, in_crop->left, RKISP1_CIF_ISP_OUT_H_OFFS);
+	rkisp1_write(rkisp1, in_crop->top, RKISP1_CIF_ISP_OUT_V_OFFS);
+	rkisp1_write(rkisp1, in_crop->width, RKISP1_CIF_ISP_OUT_H_SIZE);
+	rkisp1_write(rkisp1, in_crop->height, RKISP1_CIF_ISP_OUT_V_SIZE);
 
 	/* interrupt mask */
 	irq_mask |= RKISP1_CIF_ISP_FRAME | RKISP1_CIF_ISP_V_START |
 		    RKISP1_CIF_ISP_PIC_SIZE_ERROR | RKISP1_CIF_ISP_FRAME_IN;
-	rkisp1_write(dev, irq_mask, RKISP1_CIF_ISP_IMSC);
+	rkisp1_write(rkisp1, irq_mask, RKISP1_CIF_ISP_IMSC);
 
 	if (out_fmt->fmt_type == RKISP1_FMT_BAYER) {
-		rkisp1_params_disable_isp(&dev->params_vdev);
+		rkisp1_params_disable_isp(&rkisp1->params_vdev);
 	} else {
 		struct v4l2_mbus_framefmt *out_frm;
 
-		out_frm = rkisp1_isp_sd_get_pad_fmt(&dev->isp_sdev, NULL,
+		out_frm = rkisp1_isp_sd_get_pad_fmt(&rkisp1->isp_sdev, NULL,
 						    RKISP1_ISP_PAD_SINK_VIDEO,
 						    V4L2_SUBDEV_FORMAT_ACTIVE);
-		rkisp1_params_configure_isp(&dev->params_vdev, in_fmt,
+		rkisp1_params_configure_isp(&rkisp1->params_vdev, in_fmt,
 					    out_frm->quantization);
 	}
 
 	return 0;
 }
 
-static int rkisp1_config_dvp(struct rkisp1_device *dev)
+static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
 	u32 val, input_sel;
 
 	// TODO: bus_w move info to core
@@ -260,27 +256,27 @@ static int rkisp1_config_dvp(struct rkisp1_device *dev)
 		input_sel = RKISP1_CIF_ISP_ACQ_PROP_IN_SEL_12B;
 		break;
 	default:
-		dev_err(dev->dev, "Invalid bus width\n");
+		dev_err(rkisp1->dev, "Invalid bus width\n");
 		return -EINVAL;
 	}
 
-	val = rkisp1_read(dev, RKISP1_CIF_ISP_ACQ_PROP);
-	rkisp1_write(dev, val | input_sel, RKISP1_CIF_ISP_ACQ_PROP);
+	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_ACQ_PROP);
+	rkisp1_write(rkisp1, val | input_sel, RKISP1_CIF_ISP_ACQ_PROP);
 
 	return 0;
 }
 
-static int rkisp1_config_mipi(struct rkisp1_device *dev)
+static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = dev->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
 	/*
-	 * dev->active_sensor->mbus is set in isp or d-phy notifier_bound
+	 * rkisp1->active_sensor->mbus is set in isp or d-phy notifier_bound
 	 * function
 	 */
-	switch (dev->active_sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
+	switch (rkisp1->active_sensor->mbus.flags & V4L2_MBUS_CSI2_LANES) {
 	case V4L2_MBUS_CSI2_4_LANE:
 		lanes = 4;
 		break;
@@ -302,137 +298,137 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 		    RKISP1_CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP |
 		    RKISP1_CIF_MIPI_CTRL_CLOCKLANE_ENA;
 
-	rkisp1_write(dev, mipi_ctrl, RKISP1_CIF_MIPI_CTRL);
+	rkisp1_write(rkisp1, mipi_ctrl, RKISP1_CIF_MIPI_CTRL);
 
 	/* Configure Data Type and Virtual Channel */
-	rkisp1_write(dev, RKISP1_CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) |
+	rkisp1_write(rkisp1, RKISP1_CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) |
 		     RKISP1_CIF_MIPI_DATA_SEL_VC(0),
 		     RKISP1_CIF_MIPI_IMG_DATA_SEL);
 
 	/* Clear MIPI interrupts */
-	rkisp1_write(dev, ~0, RKISP1_CIF_MIPI_ICR);
+	rkisp1_write(rkisp1, ~0, RKISP1_CIF_MIPI_ICR);
 	/*
 	 * Disable RKISP1_CIF_MIPI_ERR_DPHY interrupt here temporary for
 	 * isp bus may be dead when switch isp.
 	 */
-	rkisp1_write(dev,
+	rkisp1_write(rkisp1,
 		     RKISP1_CIF_MIPI_FRAME_END | RKISP1_CIF_MIPI_ERR_CSI |
 		     RKISP1_CIF_MIPI_ERR_DPHY |
 		     RKISP1_CIF_MIPI_SYNC_FIFO_OVFLW(0x03) |
 		     RKISP1_CIF_MIPI_ADD_DATA_OVFLW,
 		     RKISP1_CIF_MIPI_IMSC);
 
-	dev_dbg(dev->dev, "\n  MIPI_CTRL 0x%08x\n"
+	dev_dbg(rkisp1->dev, "\n  MIPI_CTRL 0x%08x\n"
 		"  MIPI_IMG_DATA_SEL 0x%08x\n"
 		"  MIPI_STATUS 0x%08x\n"
 		"  MIPI_IMSC 0x%08x\n",
-		rkisp1_read(dev, RKISP1_CIF_MIPI_CTRL),
-		rkisp1_read(dev, RKISP1_CIF_MIPI_IMG_DATA_SEL),
-		rkisp1_read(dev, RKISP1_CIF_MIPI_STATUS),
-		rkisp1_read(dev, RKISP1_CIF_MIPI_IMSC));
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL),
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMG_DATA_SEL),
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_STATUS),
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC));
 
 	return 0;
 }
 
 /* Configure MUX */
-static int rkisp1_config_path(struct rkisp1_device *dev)
+static int rkisp1_config_path(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_sensor_async *sensor = dev->active_sensor;
-	u32 dpcl = rkisp1_read(dev, RKISP1_CIF_VI_DPCL);
+	struct rkisp1_sensor_async *sensor = rkisp1->active_sensor;
+	u32 dpcl = rkisp1_read(rkisp1, RKISP1_CIF_VI_DPCL);
 	int ret = 0;
 
 	if (sensor->mbus.type == V4L2_MBUS_BT656 ||
 	    sensor->mbus.type == V4L2_MBUS_PARALLEL) {
-		ret = rkisp1_config_dvp(dev);
+		ret = rkisp1_config_dvp(rkisp1);
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_PARALLEL;
 	} else if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
-		ret = rkisp1_config_mipi(dev);
+		ret = rkisp1_config_mipi(rkisp1);
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_MIPI;
 	}
 
-	rkisp1_write(dev, dpcl, RKISP1_CIF_VI_DPCL);
+	rkisp1_write(rkisp1, dpcl, RKISP1_CIF_VI_DPCL);
 
 	return ret;
 }
 
 /* Hardware configure Entry */
-static int rkisp1_config_cif(struct rkisp1_device *dev)
+static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 {
 	u32 cif_id;
 	int ret;
 
-	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
-		dev->streams[RKISP1_STREAM_SP].streaming,
-		dev->streams[RKISP1_STREAM_MP].streaming);
+	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
+		rkisp1->streams[RKISP1_STREAM_SP].streaming,
+		rkisp1->streams[RKISP1_STREAM_MP].streaming);
 
-	cif_id = rkisp1_read(dev, RKISP1_CIF_VI_ID);
-	dev_dbg(dev->dev, "CIF_ID 0x%08x\n", cif_id);
+	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
+	dev_dbg(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
 
-	ret = rkisp1_config_isp(dev);
+	ret = rkisp1_config_isp(rkisp1);
 	if (ret < 0)
 		return ret;
-	ret = rkisp1_config_path(dev);
+	ret = rkisp1_config_path(rkisp1);
 	if (ret < 0)
 		return ret;
-	rkisp1_config_ism(dev);
+	rkisp1_config_ism(rkisp1);
 
 	return 0;
 }
 
 /* Mess register operations to stop ISP */
-static int rkisp1_isp_stop(struct rkisp1_device *dev)
+static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 {
 	u32 val;
 
-	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
-		dev->streams[RKISP1_STREAM_SP].streaming,
-		dev->streams[RKISP1_STREAM_MP].streaming);
+	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
+		rkisp1->streams[RKISP1_STREAM_SP].streaming,
+		rkisp1->streams[RKISP1_STREAM_MP].streaming);
 
 	/*
 	 * ISP(mi) stop in mi frame end -> Stop ISP(mipi) ->
 	 * Stop ISP(isp) ->wait for ISP isp off
 	 */
 	/* stop and clear MI, MIPI, and ISP interrupts */
-	rkisp1_write(dev, 0, RKISP1_CIF_MIPI_IMSC);
-	rkisp1_write(dev, ~0, RKISP1_CIF_MIPI_ICR);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_MIPI_IMSC);
+	rkisp1_write(rkisp1, ~0, RKISP1_CIF_MIPI_ICR);
 
-	rkisp1_write(dev, 0, RKISP1_CIF_ISP_IMSC);
-	rkisp1_write(dev, ~0, RKISP1_CIF_ISP_ICR);
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_ISP_IMSC);
+	rkisp1_write(rkisp1, ~0, RKISP1_CIF_ISP_ICR);
 
-	rkisp1_write(dev, 0, RKISP1_CIF_MI_IMSC);
-	rkisp1_write(dev, ~0, RKISP1_CIF_MI_ICR);
-	val = rkisp1_read(dev, RKISP1_CIF_MIPI_CTRL);
-	rkisp1_write(dev, val & (~RKISP1_CIF_MIPI_CTRL_OUTPUT_ENA),
+	rkisp1_write(rkisp1, 0, RKISP1_CIF_MI_IMSC);
+	rkisp1_write(rkisp1, ~0, RKISP1_CIF_MI_ICR);
+	val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL);
+	rkisp1_write(rkisp1, val & (~RKISP1_CIF_MIPI_CTRL_OUTPUT_ENA),
 		     RKISP1_CIF_MIPI_CTRL);
 	/* stop ISP */
-	val = rkisp1_read(dev, RKISP1_CIF_ISP_CTRL);
+	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
 	val &= ~(RKISP1_CIF_ISP_CTRL_ISP_INFORM_ENABLE |
 		 RKISP1_CIF_ISP_CTRL_ISP_ENABLE);
-	rkisp1_write(dev, val, RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, val, RKISP1_CIF_ISP_CTRL);
 
-	val = rkisp1_read(dev,	RKISP1_CIF_ISP_CTRL);
-	rkisp1_write(dev, val | RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD,
+	val = rkisp1_read(rkisp1,	RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, val | RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD,
 		     RKISP1_CIF_ISP_CTRL);
 
-	readx_poll_timeout(readl, dev->base_addr + RKISP1_CIF_ISP_RIS,
+	readx_poll_timeout(readl, rkisp1->base_addr + RKISP1_CIF_ISP_RIS,
 			   val, val & RKISP1_CIF_ISP_OFF, 20, 100);
-	dev_dbg(dev->dev,
+	dev_dbg(rkisp1->dev,
 		"streaming(MP:%d, SP:%d), MI_CTRL:%x, ISP_CTRL:%x, MIPI_CTRL:%x\n",
-		dev->streams[RKISP1_STREAM_SP].streaming,
-		dev->streams[RKISP1_STREAM_MP].streaming,
-		rkisp1_read(dev, RKISP1_CIF_MI_CTRL),
-		rkisp1_read(dev, RKISP1_CIF_ISP_CTRL),
-		rkisp1_read(dev, RKISP1_CIF_MIPI_CTRL));
+		rkisp1->streams[RKISP1_STREAM_SP].streaming,
+		rkisp1->streams[RKISP1_STREAM_MP].streaming,
+		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
+		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
 
-	rkisp1_write(dev,
+	rkisp1_write(rkisp1,
 		     RKISP1_CIF_IRCL_MIPI_SW_RST | RKISP1_CIF_IRCL_ISP_SW_RST,
 		     RKISP1_CIF_IRCL);
-	rkisp1_write(dev, 0x0, RKISP1_CIF_IRCL);
+	rkisp1_write(rkisp1, 0x0, RKISP1_CIF_IRCL);
 
 	return 0;
 }
 
-static void rkisp1_config_clk(struct rkisp1_device *dev)
+static void rkisp1_config_clk(struct rkisp1_device *rkisp1)
 {
 	u32 val = RKISP1_CIF_ICCL_ISP_CLK | RKISP1_CIF_ICCL_CP_CLK |
 		  RKISP1_CIF_ICCL_MRSZ_CLK | RKISP1_CIF_ICCL_SRSZ_CLK |
@@ -440,33 +436,33 @@ static void rkisp1_config_clk(struct rkisp1_device *dev)
 		  RKISP1_CIF_ICCL_IE_CLK | RKISP1_CIF_ICCL_MIPI_CLK |
 		  RKISP1_CIF_ICCL_DCROP_CLK;
 
-	rkisp1_write(dev, val, RKISP1_CIF_ICCL);
+	rkisp1_write(rkisp1, val, RKISP1_CIF_ICCL);
 }
 
 /* Mess register operations to start ISP */
-static int rkisp1_isp_start(struct rkisp1_device *dev)
+static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_sensor_async *sensor = dev->active_sensor;
+	struct rkisp1_sensor_async *sensor = rkisp1->active_sensor;
 	u32 val;
 
-	dev_dbg(dev->dev, "SP streaming = %d, MP streaming = %d\n",
-		dev->streams[RKISP1_STREAM_SP].streaming,
-		dev->streams[RKISP1_STREAM_MP].streaming);
+	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
+		rkisp1->streams[RKISP1_STREAM_SP].streaming,
+		rkisp1->streams[RKISP1_STREAM_MP].streaming);
 
-	rkisp1_config_clk(dev);
+	rkisp1_config_clk(rkisp1);
 
 	/* Activate MIPI */
 	if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
-		val = rkisp1_read(dev, RKISP1_CIF_MIPI_CTRL);
-		rkisp1_write(dev, val | RKISP1_CIF_MIPI_CTRL_OUTPUT_ENA,
+		val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL);
+		rkisp1_write(rkisp1, val | RKISP1_CIF_MIPI_CTRL_OUTPUT_ENA,
 			     RKISP1_CIF_MIPI_CTRL);
 	}
 	/* Activate ISP */
-	val = rkisp1_read(dev, RKISP1_CIF_ISP_CTRL);
+	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
 	val |= RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD |
 	       RKISP1_CIF_ISP_CTRL_ISP_ENABLE |
 	       RKISP1_CIF_ISP_CTRL_ISP_INFORM_ENABLE;
-	rkisp1_write(dev, val, RKISP1_CIF_ISP_CTRL);
+	rkisp1_write(rkisp1, val, RKISP1_CIF_ISP_CTRL);
 
 	/* XXX: Is the 1000us too long?
 	 * CIF spec says to wait for sufficient time after enabling
@@ -474,14 +470,14 @@ static int rkisp1_isp_start(struct rkisp1_device *dev)
 	 */
 	usleep_range(1000, 1200);
 
-	dev_dbg(dev->dev,
+	dev_dbg(rkisp1->dev,
 		"SP streaming = %d, MP streaming = %d MI_CTRL 0x%08x\n"
 		"  ISP_CTRL 0x%08x MIPI_CTRL 0x%08x\n",
-		dev->streams[RKISP1_STREAM_SP].streaming,
-		dev->streams[RKISP1_STREAM_MP].streaming,
-		rkisp1_read(dev, RKISP1_CIF_MI_CTRL),
-		rkisp1_read(dev, RKISP1_CIF_ISP_CTRL),
-		rkisp1_read(dev, RKISP1_CIF_MIPI_CTRL));
+		rkisp1->streams[RKISP1_STREAM_SP].streaming,
+		rkisp1->streams[RKISP1_STREAM_MP].streaming,
+		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
+		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
+		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
 
 	return 0;
 }
@@ -924,13 +920,15 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_selection *sel)
 {
 	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
-	struct rkisp1_device *dev = rkisp1_sd_to_isp_dev(sd);
+	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
+						    struct rkisp1_device,
+						    v4l2_dev);
 
 	if (sel->target != V4L2_SEL_TGT_CROP)
 		return -EINVAL;
 
-	dev_dbg(dev->dev, "%s: pad: %d sel(%d,%d)/%dx%d\n", __func__, sel->pad,
-		sel->r.left, sel->r.top, sel->r.width, sel->r.height);
+	dev_dbg(rkisp1->dev, "%s: pad: %d sel(%d,%d)/%dx%d\n", __func__,
+		sel->pad, sel->r.left, sel->r.top, sel->r.width, sel->r.height);
 
 	if (sel->pad == RKISP1_ISP_PAD_SINK_VIDEO)
 		rkisp1_isp_sd_set_in_crop(isp_sd, cfg, &sel->r, sel->which);
@@ -976,41 +974,43 @@ static void rkisp1_mipi_csi2_s_stream_stop(struct rkisp1_sensor_async *sensor)
 
 static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
 {
-	struct rkisp1_device *isp_dev = rkisp1_sd_to_isp_dev(sd);
+	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
+						    struct rkisp1_device,
+						    v4l2_dev);
 	struct v4l2_subdev *sensor_sd;
 	int ret = 0;
 
 	if (!on) {
-		ret = rkisp1_isp_stop(isp_dev);
+		ret = rkisp1_isp_stop(rkisp1);
 		if (ret < 0)
 			return ret;
-		rkisp1_mipi_csi2_s_stream_stop(isp_dev->active_sensor);
+		rkisp1_mipi_csi2_s_stream_stop(rkisp1->active_sensor);
 		return 0;
 	}
 
 	sensor_sd = rkisp1_get_remote_sensor(sd);
 	if (!sensor_sd)
 		return -ENODEV;
-	isp_dev->active_sensor = container_of(sensor_sd->asd,
+	rkisp1->active_sensor = container_of(sensor_sd->asd,
 					      struct rkisp1_sensor_async, asd);
 
-	atomic_set(&isp_dev->isp_sdev.frm_sync_seq, 0);
-	ret = rkisp1_config_cif(isp_dev);
+	atomic_set(&rkisp1->isp_sdev.frm_sync_seq, 0);
+	ret = rkisp1_config_cif(rkisp1);
 	if (ret < 0)
 		return ret;
 
 	/* TODO: support other interfaces */
-	if (isp_dev->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
+	if (rkisp1->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
-	ret = rkisp1_mipi_csi2_s_stream_start(&isp_dev->isp_sdev,
-				       isp_dev->active_sensor);
+	ret = rkisp1_mipi_csi2_s_stream_start(&rkisp1->isp_sdev,
+				       rkisp1->active_sensor);
 	if (ret < 0)
 		return ret;
 
-	ret = rkisp1_isp_start(isp_dev);
+	ret = rkisp1_isp_start(rkisp1);
 	if (ret)
-		rkisp1_mipi_csi2_s_stream_stop(isp_dev->active_sensor);
+		rkisp1_mipi_csi2_s_stream_stop(rkisp1->active_sensor);
 
 	return ret;
 }
@@ -1091,11 +1091,11 @@ static const struct v4l2_subdev_ops rkisp1_isp_sd_ops = {
 	.pad = &rkisp1_isp_sd_pad_ops,
 };
 
-int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
+int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 			       struct v4l2_device *v4l2_dev)
 {
-	struct media_pad *pads = isp_dev->isp_sdev.pads;
-	struct v4l2_subdev *sd = &isp_dev->isp_sdev.sd;
+	struct media_pad *pads = rkisp1->isp_sdev.pads;
+	struct v4l2_subdev *sd = &rkisp1->isp_sdev.sd;
 	int ret;
 
 	v4l2_subdev_init(sd, &rkisp1_isp_sd_ops);
@@ -1108,15 +1108,15 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
-	isp_dev->isp_sdev.in_fmt = rkisp1_find_fmt(RKISP1_DEF_SINK_PAD_FMT);
-	isp_dev->isp_sdev.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
+	rkisp1->isp_sdev.in_fmt = rkisp1_find_fmt(RKISP1_DEF_SINK_PAD_FMT);
+	rkisp1->isp_sdev.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
 	if (ret < 0)
 		return ret;
 
 	sd->owner = THIS_MODULE;
-	v4l2_set_subdevdata(sd, isp_dev);
+	v4l2_set_subdevdata(sd, rkisp1);
 
 	ret = v4l2_device_register_subdev(v4l2_dev, sd);
 	if (ret < 0) {
@@ -1124,7 +1124,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 		goto err_cleanup_media_entity;
 	}
 
-	rkisp1_isp_sd_init_config(sd, isp_dev->isp_sdev.pad_cfg);
+	rkisp1_isp_sd_init_config(sd, rkisp1->isp_sdev.pad_cfg);
 	return 0;
 
 err_cleanup_media_entity:
@@ -1133,9 +1133,9 @@ err_cleanup_media_entity:
 	return ret;
 }
 
-void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
+void rkisp1_unregister_isp_subdev(struct rkisp1_device *rkisp1)
 {
-	struct v4l2_subdev *sd = &isp_dev->isp_sdev.sd;
+	struct v4l2_subdev *sd = &rkisp1->isp_sdev.sd;
 
 	v4l2_device_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
@@ -1143,14 +1143,14 @@ void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev)
 
 /****************  Interrupter Handlers ****************/
 
-void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
+void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
 {
 	unsigned long lock_flags = 0;
 	u32 val, status;
 
-	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
-	status = dev->irq_status_mipi;
-	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
+	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
+	status = rkisp1->irq_status_mipi;
+	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
 	if (!status)
 		return;
 
@@ -1161,10 +1161,10 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
 	 * is hold in this interrupt.
 	 */
 	if (status & RKISP1_CIF_MIPI_ERR_CTRL(0x0f)) {
-		val = rkisp1_read(dev, RKISP1_CIF_MIPI_IMSC);
-		rkisp1_write(dev, val & ~RKISP1_CIF_MIPI_ERR_CTRL(0x0f),
+		val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
+		rkisp1_write(rkisp1, val & ~RKISP1_CIF_MIPI_ERR_CTRL(0x0f),
 			     RKISP1_CIF_MIPI_IMSC);
-		dev->isp_sdev.dphy_errctrl_disabled = true;
+		rkisp1->isp_sdev.dphy_errctrl_disabled = true;
 	}
 
 	/*
@@ -1176,36 +1176,36 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *dev)
 		 * Enable DPHY errctrl interrupt again, if mipi have receive
 		 * the whole frame without any error.
 		 */
-		if (dev->isp_sdev.dphy_errctrl_disabled) {
-			val = rkisp1_read(dev, RKISP1_CIF_MIPI_IMSC);
+		if (rkisp1->isp_sdev.dphy_errctrl_disabled) {
+			val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
 			val |= RKISP1_CIF_MIPI_ERR_CTRL(0x0f);
-			rkisp1_write(dev, val, RKISP1_CIF_MIPI_IMSC);
-			dev->isp_sdev.dphy_errctrl_disabled = false;
+			rkisp1_write(rkisp1, val, RKISP1_CIF_MIPI_IMSC);
+			rkisp1->isp_sdev.dphy_errctrl_disabled = false;
 		}
 	} else {
-		dev_warn(dev->dev, "MIPI status error: 0x%08x\n", status);
+		dev_warn(rkisp1->dev, "MIPI status error: 0x%08x\n", status);
 	}
 }
 
-void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
+void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 {
 	unsigned long lock_flags = 0;
 	u32 status, status_aux, isp_err;
 
-	spin_lock_irqsave(&dev->irq_status_lock, lock_flags);
-	status = dev->irq_status_isp;
-	spin_unlock_irqrestore(&dev->irq_status_lock, lock_flags);
+	spin_lock_irqsave(&rkisp1->irq_status_lock, lock_flags);
+	status = rkisp1->irq_status_isp;
+	spin_unlock_irqrestore(&rkisp1->irq_status_lock, lock_flags);
 	if (!status)
 		return;
 
 	/* start edge of v_sync */
 	if (status & RKISP1_CIF_ISP_V_START) {
-		rkisp1_isp_queue_event_sof(&dev->isp_sdev);
+		rkisp1_isp_queue_event_sof(&rkisp1->isp_sdev);
 
 		// TODO: Let's just get rid of this debugging stuff entirely.
-		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
+		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_V_START)
-			dev_err(dev->dev, "isp icr v_statr err: 0x%x\n",
+			dev_err(rkisp1->dev, "isp icr v_statr err: 0x%x\n",
 				status_aux);
 	}
 
@@ -1213,22 +1213,23 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 		/* Clear pic_size_error */
 
 		// TODO just keep an err counter and debugfs-it
-		isp_err = rkisp1_read(dev, RKISP1_CIF_ISP_ERR);
-		dev_err(dev->dev, "RKISP1_CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
-		rkisp1_write(dev, isp_err, RKISP1_CIF_ISP_ERR_CLR);
+		isp_err = rkisp1_read(rkisp1, RKISP1_CIF_ISP_ERR);
+		dev_err(rkisp1->dev,
+			"RKISP1_CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
+		rkisp1_write(rkisp1, isp_err, RKISP1_CIF_ISP_ERR_CLR);
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
 		/* data_loss */
 
 		// TODO just keep an err counter and debugfs-it
-		dev_err(dev->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
+		dev_err(rkisp1->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
 	}
 
 	if (status & RKISP1_CIF_ISP_FRAME_IN) {
 		/* TODO: why does it reads the interrupt status again? */
-		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
+		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_FRAME_IN)
-			dev_err(dev->dev, "isp icr frame_in err: 0x%x\n",
-				status_aux);
+			dev_err(rkisp1->dev,
+				"isp icr frame_in err: 0x%x\n", status_aux);
 		// TODO drop it.
 	}
 
@@ -1237,13 +1238,13 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 
 		/* Frame In (ISP) */
 		/* TODO: why does it reads the interrupt status again? */
-		status_aux = rkisp1_read(dev, RKISP1_CIF_ISP_MIS);
+		status_aux = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
 		if (status_aux & RKISP1_CIF_ISP_FRAME)
-			dev_err(dev->dev,
+			dev_err(rkisp1->dev,
 				"isp icr frame end err: 0x%x\n", status_aux);
 		// TODO drop
 
-		isp_ris = rkisp1_read(dev, RKISP1_CIF_ISP_RIS);
+		isp_ris = rkisp1_read(rkisp1, RKISP1_CIF_ISP_RIS);
 		if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 			       RKISP1_CIF_ISP_AFM_FIN |
 			       RKISP1_CIF_ISP_EXP_END |
@@ -1254,7 +1255,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 			// but that's a matter of taste, naming isr to each
 			// function that handles the interrupts can also help
 			// to navigate the code i guess.
-			rkisp1_stats_isr_thread(&dev->stats_vdev, isp_ris);
+			rkisp1_stats_isr_thread(&rkisp1->stats_vdev, isp_ris);
 	}
 
 	/*
@@ -1262,5 +1263,5 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *dev)
 	 * lot of register writes. Do those only one per frame.
 	 * Do the updates in the order of the processing flow.
 	 */
-	rkisp1_params_isr(dev, status);
+	rkisp1_params_isr(rkisp1, status);
 }

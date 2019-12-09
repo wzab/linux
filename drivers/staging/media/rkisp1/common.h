@@ -176,7 +176,7 @@ struct rkisp1_device;
  */
 struct rkisp1_stream {
 	unsigned id:1;
-	struct rkisp1_device *ispdev;
+	struct rkisp1_device *rkisp1;
 	struct rkisp1_vdev_node vnode;
 	const struct rkisp1_stream_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
@@ -206,7 +206,7 @@ struct rkisp1_stream {
  */
 struct rkisp1_isp_stats_vdev {
 	struct rkisp1_vdev_node vnode;
-	struct rkisp1_device *dev;
+	struct rkisp1_device *rkisp1;
 
 	spinlock_t irq_lock;
 	struct list_head stat;
@@ -225,7 +225,7 @@ struct rkisp1_isp_stats_vdev {
  */
 struct rkisp1_isp_params_vdev {
 	struct rkisp1_vdev_node vnode;
-	struct rkisp1_device *dev;
+	struct rkisp1_device *rkisp1;
 
 	spinlock_t config_lock;
 	struct list_head params;
@@ -316,14 +316,14 @@ rkisp1_to_rkisp1_buffer(struct vb2_v4l2_buffer *vb)
 }
 
 static inline void
-rkisp1_write(struct rkisp1_device *dev, u32 val, unsigned int addr)
+rkisp1_write(struct rkisp1_device *rkisp1, u32 val, unsigned int addr)
 {
-	writel(val, dev->base_addr + addr);
+	writel(val, rkisp1->base_addr + addr);
 }
 
-static inline u32 rkisp1_read(struct rkisp1_device *dev, unsigned int addr)
+static inline u32 rkisp1_read(struct rkisp1_device *rkisp1, unsigned int addr)
 {
-	return readl(dev->base_addr + addr);
+	return readl(rkisp1->base_addr + addr);
 }
 
 struct v4l2_mbus_framefmt *
@@ -335,25 +335,25 @@ struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
 					     struct v4l2_subdev_pad_config *cfg,
 					     unsigned int pad, u32 which);
 
-int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
+int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 			       struct v4l2_device *v4l2_dev);
 
-void rkisp1_unregister_isp_subdev(struct rkisp1_device *isp_dev);
+void rkisp1_unregister_isp_subdev(struct rkisp1_device *rkisp1);
 
-void rkisp1_mipi_isr_thread(struct rkisp1_device *dev);
+void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1);
 
-void rkisp1_isp_isr_thread(struct rkisp1_device *dev);
+void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1);
 
-void rkisp1_unregister_stream_vdevs(struct rkisp1_device *dev);
-int rkisp1_register_stream_vdevs(struct rkisp1_device *dev);
-void rkisp1_stream_isr_thread(struct rkisp1_device *dev);
-void rkisp1_stream_init(struct rkisp1_device *dev, u32 id);
+void rkisp1_unregister_stream_vdevs(struct rkisp1_device *rkisp1);
+int rkisp1_register_stream_vdevs(struct rkisp1_device *rkisp1);
+void rkisp1_stream_isr_thread(struct rkisp1_device *rkisp1);
+void rkisp1_stream_init(struct rkisp1_device *rkisp1, u32 id);
 
 void rkisp1_stats_isr_thread(struct rkisp1_isp_stats_vdev *stats_vdev,
 			     u32 isp_ris);
 int rkisp1_register_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev,
 			       struct v4l2_device *v4l2_dev,
-			       struct rkisp1_device *dev);
+			       struct rkisp1_device *rkisp1);
 void rkisp1_unregister_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev);
 
 /* config params before ISP streaming */
@@ -364,11 +364,11 @@ void rkisp1_params_disable_isp(struct rkisp1_isp_params_vdev *params_vdev);
 
 int rkisp1_register_params_vdev(struct rkisp1_isp_params_vdev *params_vdev,
 				struct v4l2_device *v4l2_dev,
-				struct rkisp1_device *dev);
+				struct rkisp1_device *rkisp1);
 
 void rkisp1_unregister_params_vdev(struct rkisp1_isp_params_vdev *params_vdev);
 
-void rkisp1_params_isr(struct rkisp1_device *dev, u32 isp_mis);
+void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
 
 
 #endif /* _RKISP1_COMMON_H */

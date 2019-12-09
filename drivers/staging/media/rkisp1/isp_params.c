@@ -33,13 +33,13 @@
 static inline void rkisp1_iowrite32(struct rkisp1_isp_params_vdev *params_vdev,
 				    u32 value, u32 addr)
 {
-	iowrite32(value, params_vdev->dev->base_addr + addr);
+	iowrite32(value, params_vdev->rkisp1->base_addr + addr);
 }
 
 static inline u32 rkisp1_ioread32(struct rkisp1_isp_params_vdev *params_vdev,
 				  u32 addr)
 {
-	return ioread32(params_vdev->dev->base_addr + addr);
+	return ioread32(params_vdev->rkisp1->base_addr + addr);
 }
 
 static inline void rkisp1_param_set_bits(struct rkisp1_isp_params_vdev
@@ -1204,14 +1204,14 @@ rkisp1_isp_isr_meas_config(struct rkisp1_isp_params_vdev *params_vdev,
 	}
 }
 
-void rkisp1_params_isr(struct rkisp1_device *dev, u32 isp_mis)
+void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 {
-	struct rkisp1_isp_params_vdev *params_vdev = &dev->params_vdev;
+	struct rkisp1_isp_params_vdev *params_vdev = &rkisp1->params_vdev;
 	struct rkisp1_isp_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
 
-	cur_frame_id = atomic_read(&dev->isp_sdev.frm_sync_seq) - 1;
+	cur_frame_id = atomic_read(&rkisp1->isp_sdev.frm_sync_seq) - 1;
 
 	spin_lock(&params_vdev->config_lock);
 	if (!params_vdev->streamon) {
@@ -1468,7 +1468,7 @@ static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 	unsigned int cur_frame_id = -1;
 
 	cur_frame_id =
-		atomic_read(&params_vdev->dev->isp_sdev.frm_sync_seq) - 1;
+		atomic_read(&params_vdev->rkisp1->isp_sdev.frm_sync_seq) - 1;
 
 	if (params_vdev->first_params) {
 		new_params = (struct rkisp1_isp_params_cfg *)
@@ -1590,13 +1590,13 @@ static void rkisp1_init_params_vdev(struct rkisp1_isp_params_vdev *params_vdev)
 
 int rkisp1_register_params_vdev(struct rkisp1_isp_params_vdev *params_vdev,
 				struct v4l2_device *v4l2_dev,
-				struct rkisp1_device *dev)
+				struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_vdev_node *node = &params_vdev->vnode;
 	struct video_device *vdev = &node->vdev;
 	int ret;
 
-	params_vdev->dev = dev;
+	params_vdev->rkisp1 = rkisp1;
 	mutex_init(&node->vlock);
 	spin_lock_init(&params_vdev->config_lock);
 
