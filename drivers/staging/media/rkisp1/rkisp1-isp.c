@@ -1079,8 +1079,8 @@ static const struct v4l2_subdev_ops rkisp1_isp_ops = {
 	.pad = &rkisp1_isp_pad_ops,
 };
 
-int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
-			       struct v4l2_device *v4l2_dev)
+int rkisp1_isp_register(struct rkisp1_device *rkisp1,
+			struct v4l2_device *v4l2_dev)
 {
 	struct media_pad *pads = rkisp1->isp.pads;
 	struct v4l2_subdev *sd = &rkisp1->isp.sd;
@@ -1121,7 +1121,7 @@ err_cleanup_media_entity:
 	return ret;
 }
 
-void rkisp1_unregister_isp_subdev(struct rkisp1_device *rkisp1)
+void rkisp1_isp_unregister(struct rkisp1_device *rkisp1)
 {
 	struct v4l2_subdev *sd = &rkisp1->isp.sd;
 

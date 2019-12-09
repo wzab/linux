@@ -1575,9 +1575,9 @@ static void rkisp1_init_params(struct rkisp1_params *params)
 		sizeof(struct rkisp1_params_cfg);
 }
 
-int rkisp1_register_params(struct rkisp1_params *params,
-				struct v4l2_device *v4l2_dev,
-				struct rkisp1_device *rkisp1)
+int rkisp1_params_register(struct rkisp1_params *params,
+			   struct v4l2_device *v4l2_dev,
+			   struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_vdev_node *node = &params->vnode;
 	struct video_device *vdev = &node->vdev;
@@ -1624,7 +1624,7 @@ err_release_queue:
 	return ret;
 }
 
-void rkisp1_unregister_params(struct rkisp1_params *params)
+void rkisp1_params_unregister(struct rkisp1_params *params)
 {
 	struct rkisp1_vdev_node *node = &params->vnode;
 	struct video_device *vdev = &node->vdev;

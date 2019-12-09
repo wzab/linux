@@ -434,9 +434,9 @@ static void rkisp1_init_stats(struct rkisp1_stats *stats)
 		sizeof(struct rkisp1_stat_buffer);
 }
 
-int rkisp1_register_stats(struct rkisp1_stats *stats,
-			       struct v4l2_device *v4l2_dev,
-			       struct rkisp1_device *rkisp1)
+int rkisp1_stats_register(struct rkisp1_stats *stats,
+			  struct v4l2_device *v4l2_dev,
+			  struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_vdev_node *node = &stats->vnode;
 	struct video_device *vdev = &node->vdev;
@@ -497,7 +497,7 @@ err_release_queue:
 	return ret;
 }
 
-void rkisp1_unregister_stats(struct rkisp1_stats *stats)
+void rkisp1_stats_unregister(struct rkisp1_stats *stats)
 {
 	struct rkisp1_vdev_node *node = &stats->vnode;
 	struct video_device *vdev = &node->vdev;

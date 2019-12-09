@@ -223,19 +223,19 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 {
 	int ret;
 
-	ret = rkisp1_register_isp_subdev(rkisp1, &rkisp1->v4l2_dev);
+	ret = rkisp1_isp_register(rkisp1, &rkisp1->v4l2_dev);
 	if (ret < 0)
 		return ret;
 
-	ret = rkisp1_register_capture_devs(rkisp1);
+	ret = rkisp1_capture_devs_register(rkisp1);
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
 
-	ret = rkisp1_register_stats(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
+	ret = rkisp1_stats_register(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
 		goto err_unreg_capture_devs;
 
-	ret = rkisp1_register_params(&rkisp1->params,
+	ret = rkisp1_params_register(&rkisp1->params,
 				     &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
 		goto err_unreg_stats;
@@ -249,13 +249,13 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 
 	return 0;
 err_unreg_params:
-	rkisp1_unregister_params(&rkisp1->params);
+	rkisp1_params_unregister(&rkisp1->params);
 err_unreg_stats:
-	rkisp1_unregister_stats(&rkisp1->stats);
+	rkisp1_stats_unregister(&rkisp1->stats);
 err_unreg_capture_devs:
-	rkisp1_unregister_capture_devs(rkisp1);
+	rkisp1_capture_devs_unregister(rkisp1);
 err_unreg_isp_subdev:
-	rkisp1_unregister_isp_subdev(rkisp1);
+	rkisp1_isp_unregister(rkisp1);
 	return ret;
 }
 
@@ -414,10 +414,10 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	v4l2_async_notifier_unregister(&rkisp1->notifier);
 	v4l2_async_notifier_cleanup(&rkisp1->notifier);
 
-	rkisp1_unregister_params(&rkisp1->params);
-	rkisp1_unregister_stats(&rkisp1->stats);
-	rkisp1_unregister_capture_devs(rkisp1);
-	rkisp1_unregister_isp_subdev(rkisp1);
+	rkisp1_params_unregister(&rkisp1->params);
+	rkisp1_stats_unregister(&rkisp1->stats);
+	rkisp1_capture_devs_unregister(rkisp1);
+	rkisp1_isp_unregister(rkisp1);
 
 	media_device_unregister(&rkisp1->media_dev);
 	v4l2_device_unregister(&rkisp1->v4l2_dev);

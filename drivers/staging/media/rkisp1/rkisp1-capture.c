@@ -1914,7 +1914,7 @@ static void rkisp1_unregister_capture(struct rkisp1_capture *cap)
 	video_unregister_device(&cap->vnode.vdev);
 }
 
-void rkisp1_unregister_capture_devs(struct rkisp1_device *rkisp1)
+void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_capture *mp = &rkisp1->capture_devs[RKISP1_CAPTURE_MP];
 	struct rkisp1_capture *sp = &rkisp1->capture_devs[RKISP1_CAPTURE_SP];
@@ -2025,7 +2025,7 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 	cap->dcrop.height = RKISP1_DEFAULT_HEIGHT;
 }
 
-int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1)
+int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_capture *cap;
 	unsigned int i, j;
