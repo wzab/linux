@@ -677,7 +677,7 @@ struct rkisp1_cif_isp_isp_meas_cfg {
 } __packed;
 
 /**
- * struct rkisp1_isp_params_cfg - Rockchip ISP1 Input Parameters Meta Data
+ * struct rkisp1_params_cfg - Rockchip ISP1 Input Parameters Meta Data
  *
  * @module_en_update: mask the enable bits of which module should be updated
  * @module_ens: mask the enable value of each module, only update the module
@@ -686,7 +686,7 @@ struct rkisp1_cif_isp_isp_meas_cfg {
  * @meas: measurement config
  * @others: other config
  */
-struct rkisp1_isp_params_cfg {
+struct rkisp1_params_cfg {
 	__u32 module_en_update;
 	__u32 module_ens;
 	__u32 module_cfg_update;

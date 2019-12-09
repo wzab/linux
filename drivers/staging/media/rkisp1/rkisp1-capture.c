@@ -1625,7 +1625,7 @@ rkisp1_try_fmt(const struct rkisp1_stream *stream,
 	// TODO: this checks the _other_ stream.
 	if (other_stream->streaming)
 		pixm->quantization = other_stream->out_fmt.quantization;
-	/* output full range by default, take effect in isp_params */
+	/* output full range by default, take effect in params */
 	else if (!pixm->quantization ||
 		 pixm->quantization > V4L2_QUANTIZATION_LIM_RANGE)
 		pixm->quantization = V4L2_QUANTIZATION_FULL_RANGE;

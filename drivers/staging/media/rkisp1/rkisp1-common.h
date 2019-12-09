@@ -198,13 +198,13 @@ struct rkisp1_stream {
 };
 
 /*
- * struct rkisp1_isp_stats_vdev - ISP Statistics device
+ * struct rkisp1_stats_vdev - ISP Statistics device
  *
  * @irq_lock: buffer queue lock
  * @stat: stats buffer list
  * @readout_wq: workqueue for statistics information read
  */
-struct rkisp1_isp_stats_vdev {
+struct rkisp1_stats_vdev {
 	struct rkisp1_vdev_node vnode;
 	struct rkisp1_device *rkisp1;
 
@@ -218,18 +218,18 @@ struct rkisp1_isp_stats_vdev {
 };
 
 /*
- * struct rkisp1_isp_params_vdev - ISP input parameters device
+ * struct rkisp1_params_vdev - ISP input parameters device
  *
  * @cur_params: Current ISP parameters
  * @first_params: the first params should take effect immediately
  */
-struct rkisp1_isp_params_vdev {
+struct rkisp1_params_vdev {
 	struct rkisp1_vdev_node vnode;
 	struct rkisp1_device *rkisp1;
 
 	spinlock_t config_lock;
 	struct list_head params;
-	struct rkisp1_isp_params_cfg cur_params;
+	struct rkisp1_params_cfg cur_params;
 	struct v4l2_format vdev_fmt;
 	bool streamon;
 	bool first_params;
@@ -260,8 +260,8 @@ struct rkisp1_device {
 	struct rkisp1_sensor_async *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
-	struct rkisp1_isp_stats_vdev stats_vdev;
-	struct rkisp1_isp_params_vdev params_vdev;
+	struct rkisp1_stats_vdev stats_vdev;
+	struct rkisp1_params_vdev params_vdev;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
 	u32 irq_status_mi;
@@ -339,24 +339,24 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *rkisp1);
 void rkisp1_stream_isr_thread(struct rkisp1_device *rkisp1);
 void rkisp1_stream_init(struct rkisp1_device *rkisp1, u32 id);
 
-void rkisp1_stats_isr_thread(struct rkisp1_isp_stats_vdev *stats_vdev,
+void rkisp1_stats_isr_thread(struct rkisp1_stats_vdev *stats_vdev,
 			     u32 isp_ris);
-int rkisp1_register_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev,
+int rkisp1_register_stats_vdev(struct rkisp1_stats_vdev *stats_vdev,
 			       struct v4l2_device *v4l2_dev,
 			       struct rkisp1_device *rkisp1);
-void rkisp1_unregister_stats_vdev(struct rkisp1_isp_stats_vdev *stats_vdev);
+void rkisp1_unregister_stats_vdev(struct rkisp1_stats_vdev *stats_vdev);
 
 /* config params before ISP streaming */
-void rkisp1_params_configure_isp(struct rkisp1_isp_params_vdev *params_vdev,
+void rkisp1_params_configure_isp(struct rkisp1_params_vdev *params_vdev,
 				 const struct rkisp1_fmt *in_fmt,
 				 enum v4l2_quantization quantization);
-void rkisp1_params_disable_isp(struct rkisp1_isp_params_vdev *params_vdev);
+void rkisp1_params_disable_isp(struct rkisp1_params_vdev *params_vdev);
 
-int rkisp1_register_params_vdev(struct rkisp1_isp_params_vdev *params_vdev,
+int rkisp1_register_params_vdev(struct rkisp1_params_vdev *params_vdev,
 				struct v4l2_device *v4l2_dev,
 				struct rkisp1_device *rkisp1);
 
-void rkisp1_unregister_params_vdev(struct rkisp1_isp_params_vdev *params_vdev);
+void rkisp1_unregister_params_vdev(struct rkisp1_params_vdev *params_vdev);
 
 void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
 
