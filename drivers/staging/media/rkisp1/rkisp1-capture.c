@@ -1991,12 +1991,12 @@ int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1)
 		cap->rkisp1 = rkisp1;
 		ret = rkisp1_register_capture(cap);
 		if (ret)
-			goto err;
+			goto err_unreg_capture_devs;
 	}
 
 	return 0;
-// XXX use meaningful label names
-err:
+
+err_unreg_capture_devs:
 	for (j = 0; j < i; j++) {
 		cap = &rkisp1->capture_devs[j];
 		rkisp1_unregister_capture(cap);
