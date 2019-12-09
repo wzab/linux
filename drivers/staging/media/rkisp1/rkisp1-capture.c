@@ -857,7 +857,8 @@ static int rkisp1_sp_config(struct rkisp1_capture *cap)
 	if (output_isp_fmt->uv_swap) {
 		u32 reg = rkisp1_read(rkisp1, RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 
-		rkisp1_write(rkisp1, reg & ~BIT(1), RKISP1_CIF_MI_XTD_FORMAT_CTRL);
+		rkisp1_write(rkisp1, reg & ~BIT(1),
+			     RKISP1_CIF_MI_XTD_FORMAT_CTRL);
 	}
 
 	rkisp1_mi_config_ctrl(cap);
@@ -1143,10 +1144,10 @@ void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1)
  */
 
 static int rkisp1_vb2_queue_setup(struct vb2_queue *queue,
-			      unsigned int *num_buffers,
-			      unsigned int *num_planes,
-			      unsigned int sizes[],
-			      struct device *alloc_devs[])
+				  unsigned int *num_buffers,
+				  unsigned int *num_planes,
+				  unsigned int sizes[],
+				  struct device *alloc_devs[])
 {
 	struct rkisp1_capture *cap = queue->drv_priv;
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
@@ -1839,7 +1840,7 @@ static const struct v4l2_ioctl_ops rkisp1_v4l2_ioctl_ops = {
 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
 };
 
-static int rkisp1_stream_link_validate(struct media_link *link)
+static int rkisp1_capture_link_validate(struct media_link *link)
 {
 	struct video_device *vdev =
 		media_entity_to_video_device(link->sink->entity);
@@ -1886,8 +1887,8 @@ static int rkisp1_stream_link_validate(struct media_link *link)
  * core functions
  */
 
-static const struct media_entity_operations rkisp1_isp_vdev_media_ops = {
-	.link_validate = rkisp1_stream_link_validate,
+static const struct media_entity_operations rkisp1_media_ops = {
+	.link_validate = rkisp1_capture_link_validate,
 };
 
 static const struct v4l2_file_operations rkisp1_fops = {
@@ -1937,7 +1938,7 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	vdev->lock = &node->vlock;
 	vdev->device_caps = V4L2_CAP_VIDEO_CAPTURE_MPLANE |
 			    V4L2_CAP_STREAMING;
-	vdev->entity.ops = &rkisp1_isp_vdev_media_ops;
+	vdev->entity.ops = &rkisp1_media_ops;
 	video_set_drvdata(vdev, cap);
 	vdev->vfl_dir = VFL_DIR_RX;
 	node->pad.flags = MEDIA_PAD_FL_SINK;
@@ -1980,32 +1981,7 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	return 0;
 }
 
-int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1)
-{
-	struct rkisp1_capture *cap;
-	unsigned int i, j;
-	int ret;
-
-	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); i++) {
-		cap = &rkisp1->capture_devs[i];
-		cap->rkisp1 = rkisp1;
-		ret = rkisp1_register_capture(cap);
-		if (ret)
-			goto err_unreg_capture_devs;
-	}
-
-	return 0;
-
-err_unreg_capture_devs:
-	for (j = 0; j < i; j++) {
-		cap = &rkisp1->capture_devs[j];
-		rkisp1_unregister_capture(cap);
-	}
-
-	return ret;
-}
-
-void
+static void
 rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 {
 	struct rkisp1_capture *cap = &rkisp1->capture_devs[id];
@@ -2038,4 +2014,31 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 	cap->dcrop.top = 0;
 	cap->dcrop.width = RKISP1_DEFAULT_WIDTH;
 	cap->dcrop.height = RKISP1_DEFAULT_HEIGHT;
+}
+
+int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1)
+{
+	struct rkisp1_capture *cap;
+	unsigned int i, j;
+	int ret;
+
+	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); i++) {
+
+		rkisp1_capture_init(rkisp1, i);
+		cap = &rkisp1->capture_devs[i];
+		cap->rkisp1 = rkisp1;
+		ret = rkisp1_register_capture(cap);
+		if (ret)
+			goto err_unreg_capture_devs;
+	}
+
+	return 0;
+
+err_unreg_capture_devs:
+	for (j = 0; j < i; j++) {
+		cap = &rkisp1->capture_devs[j];
+		rkisp1_unregister_capture(cap);
+	}
+
+	return ret;
 }

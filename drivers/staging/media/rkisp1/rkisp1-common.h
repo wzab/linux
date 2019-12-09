@@ -340,8 +340,6 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1);
 void rkisp1_unregister_capture_devs(struct rkisp1_device *rkisp1);
 int rkisp1_register_capture_devs(struct rkisp1_device *rkisp1);
 void rkisp1_capture_isr_thread(struct rkisp1_device *rkisp1);
-void rkisp1_capture_init(struct rkisp1_device *rkisp1,
-			 enum rkisp1_capture_id id);
 
 void rkisp1_stats_isr_thread(struct rkisp1_stats *stats, u32 isp_ris);
 int rkisp1_register_stats(struct rkisp1_stats *stats,

@@ -227,9 +227,6 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	if (ret < 0)
 		return ret;
 
-	rkisp1_capture_init(rkisp1, RKISP1_CAPTURE_SP);
-	rkisp1_capture_init(rkisp1, RKISP1_CAPTURE_MP);
-
 	ret = rkisp1_register_capture_devs(rkisp1);
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
