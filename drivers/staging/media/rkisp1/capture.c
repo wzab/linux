@@ -55,15 +55,6 @@
 /* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
 #define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
-/**
- * enum rkisp1_shadow_regs_when - define when to update shadow registers
- *
- * @RKISP1_SHADOW_REGS_SYNC	update shadow registers immediatly
- * @RKISP1_SHADOW_REGS_ASYNC	update shadow registers syncronized with frames
- *
- * Struct which matches the MEDIA_BUS_FMT_* codes with the corresponding
- * V4L2_PIX_FMT_* fourcc pixelformat and its bytes per pixel (bpp)
- */
 enum rkisp1_shadow_regs_when {
 	RKISP1_SHADOW_REGS_SYNC,
 	RKISP1_SHADOW_REGS_ASYNC,
