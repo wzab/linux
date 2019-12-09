@@ -536,9 +536,9 @@ static int rkisp1_dcrop_config(struct rkisp1_capture *cap)
 	u32 dc_ctrl;
 
 	/* dual-crop unit get data from ISP */
-	input_win = rkisp1_isp_sd_get_pad_crop(&rkisp1->isp_sdev, NULL,
-					       RKISP1_ISP_PAD_SINK_VIDEO,
-					       V4L2_SUBDEV_FORMAT_ACTIVE);
+	input_win = rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
+					    RKISP1_ISP_PAD_SINK_VIDEO,
+					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	if (dcrop->width == input_win->width &&
 	    dcrop->height == input_win->height &&
@@ -1061,7 +1061,7 @@ static void rkisp1_set_next_buf_regs(struct rkisp1_capture *cap)
 static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
-	struct rkisp1_isp_subdev *isp_sd = &cap->rkisp1->isp_sdev;
+	struct rkisp1_isp *isp = &cap->rkisp1->isp_sdev;
 	struct rkisp1_buffer *curr_buf = cap->curr_buf;
 	unsigned long lock_flags = 0;
 	unsigned int i;
@@ -1077,7 +1077,7 @@ static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 			vb2_set_plane_payload(&curr_buf->vb.vb2_buf, i,
 					      payload_size);
 		}
-		curr_buf->vb.sequence = atomic_read(&isp_sd->frm_sync_seq) - 1;
+		curr_buf->vb.sequence = atomic_read(&isp->frm_sync_seq) - 1;
 		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
@@ -1722,9 +1722,9 @@ static int rkisp1_g_selection(struct file *file, void *prv,
 	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
-	input_win = rkisp1_isp_sd_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
-					       RKISP1_ISP_PAD_SINK_VIDEO,
-					       V4L2_SUBDEV_FORMAT_ACTIVE);
+	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
+					    RKISP1_ISP_PAD_SINK_VIDEO,
+					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP_BOUNDS:
@@ -1791,9 +1791,9 @@ rkisp1_s_selection(struct file *file, void *prv, struct v4l2_selection *sel)
 	if (sel->flags != 0)
 		return -EINVAL;
 
-	input_win = rkisp1_isp_sd_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
-					       RKISP1_ISP_PAD_SINK_VIDEO,
-					       V4L2_SUBDEV_FORMAT_ACTIVE);
+	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
+					    RKISP1_ISP_PAD_SINK_VIDEO,
+					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	if (sel->target == V4L2_SEL_TGT_CROP) {
 		*dcrop = *rkisp1_crop_adjust(cap, &sel->r, input_win);
@@ -1845,21 +1845,21 @@ static int rkisp1_capture_link_validate(struct media_link *link)
 	struct video_device *vdev =
 		media_entity_to_video_device(link->sink->entity);
 	struct rkisp1_capture *cap = video_get_drvdata(vdev);
-	struct rkisp1_isp_subdev *isp_sd = &cap->rkisp1->isp_sdev;
+	struct rkisp1_isp *isp = &cap->rkisp1->isp_sdev;
 	const struct v4l2_mbus_framefmt *ispsd_frm;
 	u16 isp_quant, cap_quant;
 
-	if (cap->out_isp_fmt->fmt_type != isp_sd->out_fmt->fmt_type) {
-		dev_err(isp_sd->sd.dev,
+	if (cap->out_isp_fmt->fmt_type != isp->out_fmt->fmt_type) {
+		dev_err(isp->sd.dev,
 			"format type mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
 			link->sink->entity->name, link->sink->index);
 		return -EPIPE;
 	}
 
-	ispsd_frm = rkisp1_isp_sd_get_pad_fmt(isp_sd, NULL,
-					      RKISP1_ISP_PAD_SINK_VIDEO,
-					      V4L2_SUBDEV_FORMAT_ACTIVE);
+	ispsd_frm = rkisp1_isp_get_pad_fmt(isp, NULL,
+					   RKISP1_ISP_PAD_SINK_VIDEO,
+					   V4L2_SUBDEV_FORMAT_ACTIVE);
 
 	/*
 	 * TODO: we are considering default quantization as full range. Check if
@@ -1873,7 +1873,7 @@ static int rkisp1_capture_link_validate(struct media_link *link)
 	if (isp_quant == V4L2_QUANTIZATION_DEFAULT)
 		isp_quant = V4L2_QUANTIZATION_FULL_RANGE;
 	if (cap_quant != isp_quant) {
-		dev_err(isp_sd->sd.dev,
+		dev_err(isp->sd.dev,
 			"quantization mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
 			link->sink->entity->name, link->sink->index);

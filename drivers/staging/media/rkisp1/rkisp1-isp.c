@@ -49,17 +49,17 @@
  * | | |    in_crop                                 |    |   |
  * | | |    +---------------------------------+     |    |   |
  * | | |    |   ISP_IS                        |     |    |   |
- * | | |    |   rkisp1_isp_subdev: out_crop   |     |    |   |
+ * | | |    |   rkisp1_isp: out_crop   |     |    |   |
  * | | |    +---------------------------------+     |    |   |
  * | | +--------------------------------------------+    |   |
  * | +---------------------------------------------------+   |
  * +---------------------------------------------------------+
  */
 
-static inline struct rkisp1_isp_subdev *
-rkisp1_sd_to_isp_sd(struct v4l2_subdev *sd)
+static inline struct rkisp1_isp *
+rkisp1_sd_to_isp(struct v4l2_subdev *sd)
 {
-	return container_of(sd, struct rkisp1_isp_subdev, sd);
+	return container_of(sd, struct rkisp1_isp, sd);
 }
 
 /* Get sensor by enabled media link */
@@ -82,26 +82,24 @@ static struct v4l2_subdev *rkisp1_get_remote_sensor(struct v4l2_subdev *sd)
 /****************  register operations ****************/
 
 struct v4l2_mbus_framefmt *
-rkisp1_isp_sd_get_pad_fmt(struct rkisp1_isp_subdev *isp_sd,
+rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
 			  struct v4l2_subdev_pad_config *cfg,
 			  unsigned int pad, u32 which)
 {
 	if (which == V4L2_SUBDEV_FORMAT_TRY)
-		return v4l2_subdev_get_try_format(&isp_sd->sd, cfg, pad);
+		return v4l2_subdev_get_try_format(&isp->sd, cfg, pad);
 	else
-		return v4l2_subdev_get_try_format(&isp_sd->sd,
-						  isp_sd->pad_cfg, pad);
+		return v4l2_subdev_get_try_format(&isp->sd, isp->pad_cfg, pad);
 }
 
-struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
-					     struct v4l2_subdev_pad_config *cfg,
-					     unsigned int pad, u32 which)
+struct v4l2_rect *rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
+					  struct v4l2_subdev_pad_config *cfg,
+					  unsigned int pad, u32 which)
 {
 	if (which == V4L2_SUBDEV_FORMAT_TRY)
-		return v4l2_subdev_get_try_crop(&isp_sd->sd, cfg, pad);
+		return v4l2_subdev_get_try_crop(&isp->sd, cfg, pad);
 	else
-		return v4l2_subdev_get_try_crop(&isp_sd->sd,
-						isp_sd->pad_cfg, pad);
+		return v4l2_subdev_get_try_crop(&isp->sd, isp->pad_cfg, pad);
 }
 
 /*
@@ -112,7 +110,7 @@ struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
 static void rkisp1_config_ism(struct rkisp1_device *rkisp1)
 {
 	struct v4l2_rect *out_crop =
-		rkisp1_isp_sd_get_pad_crop(&rkisp1->isp_sdev, NULL,
+		rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
 	u32 val;
@@ -147,10 +145,10 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	sensor = rkisp1->active_sensor;
 	in_fmt = rkisp1->isp_sdev.in_fmt;
 	out_fmt = rkisp1->isp_sdev.out_fmt;
-	in_frm = rkisp1_isp_sd_get_pad_fmt(&rkisp1->isp_sdev, NULL,
+	in_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp_sdev, NULL,
 					   RKISP1_ISP_PAD_SINK_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
-	in_crop = rkisp1_isp_sd_get_pad_crop(&rkisp1->isp_sdev, NULL,
+	in_crop = rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
 					     RKISP1_ISP_PAD_SINK_VIDEO,
 					     V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -229,7 +227,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	} else {
 		struct v4l2_mbus_framefmt *out_frm;
 
-		out_frm = rkisp1_isp_sd_get_pad_fmt(&rkisp1->isp_sdev, NULL,
+		out_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp_sdev, NULL,
 						    RKISP1_ISP_PAD_SINK_VIDEO,
 						    V4L2_SUBDEV_FORMAT_ACTIVE);
 		rkisp1_params_configure_isp(&rkisp1->params, in_fmt,
@@ -620,7 +618,7 @@ static const struct rkisp1_fmt *rkisp1_find_fmt(u32 mbus_code)
 	return NULL;
 }
 
-static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
+static int rkisp1_isp_enum_mbus_code(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_mbus_code_enum *code)
 {
@@ -656,7 +654,7 @@ static int rkisp1_isp_sd_enum_mbus_code(struct v4l2_subdev *sd,
 	return -EINVAL;
 }
 
-static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
+static int rkisp1_isp_init_config(struct v4l2_subdev *sd,
 				     struct v4l2_subdev_pad_config *cfg)
 {
 	struct v4l2_rect *mf_in_crop, *mf_out_crop;
@@ -701,24 +699,24 @@ static int rkisp1_isp_sd_init_config(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static void rkisp1_isp_sd_set_out_crop(struct rkisp1_isp_subdev *isp_sd,
-				       struct v4l2_subdev_pad_config *cfg,
-				       struct v4l2_rect *r, unsigned int which)
+static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
+				    struct v4l2_subdev_pad_config *cfg,
+				    struct v4l2_rect *r, unsigned int which)
 {
 	const struct v4l2_rect *in_crop;
 	struct v4l2_rect *out_crop;
 
-	out_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					      RKISP1_ISP_PAD_SOURCE_VIDEO,
-					      which);
+	out_crop = rkisp1_isp_get_pad_crop(isp, cfg,
+					   RKISP1_ISP_PAD_SOURCE_VIDEO,
+					   which);
 
 	out_crop->left = ALIGN(r->left, 2);
 	out_crop->width = ALIGN(r->width, 2);
 	out_crop->top = r->top;
 	out_crop->height = r->height;
 
-	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+	in_crop = rkisp1_isp_get_pad_crop(isp, cfg,
+					  RKISP1_ISP_PAD_SINK_VIDEO, which);
 
 	out_crop->left = clamp_t(u32, out_crop->left, 0, in_crop->width);
 	out_crop->top = clamp_t(u32, out_crop->top, 0, in_crop->height);
@@ -730,20 +728,19 @@ static void rkisp1_isp_sd_set_out_crop(struct rkisp1_isp_subdev *isp_sd,
 				   in_crop->height - out_crop->top);
 }
 
-static void rkisp1_isp_sd_set_out_fmt(struct rkisp1_isp_subdev *isp_sd,
-				      struct v4l2_subdev_pad_config *cfg,
-				      struct v4l2_mbus_framefmt *format,
-				      unsigned int which)
+static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
+				   struct v4l2_subdev_pad_config *cfg,
+				   struct v4l2_mbus_framefmt *format,
+				   unsigned int which)
 {
 	struct v4l2_mbus_framefmt *out_fmt;
 	const struct rkisp1_fmt *rk_fmt;
 	const struct v4l2_rect *in_crop;
 
-	out_fmt = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
-					    RKISP1_ISP_PAD_SOURCE_VIDEO,
-					    which);
-	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					     RKISP1_ISP_PAD_SINK_VIDEO, which);
+	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
+					 which);
+	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					  which);
 
 	/*
 	 * TODO: check if other fields besides width/height/quantization are
@@ -756,7 +753,7 @@ static void rkisp1_isp_sd_set_out_fmt(struct rkisp1_isp_subdev *isp_sd,
 		rk_fmt = rkisp1_find_fmt(out_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp_sd->out_fmt = rk_fmt;
+		isp->out_fmt = rk_fmt;
 	/* window size is set in s_selection */
 	out_fmt->width  = in_crop->width;
 	out_fmt->height = in_crop->height;
@@ -769,24 +766,23 @@ static void rkisp1_isp_sd_set_out_fmt(struct rkisp1_isp_subdev *isp_sd,
 	*format = *out_fmt;
 }
 
-static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
-				      struct v4l2_subdev_pad_config *cfg,
-				      struct v4l2_rect *r, unsigned int which)
+static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
+				   struct v4l2_subdev_pad_config *cfg,
+				   struct v4l2_rect *r, unsigned int which)
 {
 	struct v4l2_mbus_framefmt *in_fmt, *out_fmt;
 	struct v4l2_rect *in_crop, *out_crop;
 
-	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					     RKISP1_ISP_PAD_SINK_VIDEO,
-					     which);
+	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					  which);
 
 	in_crop->left = ALIGN(r->left, 2);
 	in_crop->width = ALIGN(r->width, 2);
 	in_crop->top = r->top;
 	in_crop->height = r->height;
 
-	in_fmt = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
-					   RKISP1_ISP_PAD_SINK_VIDEO, which);
+	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					which);
 
 	in_crop->left = clamp_t(u32, in_crop->left, 0, in_fmt->width);
 	in_crop->top = clamp_t(u32, in_crop->top, 0, in_fmt->height);
@@ -798,27 +794,27 @@ static void rkisp1_isp_sd_set_in_crop(struct rkisp1_isp_subdev *isp_sd,
 				  in_fmt->height - in_crop->top);
 
 	/* Update source crop and format */
-	out_fmt = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
-					    RKISP1_ISP_PAD_SOURCE_VIDEO, which);
-	rkisp1_isp_sd_set_out_fmt(isp_sd, cfg, out_fmt, which);
+	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
+					 which);
+	rkisp1_isp_set_out_fmt(isp, cfg, out_fmt, which);
 
-	out_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					      RKISP1_ISP_PAD_SOURCE_VIDEO,
-					      which);
-	rkisp1_isp_sd_set_out_crop(isp_sd, cfg, out_crop, which);
+	out_crop = rkisp1_isp_get_pad_crop(isp, cfg,
+					   RKISP1_ISP_PAD_SOURCE_VIDEO,
+					   which);
+	rkisp1_isp_set_out_crop(isp, cfg, out_crop, which);
 }
 
-static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
-				     struct v4l2_subdev_pad_config *cfg,
-				     struct v4l2_mbus_framefmt *format,
-				     unsigned int which)
+static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
+				  struct v4l2_subdev_pad_config *cfg,
+				  struct v4l2_mbus_framefmt *format,
+				  unsigned int which)
 {
 	struct v4l2_mbus_framefmt *in_fmt;
 	const struct rkisp1_fmt *rk_fmt;
 	struct v4l2_rect *in_crop;
 
-	in_fmt = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
-					   RKISP1_ISP_PAD_SINK_VIDEO, which);
+	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					which);
 
 	/*
 	 * TODO: check if other fields besides width/height/quantization are
@@ -831,7 +827,7 @@ static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
 		rk_fmt = rkisp1_find_fmt(in_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp_sd->in_fmt = rk_fmt;
+		isp->in_fmt = rk_fmt;
 	in_fmt->width = clamp_t(u32, format->width,
 				RKISP1_CIF_ISP_INPUT_W_MIN,
 				RKISP1_CIF_ISP_INPUT_W_MAX);
@@ -842,45 +838,43 @@ static void rkisp1_isp_sd_set_in_fmt(struct rkisp1_isp_subdev *isp_sd,
 	*format = *in_fmt;
 
 	/* Update sink crop */
-	in_crop = rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
-					     RKISP1_ISP_PAD_SINK_VIDEO, which);
-	rkisp1_isp_sd_set_in_crop(isp_sd, cfg, in_crop, which);
+	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					  which);
+	rkisp1_isp_set_in_crop(isp, cfg, in_crop, which);
 }
 
-static int rkisp1_isp_sd_get_fmt(struct v4l2_subdev *sd,
+static int rkisp1_isp_get_fmt(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_format *fmt)
 {
-	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
+	struct rkisp1_isp *isp = rkisp1_sd_to_isp(sd);
 
-	fmt->format = *rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, fmt->pad,
-						 fmt->which);
+	fmt->format = *rkisp1_isp_get_pad_fmt(isp, cfg, fmt->pad, fmt->which);
 	return 0;
 }
 
-static int rkisp1_isp_sd_set_fmt(struct v4l2_subdev *sd,
+static int rkisp1_isp_set_fmt(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_format *fmt)
 {
-	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
+	struct rkisp1_isp *isp = rkisp1_sd_to_isp(sd);
 
 	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO)
-		rkisp1_isp_sd_set_in_fmt(isp_sd, cfg, &fmt->format, fmt->which);
+		rkisp1_isp_set_in_fmt(isp, cfg, &fmt->format, fmt->which);
 	else if (fmt->pad == RKISP1_ISP_PAD_SOURCE_VIDEO)
-		rkisp1_isp_sd_set_out_fmt(isp_sd, cfg, &fmt->format,
-					  fmt->which);
+		rkisp1_isp_set_out_fmt(isp, cfg, &fmt->format, fmt->which);
 	else
-		fmt->format = *rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg, fmt->pad,
-							 fmt->which);
+		fmt->format = *rkisp1_isp_get_pad_fmt(isp, cfg, fmt->pad,
+						      fmt->which);
 
 	return 0;
 }
 
-static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
+static int rkisp1_isp_get_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_selection *sel)
 {
-	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
+	struct rkisp1_isp *isp = rkisp1_sd_to_isp(sd);
 
 	if (sel->pad != RKISP1_ISP_PAD_SOURCE_VIDEO &&
 	    sel->pad != RKISP1_ISP_PAD_SINK_VIDEO)
@@ -891,22 +885,22 @@ static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
 		if (sel->pad == RKISP1_ISP_PAD_SINK_VIDEO) {
 			struct v4l2_mbus_framefmt *__format;
 
-			__format = rkisp1_isp_sd_get_pad_fmt(isp_sd, cfg,
-							     sel->pad,
-							     sel->which);
+			__format = rkisp1_isp_get_pad_fmt(isp, cfg,
+							  sel->pad,
+							  sel->which);
 			sel->r.height = __format->height;
 			sel->r.width = __format->width;
 			sel->r.left = 0;
 			sel->r.top = 0;
 		} else {
-			sel->r = *rkisp1_isp_sd_get_pad_crop(isp_sd, cfg,
+			sel->r = *rkisp1_isp_get_pad_crop(isp, cfg,
 						RKISP1_ISP_PAD_SINK_VIDEO,
 						sel->which);
 		}
 		break;
 	case V4L2_SEL_TGT_CROP:
-		sel->r = *rkisp1_isp_sd_get_pad_crop(isp_sd, cfg, sel->pad,
-						     sel->which);
+		sel->r = *rkisp1_isp_get_pad_crop(isp, cfg, sel->pad,
+						  sel->which);
 		break;
 	default:
 		return -EINVAL;
@@ -915,11 +909,11 @@ static int rkisp1_isp_sd_get_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
+static int rkisp1_isp_set_selection(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_selection *sel)
 {
-	struct rkisp1_isp_subdev *isp_sd = rkisp1_sd_to_isp_sd(sd);
+	struct rkisp1_isp *isp = rkisp1_sd_to_isp(sd);
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
 						    v4l2_dev);
@@ -931,16 +925,16 @@ static int rkisp1_isp_sd_set_selection(struct v4l2_subdev *sd,
 		sel->pad, sel->r.left, sel->r.top, sel->r.width, sel->r.height);
 
 	if (sel->pad == RKISP1_ISP_PAD_SINK_VIDEO)
-		rkisp1_isp_sd_set_in_crop(isp_sd, cfg, &sel->r, sel->which);
+		rkisp1_isp_set_in_crop(isp, cfg, &sel->r, sel->which);
 	else if (sel->pad == RKISP1_ISP_PAD_SOURCE_VIDEO)
-		rkisp1_isp_sd_set_out_crop(isp_sd, cfg, &sel->r, sel->which);
+		rkisp1_isp_set_out_crop(isp, cfg, &sel->r, sel->which);
 	else
 		return -EINVAL;
 
 	return 0;
 }
 
-static int rkisp1_mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
+static int rkisp1_mipi_csi2_s_stream_start(struct rkisp1_isp *isp,
 					   struct rkisp1_sensor_async *sensor)
 {
 	union phy_configure_opts opts;
@@ -958,7 +952,7 @@ static int rkisp1_mipi_csi2_s_stream_start(struct rkisp1_isp_subdev *isp_sd,
 		return -EINVAL;
 	}
 
-	phy_mipi_dphy_get_default_config(pixel_clock, isp_sd->in_fmt->bus_width,
+	phy_mipi_dphy_get_default_config(pixel_clock, isp->in_fmt->bus_width,
 					 sensor->lanes, cfg);
 	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
 	phy_configure(sensor->dphy, &opts);
@@ -972,7 +966,7 @@ static void rkisp1_mipi_csi2_s_stream_stop(struct rkisp1_sensor_async *sensor)
 	phy_power_off(sensor->dphy);
 }
 
-static int rkisp1_isp_sd_s_stream(struct v4l2_subdev *sd, int on)
+static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 {
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
@@ -1039,7 +1033,7 @@ static int rkisp1_subdev_fmt_link_validate(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static void rkisp1_isp_queue_event_sof(struct rkisp1_isp_subdev *isp)
+static void rkisp1_isp_queue_event_sof(struct rkisp1_isp *isp)
 {
 	struct v4l2_event event = {
 		.type = V4L2_EVENT_FRAME_SYNC,
@@ -1049,7 +1043,7 @@ static void rkisp1_isp_queue_event_sof(struct rkisp1_isp_subdev *isp)
 	v4l2_event_queue(isp->sd.devnode, &event);
 }
 
-static int rkisp1_isp_sd_subs_evt(struct v4l2_subdev *sd, struct v4l2_fh *fh,
+static int rkisp1_isp_subs_evt(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 				  struct v4l2_event_subscription *sub)
 {
 	if (sub->type != V4L2_EVENT_FRAME_SYNC)
@@ -1062,33 +1056,33 @@ static int rkisp1_isp_sd_subs_evt(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	return v4l2_event_subscribe(fh, sub, 0, NULL);
 }
 
-static const struct v4l2_subdev_pad_ops rkisp1_isp_sd_pad_ops = {
-	.enum_mbus_code = rkisp1_isp_sd_enum_mbus_code,
-	.get_selection = rkisp1_isp_sd_get_selection,
-	.set_selection = rkisp1_isp_sd_set_selection,
-	.init_cfg = rkisp1_isp_sd_init_config,
-	.get_fmt = rkisp1_isp_sd_get_fmt,
-	.set_fmt = rkisp1_isp_sd_set_fmt,
+static const struct v4l2_subdev_pad_ops rkisp1_isp_pad_ops = {
+	.enum_mbus_code = rkisp1_isp_enum_mbus_code,
+	.get_selection = rkisp1_isp_get_selection,
+	.set_selection = rkisp1_isp_set_selection,
+	.init_cfg = rkisp1_isp_init_config,
+	.get_fmt = rkisp1_isp_get_fmt,
+	.set_fmt = rkisp1_isp_set_fmt,
 	.link_validate = rkisp1_subdev_fmt_link_validate,
 };
 
-static const struct media_entity_operations rkisp1_isp_sd_media_ops = {
+static const struct media_entity_operations rkisp1_isp_media_ops = {
 	.link_validate = rkisp1_subdev_link_validate,
 };
 
-static const struct v4l2_subdev_video_ops rkisp1_isp_sd_video_ops = {
-	.s_stream = rkisp1_isp_sd_s_stream,
+static const struct v4l2_subdev_video_ops rkisp1_isp_video_ops = {
+	.s_stream = rkisp1_isp_s_stream,
 };
 
 static const struct v4l2_subdev_core_ops rkisp1_isp_core_ops = {
-	.subscribe_event = rkisp1_isp_sd_subs_evt,
+	.subscribe_event = rkisp1_isp_subs_evt,
 	.unsubscribe_event = v4l2_event_subdev_unsubscribe,
 };
 
-static const struct v4l2_subdev_ops rkisp1_isp_sd_ops = {
+static const struct v4l2_subdev_ops rkisp1_isp_ops = {
 	.core = &rkisp1_isp_core_ops,
-	.video = &rkisp1_isp_sd_video_ops,
-	.pad = &rkisp1_isp_sd_pad_ops,
+	.video = &rkisp1_isp_video_ops,
+	.pad = &rkisp1_isp_pad_ops,
 };
 
 int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
@@ -1098,9 +1092,9 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 	struct v4l2_subdev *sd = &rkisp1->isp_sdev.sd;
 	int ret;
 
-	v4l2_subdev_init(sd, &rkisp1_isp_sd_ops);
+	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
-	sd->entity.ops = &rkisp1_isp_sd_media_ops;
+	sd->entity.ops = &rkisp1_isp_media_ops;
 	strscpy(sd->name, "rkisp1-isp-subdev", sizeof(sd->name));
 
 	pads[RKISP1_ISP_PAD_SINK_VIDEO].flags =
@@ -1124,7 +1118,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 		goto err_cleanup_media_entity;
 	}
 
-	rkisp1_isp_sd_init_config(sd, rkisp1->isp_sdev.pad_cfg);
+	rkisp1_isp_init_config(sd, rkisp1->isp_sdev.pad_cfg);
 	return 0;
 
 err_cleanup_media_entity:

@@ -102,7 +102,7 @@ struct rkisp1_sensor_async {
 };
 
 /*
- * struct rkisp1_isp_subdev - ISP sub-device
+ * struct rkisp1_isp - ISP sub-device
  *
  * See Cropping regions of ISP in rkisp1.c for details
  * @in_frm: input size, don't have to be equal to sensor size
@@ -117,7 +117,7 @@ struct rkisp1_sensor_async {
  *
  * TODO: remember to document all the fields after refactoring
  */
-struct rkisp1_isp_subdev {
+struct rkisp1_isp {
 	struct v4l2_subdev sd;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
@@ -261,7 +261,7 @@ struct rkisp1_device {
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
 	struct rkisp1_sensor_async *active_sensor;
-	struct rkisp1_isp_subdev isp_sdev;
+	struct rkisp1_isp isp_sdev;
 	struct rkisp1_capture capture_devs[2];
 	struct rkisp1_stats stats;
 	struct rkisp1_params params;
@@ -320,13 +320,13 @@ static inline u32 rkisp1_read(struct rkisp1_device *rkisp1, unsigned int addr)
 }
 
 struct v4l2_mbus_framefmt *
-rkisp1_isp_sd_get_pad_fmt(struct rkisp1_isp_subdev *isp_sd,
-			  struct v4l2_subdev_pad_config *cfg,
-			  unsigned int pad, u32 which);
+rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
+		       struct v4l2_subdev_pad_config *cfg,
+		       unsigned int pad, u32 which);
 
-struct v4l2_rect *rkisp1_isp_sd_get_pad_crop(struct rkisp1_isp_subdev *isp_sd,
-					     struct v4l2_subdev_pad_config *cfg,
-					     unsigned int pad, u32 which);
+struct v4l2_rect *rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
+					  struct v4l2_subdev_pad_config *cfg,
+					  unsigned int pad, u32 which);
 
 int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 			       struct v4l2_device *v4l2_dev);
