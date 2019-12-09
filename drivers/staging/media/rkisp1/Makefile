@@ -1,6 +1,6 @@
-obj-$(CONFIG_VIDEO_ROCKCHIP_ISP1) += 	rockchip-isp1.o
-rockchip-isp1-objs 	   += 	rkisp1.o \
-				dev.o \
-				isp_stats.o \
-				isp_params.o \
-				capture.o
+obj-$(CONFIG_VIDEO_ROCKCHIP_ISP1) += rockchip-isp1.o
+rockchip-isp1-objs += 	rkisp1-capture.o \
+			rkisp1-dev.o \
+			rkisp1-isp.o \
+			rkisp1-stats.o \
+			rkisp1-params.o

@@ -16,7 +16,7 @@
 #include <media/v4l2-device.h>
 #include <media/videobuf2-v4l2.h>
 
-#include "regs.h"
+#include "rkisp1-regs.h"
 #include "uapi/rkisp1-config.h"
 
 /* TODO: FIXME: changing the default resolution to higher values causes the

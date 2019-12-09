@@ -16,7 +16,7 @@
 #include <linux/phy/phy-mipi-dphy.h>
 #include <media/v4l2-fwnode.h>
 
-#include "common.h"
+#include "rkisp1-common.h"
 
 struct rkisp1_match_data {
 	const char * const *clks;

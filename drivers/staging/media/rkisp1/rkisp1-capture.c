@@ -15,7 +15,7 @@
 #include <media/v4l2-subdev.h>
 #include <media/videobuf2-dma-contig.h>
 
-#include "common.h"
+#include "rkisp1-common.h"
 
 /*
  * NOTE:

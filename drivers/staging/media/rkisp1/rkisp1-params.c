@@ -11,7 +11,7 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-vmalloc.h>	/* for ISP params */
 
-#include "common.h"
+#include "rkisp1-common.h"
 
 #define RKISP1_ISP_PARAMS_REQ_BUFS_MIN	2
 #define RKISP1_ISP_PARAMS_REQ_BUFS_MAX	8

@@ -13,7 +13,7 @@
 #include <linux/vmalloc.h>
 #include <media/v4l2-event.h>
 
-#include "common.h"
+#include "rkisp1-common.h"
 
 #define RKISP1_CIF_ISP_INPUT_W_MAX		4032
 #define RKISP1_CIF_ISP_INPUT_H_MAX		3024
