@@ -1198,7 +1198,7 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
 
-	cur_frame_id = atomic_read(&rkisp1->isp_sdev.frm_sync_seq) - 1;
+	cur_frame_id = atomic_read(&rkisp1->isp.frm_sync_seq) - 1;
 
 	spin_lock(&params->config_lock);
 	if (!params->streamon) {
@@ -1455,7 +1455,7 @@ static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 	unsigned int cur_frame_id = -1;
 
 	cur_frame_id =
-		atomic_read(&params->rkisp1->isp_sdev.frm_sync_seq) - 1;
+		atomic_read(&params->rkisp1->isp.frm_sync_seq) - 1;
 
 	if (params->first_params) {
 		new_params = (struct rkisp1_params_cfg *)

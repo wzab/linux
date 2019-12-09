@@ -110,7 +110,7 @@ struct v4l2_rect *rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
 static void rkisp1_config_ism(struct rkisp1_device *rkisp1)
 {
 	struct v4l2_rect *out_crop =
-		rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
+		rkisp1_isp_get_pad_crop(&rkisp1->isp, NULL,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
 	u32 val;
@@ -143,12 +143,12 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	struct v4l2_mbus_framefmt *in_frm;
 
 	sensor = rkisp1->active_sensor;
-	in_fmt = rkisp1->isp_sdev.in_fmt;
-	out_fmt = rkisp1->isp_sdev.out_fmt;
-	in_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp_sdev, NULL,
+	in_fmt = rkisp1->isp.in_fmt;
+	out_fmt = rkisp1->isp.out_fmt;
+	in_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
 					   RKISP1_ISP_PAD_SINK_VIDEO,
 					   V4L2_SUBDEV_FORMAT_ACTIVE);
-	in_crop = rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
+	in_crop = rkisp1_isp_get_pad_crop(&rkisp1->isp, NULL,
 					     RKISP1_ISP_PAD_SINK_VIDEO,
 					     V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -227,7 +227,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	} else {
 		struct v4l2_mbus_framefmt *out_frm;
 
-		out_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp_sdev, NULL,
+		out_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
 						    RKISP1_ISP_PAD_SINK_VIDEO,
 						    V4L2_SUBDEV_FORMAT_ACTIVE);
 		rkisp1_params_configure_isp(&rkisp1->params, in_fmt,
@@ -239,7 +239,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 
 static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
 	u32 val, input_sel;
 
 	// TODO: bus_w move info to core
@@ -266,7 +266,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 
 static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
@@ -988,7 +988,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 	rkisp1->active_sensor = container_of(sensor_sd->asd,
 					      struct rkisp1_sensor_async, asd);
 
-	atomic_set(&rkisp1->isp_sdev.frm_sync_seq, 0);
+	atomic_set(&rkisp1->isp.frm_sync_seq, 0);
 	ret = rkisp1_config_cif(rkisp1);
 	if (ret < 0)
 		return ret;
@@ -997,7 +997,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 	if (rkisp1->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
-	ret = rkisp1_mipi_csi2_s_stream_start(&rkisp1->isp_sdev,
+	ret = rkisp1_mipi_csi2_s_stream_start(&rkisp1->isp,
 				       rkisp1->active_sensor);
 	if (ret < 0)
 		return ret;
@@ -1088,8 +1088,8 @@ static const struct v4l2_subdev_ops rkisp1_isp_ops = {
 int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 			       struct v4l2_device *v4l2_dev)
 {
-	struct media_pad *pads = rkisp1->isp_sdev.pads;
-	struct v4l2_subdev *sd = &rkisp1->isp_sdev.sd;
+	struct media_pad *pads = rkisp1->isp.pads;
+	struct v4l2_subdev *sd = &rkisp1->isp.sd;
 	int ret;
 
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
@@ -1102,8 +1102,8 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 	pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
-	rkisp1->isp_sdev.in_fmt = rkisp1_find_fmt(RKISP1_DEF_SINK_PAD_FMT);
-	rkisp1->isp_sdev.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
+	rkisp1->isp.in_fmt = rkisp1_find_fmt(RKISP1_DEF_SINK_PAD_FMT);
+	rkisp1->isp.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
 	if (ret < 0)
@@ -1118,7 +1118,7 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *rkisp1,
 		goto err_cleanup_media_entity;
 	}
 
-	rkisp1_isp_init_config(sd, rkisp1->isp_sdev.pad_cfg);
+	rkisp1_isp_init_config(sd, rkisp1->isp.pad_cfg);
 	return 0;
 
 err_cleanup_media_entity:
@@ -1129,7 +1129,7 @@ err_cleanup_media_entity:
 
 void rkisp1_unregister_isp_subdev(struct rkisp1_device *rkisp1)
 {
-	struct v4l2_subdev *sd = &rkisp1->isp_sdev.sd;
+	struct v4l2_subdev *sd = &rkisp1->isp.sd;
 
 	v4l2_device_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
@@ -1158,7 +1158,7 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
 		val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
 		rkisp1_write(rkisp1, val & ~RKISP1_CIF_MIPI_ERR_CTRL(0x0f),
 			     RKISP1_CIF_MIPI_IMSC);
-		rkisp1->isp_sdev.dphy_errctrl_disabled = true;
+		rkisp1->isp.dphy_errctrl_disabled = true;
 	}
 
 	/*
@@ -1170,11 +1170,11 @@ void rkisp1_mipi_isr_thread(struct rkisp1_device *rkisp1)
 		 * Enable DPHY errctrl interrupt again, if mipi have receive
 		 * the whole frame without any error.
 		 */
-		if (rkisp1->isp_sdev.dphy_errctrl_disabled) {
+		if (rkisp1->isp.dphy_errctrl_disabled) {
 			val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
 			val |= RKISP1_CIF_MIPI_ERR_CTRL(0x0f);
 			rkisp1_write(rkisp1, val, RKISP1_CIF_MIPI_IMSC);
-			rkisp1->isp_sdev.dphy_errctrl_disabled = false;
+			rkisp1->isp.dphy_errctrl_disabled = false;
 		}
 	} else {
 		dev_warn(rkisp1->dev, "MIPI status error: 0x%08x\n", status);
@@ -1194,7 +1194,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 
 	/* start edge of v_sync */
 	if (status & RKISP1_CIF_ISP_V_START)
-		rkisp1_isp_queue_event_sof(&rkisp1->isp_sdev);
+		rkisp1_isp_queue_event_sof(&rkisp1->isp);
 
 	if (status & RKISP1_CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */

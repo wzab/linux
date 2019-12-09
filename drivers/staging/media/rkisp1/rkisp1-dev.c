@@ -36,7 +36,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	/* sensor links */
 	flags = MEDIA_LNK_FL_ENABLED;
 	list_for_each_entry(sd, &rkisp1->v4l2_dev.subdevs, list) {
-		if (sd == &rkisp1->isp_sdev.sd)
+		if (sd == &rkisp1->isp.sd)
 			continue;
 
 		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,
@@ -49,7 +49,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 		source_pad = ret;
 
 		ret = media_create_pad_link(&sd->entity, source_pad,
-					    &rkisp1->isp_sdev.sd.entity,
+					    &rkisp1->isp.sd.entity,
 					    RKISP1_ISP_PAD_SINK_VIDEO,
 					    flags);
 		if (ret < 0)
@@ -60,7 +60,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* params links */
 	source = &rkisp1->params.vnode.vdev.entity;
-	sink = &rkisp1->isp_sdev.sd.entity;
+	sink = &rkisp1->isp.sd.entity;
 	flags = MEDIA_LNK_FL_ENABLED;
 	ret = media_create_pad_link(source, 0, sink,
 				    RKISP1_ISP_PAD_SINK_PARAMS, flags);
@@ -69,7 +69,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* create ISP internal links */
 	/* SP links */
-	source = &rkisp1->isp_sdev.sd.entity;
+	source = &rkisp1->isp.sd.entity;
 	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
@@ -77,7 +77,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 		return ret;
 
 	/* MP links */
-	source = &rkisp1->isp_sdev.sd.entity;
+	source = &rkisp1->isp.sd.entity;
 	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
@@ -85,7 +85,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 		return ret;
 
 	/* 3A stats links */
-	source = &rkisp1->isp_sdev.sd.entity;
+	source = &rkisp1->isp.sd.entity;
 	sink = &rkisp1->stats.vnode.vdev.entity;
 	return media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_STATS,
 				     sink, 0, flags);

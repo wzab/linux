@@ -273,7 +273,7 @@ static void rkisp1_stats_get_bls_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
 	struct rkisp1_device *rkisp1 = stats->rkisp1;
-	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
+	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
 	struct rkisp1_cif_isp_bls_meas_val *bls_val;
 
 	bls_val = &pbuf->params.ae.bls_val;
@@ -309,7 +309,7 @@ rkisp1_stats_send_measurement(struct rkisp1_stats *stats,
 	unsigned int cur_frame_id = -1;
 	u64 timestamp = ktime_get_ns();
 
-	cur_frame_id = atomic_read(&stats->rkisp1->isp_sdev.frm_sync_seq) - 1;
+	cur_frame_id = atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
 	if (cur_frame_id != meas_work->frame_id) {
 		dev_warn(stats->rkisp1->dev,
 			 "Measurement late(%d, %d)\n",
@@ -377,7 +377,7 @@ void rkisp1_stats_isr_thread(struct rkisp1_stats *stats,
 			     u32 isp_ris)
 {
 	unsigned int cur_frame_id =
-		atomic_read(&stats->rkisp1->isp_sdev.frm_sync_seq) - 1;
+		atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
 	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	struct rkisp1_isp_readout_work *work;
 	unsigned int isp_mis_tmp = 0;

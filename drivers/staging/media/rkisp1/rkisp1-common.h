@@ -245,7 +245,7 @@ struct rkisp1_params {
  * struct rkisp1_device - ISP platform device
  * @base_addr: base register address
  * @active_sensor: sensor in-use, set when streaming on
- * @isp_sdev: ISP sub-device
+ * @isp: ISP sub-device
  * @rkisp1_capture: capture video device
  * @stats: ISP statistics output device
  * @params: ISP input parameters device
@@ -261,7 +261,7 @@ struct rkisp1_device {
 	struct media_device media_dev;
 	struct v4l2_async_notifier notifier;
 	struct rkisp1_sensor_async *active_sensor;
-	struct rkisp1_isp isp_sdev;
+	struct rkisp1_isp isp;
 	struct rkisp1_capture capture_devs[2];
 	struct rkisp1_stats stats;
 	struct rkisp1_params params;

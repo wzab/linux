@@ -536,7 +536,7 @@ static int rkisp1_dcrop_config(struct rkisp1_capture *cap)
 	u32 dc_ctrl;
 
 	/* dual-crop unit get data from ISP */
-	input_win = rkisp1_isp_get_pad_crop(&rkisp1->isp_sdev, NULL,
+	input_win = rkisp1_isp_get_pad_crop(&rkisp1->isp, NULL,
 					    RKISP1_ISP_PAD_SINK_VIDEO,
 					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -701,7 +701,7 @@ static int rkisp1_rsz_config(struct rkisp1_capture *cap,
 			     enum rkisp1_shadow_regs_when when)
 {
 	const struct rkisp1_capture_fmt *output_isp_fmt = cap->out_isp_fmt;
-	const struct rkisp1_fmt *input_isp_fmt = cap->rkisp1->isp_sdev.out_fmt;
+	const struct rkisp1_fmt *input_isp_fmt = cap->rkisp1->isp.out_fmt;
 	u8 hdiv = RKISP1_MBUS_FMT_HDIV, vdiv = RKISP1_MBUS_FMT_VDIV;
 	struct v4l2_pix_format_mplane output_fmt = cap->out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
@@ -1061,7 +1061,7 @@ static void rkisp1_set_next_buf_regs(struct rkisp1_capture *cap)
 static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
-	struct rkisp1_isp *isp = &cap->rkisp1->isp_sdev;
+	struct rkisp1_isp *isp = &cap->rkisp1->isp;
 	struct rkisp1_buffer *curr_buf = cap->curr_buf;
 	unsigned long lock_flags = 0;
 	unsigned int i;
@@ -1206,7 +1206,7 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 	 * as the next buffer, and update the memory interface.
 	 */
 	if (cap->streaming && !cap->next_buf &&
-	    atomic_read(&cap->rkisp1->isp_sdev.frm_sync_seq) == 0) {
+	    atomic_read(&cap->rkisp1->isp.frm_sync_seq) == 0) {
 		cap->next_buf = ispbuf;
 		rkisp1_set_next_buf_regs(cap);
 	} else {
@@ -1722,7 +1722,7 @@ static int rkisp1_g_selection(struct file *file, void *prv,
 	if (sel->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
-	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
+	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp, NULL,
 					    RKISP1_ISP_PAD_SINK_VIDEO,
 					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -1791,7 +1791,7 @@ rkisp1_s_selection(struct file *file, void *prv, struct v4l2_selection *sel)
 	if (sel->flags != 0)
 		return -EINVAL;
 
-	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp_sdev, NULL,
+	input_win = rkisp1_isp_get_pad_crop(&cap->rkisp1->isp, NULL,
 					    RKISP1_ISP_PAD_SINK_VIDEO,
 					    V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -1845,7 +1845,7 @@ static int rkisp1_capture_link_validate(struct media_link *link)
 	struct video_device *vdev =
 		media_entity_to_video_device(link->sink->entity);
 	struct rkisp1_capture *cap = video_get_drvdata(vdev);
-	struct rkisp1_isp *isp = &cap->rkisp1->isp_sdev;
+	struct rkisp1_isp *isp = &cap->rkisp1->isp;
 	const struct v4l2_mbus_framefmt *ispsd_frm;
 	u16 isp_quant, cap_quant;
 
