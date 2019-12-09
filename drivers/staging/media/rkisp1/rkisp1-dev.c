@@ -59,7 +59,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	}
 
 	/* params links */
-	source = &rkisp1->params_vdev.vnode.vdev.entity;
+	source = &rkisp1->params.vnode.vdev.entity;
 	sink = &rkisp1->isp_sdev.sd.entity;
 	flags = MEDIA_LNK_FL_ENABLED;
 	ret = media_create_pad_link(source, 0, sink,
@@ -238,8 +238,8 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	if (ret < 0)
 		goto err_unreg_stream_vdev;
 
-	ret = rkisp1_register_params_vdev(&rkisp1->params_vdev,
-					  &rkisp1->v4l2_dev, rkisp1);
+	ret = rkisp1_register_params(&rkisp1->params,
+				     &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
 		goto err_unreg_stats;
 
@@ -247,12 +247,12 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	if (ret < 0) {
 		dev_err(rkisp1->dev,
 			"Failed to register subdev notifier(%d)\n", ret);
-		goto err_unreg_params_vdev;
+		goto err_unreg_params;
 	}
 
 	return 0;
-err_unreg_params_vdev:
-	rkisp1_unregister_params_vdev(&rkisp1->params_vdev);
+err_unreg_params:
+	rkisp1_unregister_params(&rkisp1->params);
 err_unreg_stats:
 	rkisp1_unregister_stats(&rkisp1->stats);
 err_unreg_stream_vdev:
@@ -417,7 +417,7 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	v4l2_async_notifier_unregister(&rkisp1->notifier);
 	v4l2_async_notifier_cleanup(&rkisp1->notifier);
 
-	rkisp1_unregister_params_vdev(&rkisp1->params_vdev);
+	rkisp1_unregister_params(&rkisp1->params);
 	rkisp1_unregister_stats(&rkisp1->stats);
 	rkisp1_unregister_stream_vdevs(rkisp1);
 	rkisp1_unregister_isp_subdev(rkisp1);

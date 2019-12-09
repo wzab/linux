@@ -30,131 +30,131 @@
 				(RKISP1_CIF_ISP_CC_COEFF_0 + (n) * 4)
 
 // TODO: not needed, just use writel/readl
-static inline void rkisp1_iowrite32(struct rkisp1_params_vdev *params_vdev,
+static inline void rkisp1_iowrite32(struct rkisp1_params *params,
 				    u32 value, u32 addr)
 {
-	iowrite32(value, params_vdev->rkisp1->base_addr + addr);
+	iowrite32(value, params->rkisp1->base_addr + addr);
 }
 
-static inline u32 rkisp1_ioread32(struct rkisp1_params_vdev *params_vdev,
+static inline u32 rkisp1_ioread32(struct rkisp1_params *params,
 				  u32 addr)
 {
-	return ioread32(params_vdev->rkisp1->base_addr + addr);
+	return ioread32(params->rkisp1->base_addr + addr);
 }
 
-static inline void rkisp1_param_set_bits(struct rkisp1_params_vdev
-					 *params_vdev, u32 reg, u32 bit_mask)
+static inline void rkisp1_param_set_bits(struct rkisp1_params
+					 *params, u32 reg, u32 bit_mask)
 {
 	u32 val;
 
-	val = rkisp1_ioread32(params_vdev, reg);
-	rkisp1_iowrite32(params_vdev, val | bit_mask, reg);
+	val = rkisp1_ioread32(params, reg);
+	rkisp1_iowrite32(params, val | bit_mask, reg);
 }
 
-static inline void rkisp1_param_clear_bits(struct rkisp1_params_vdev
-					   *params_vdev, u32 reg, u32 bit_mask)
+static inline void rkisp1_param_clear_bits(struct rkisp1_params
+					   *params, u32 reg, u32 bit_mask)
 {
 	u32 val;
 
-	val = rkisp1_ioread32(params_vdev, reg);
-	rkisp1_iowrite32(params_vdev, val & ~bit_mask, reg);
+	val = rkisp1_ioread32(params, reg);
+	rkisp1_iowrite32(params, val & ~bit_mask, reg);
 }
 
 /* ISP BP interface function */
-static void rkisp1_dpcc_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_dpcc_config(struct rkisp1_params *params,
 			       const struct rkisp1_cif_isp_dpcc_config *arg)
 {
 	unsigned int i;
 	u32 mode;
 
 	/* avoid to override the old enable value */
-	mode = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_DPCC_MODE);
+	mode = rkisp1_ioread32(params, RKISP1_CIF_ISP_DPCC_MODE);
 	mode &= RKISP1_CIF_ISP_DPCC_ENA;
 	mode |= arg->mode & ~RKISP1_CIF_ISP_DPCC_ENA;
-	rkisp1_iowrite32(params_vdev, mode, RKISP1_CIF_ISP_DPCC_MODE);
-	rkisp1_iowrite32(params_vdev, arg->output_mode,
+	rkisp1_iowrite32(params, mode, RKISP1_CIF_ISP_DPCC_MODE);
+	rkisp1_iowrite32(params, arg->output_mode,
 			 RKISP1_CIF_ISP_DPCC_OUTPUT_MODE);
-	rkisp1_iowrite32(params_vdev, arg->set_use,
+	rkisp1_iowrite32(params, arg->set_use,
 			 RKISP1_CIF_ISP_DPCC_SET_USE);
 
-	rkisp1_iowrite32(params_vdev, arg->methods[0].method,
+	rkisp1_iowrite32(params, arg->methods[0].method,
 			 RKISP1_CIF_ISP_DPCC_METHODS_SET_1);
-	rkisp1_iowrite32(params_vdev, arg->methods[1].method,
+	rkisp1_iowrite32(params, arg->methods[1].method,
 			 RKISP1_CIF_ISP_DPCC_METHODS_SET_2);
-	rkisp1_iowrite32(params_vdev, arg->methods[2].method,
+	rkisp1_iowrite32(params, arg->methods[2].method,
 			 RKISP1_CIF_ISP_DPCC_METHODS_SET_3);
 	for (i = 0; i < RKISP1_CIF_ISP_DPCC_METHODS_MAX; i++) {
-		rkisp1_iowrite32(params_vdev, arg->methods[i].line_thresh,
+		rkisp1_iowrite32(params, arg->methods[i].line_thresh,
 				 RKISP1_ISP_DPCC_LINE_THRESH(i));
-		rkisp1_iowrite32(params_vdev, arg->methods[i].line_mad_fac,
+		rkisp1_iowrite32(params, arg->methods[i].line_mad_fac,
 				 RKISP1_ISP_DPCC_LINE_MAD_FAC(i));
-		rkisp1_iowrite32(params_vdev, arg->methods[i].pg_fac,
+		rkisp1_iowrite32(params, arg->methods[i].pg_fac,
 				 RKISP1_ISP_DPCC_PG_FAC(i));
-		rkisp1_iowrite32(params_vdev, arg->methods[i].rnd_thresh,
+		rkisp1_iowrite32(params, arg->methods[i].rnd_thresh,
 				 RKISP1_ISP_DPCC_RND_THRESH(i));
-		rkisp1_iowrite32(params_vdev, arg->methods[i].rg_fac,
+		rkisp1_iowrite32(params, arg->methods[i].rg_fac,
 				 RKISP1_ISP_DPCC_RG_FAC(i));
 	}
 
-	rkisp1_iowrite32(params_vdev, arg->rnd_offs,
+	rkisp1_iowrite32(params, arg->rnd_offs,
 			 RKISP1_CIF_ISP_DPCC_RND_OFFS);
-	rkisp1_iowrite32(params_vdev, arg->ro_limits,
+	rkisp1_iowrite32(params, arg->ro_limits,
 			 RKISP1_CIF_ISP_DPCC_RO_LIMITS);
 }
 
 /* ISP black level subtraction interface function */
-static void rkisp1_bls_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_bls_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_bls_config *arg)
 {
 	/* avoid to override the old enable value */
 	u32 new_control;
 
-	new_control = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_BLS_CTRL);
+	new_control = rkisp1_ioread32(params, RKISP1_CIF_ISP_BLS_CTRL);
 	new_control &= RKISP1_CIF_ISP_BLS_ENA;
 	/* fixed subtraction values */
 	if (!arg->enable_auto) {
 		const struct rkisp1_cif_isp_bls_fixed_val *pval =
 								&arg->fixed_val;
 
-		switch (params_vdev->raw_type) {
+		switch (params->raw_type) {
 		case RKISP1_RAW_BGGR:
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->r, RKISP1_CIF_ISP_BLS_D_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gr, RKISP1_CIF_ISP_BLS_C_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gb, RKISP1_CIF_ISP_BLS_B_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->b, RKISP1_CIF_ISP_BLS_A_FIXED);
 			break;
 		case RKISP1_RAW_GBRG:
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->r, RKISP1_CIF_ISP_BLS_C_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gr, RKISP1_CIF_ISP_BLS_D_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gb, RKISP1_CIF_ISP_BLS_A_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->b, RKISP1_CIF_ISP_BLS_B_FIXED);
 			break;
 		case RKISP1_RAW_GRBG:
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->r, RKISP1_CIF_ISP_BLS_B_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gr, RKISP1_CIF_ISP_BLS_A_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gb, RKISP1_CIF_ISP_BLS_D_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->b, RKISP1_CIF_ISP_BLS_C_FIXED);
 			break;
 		case RKISP1_RAW_RGGB:
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->r, RKISP1_CIF_ISP_BLS_A_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gr, RKISP1_CIF_ISP_BLS_B_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->gb, RKISP1_CIF_ISP_BLS_C_FIXED);
-			rkisp1_iowrite32(params_vdev,
+			rkisp1_iowrite32(params,
 					 pval->b, RKISP1_CIF_ISP_BLS_D_FIXED);
 			break;
 		default:
@@ -163,59 +163,59 @@ static void rkisp1_bls_config(struct rkisp1_params_vdev *params_vdev,
 
 	} else {
 		if (arg->en_windows & BIT(1)) {
-			rkisp1_iowrite32(params_vdev, arg->bls_window2.h_offs,
+			rkisp1_iowrite32(params, arg->bls_window2.h_offs,
 					 RKISP1_CIF_ISP_BLS_H2_START);
-			rkisp1_iowrite32(params_vdev, arg->bls_window2.h_size,
+			rkisp1_iowrite32(params, arg->bls_window2.h_size,
 					 RKISP1_CIF_ISP_BLS_H2_STOP);
-			rkisp1_iowrite32(params_vdev, arg->bls_window2.v_offs,
+			rkisp1_iowrite32(params, arg->bls_window2.v_offs,
 					 RKISP1_CIF_ISP_BLS_V2_START);
-			rkisp1_iowrite32(params_vdev, arg->bls_window2.v_size,
+			rkisp1_iowrite32(params, arg->bls_window2.v_size,
 					 RKISP1_CIF_ISP_BLS_V2_STOP);
 			new_control |= RKISP1_CIF_ISP_BLS_WINDOW_2;
 		}
 
 		if (arg->en_windows & BIT(0)) {
-			rkisp1_iowrite32(params_vdev, arg->bls_window1.h_offs,
+			rkisp1_iowrite32(params, arg->bls_window1.h_offs,
 					 RKISP1_CIF_ISP_BLS_H1_START);
-			rkisp1_iowrite32(params_vdev, arg->bls_window1.h_size,
+			rkisp1_iowrite32(params, arg->bls_window1.h_size,
 					 RKISP1_CIF_ISP_BLS_H1_STOP);
-			rkisp1_iowrite32(params_vdev, arg->bls_window1.v_offs,
+			rkisp1_iowrite32(params, arg->bls_window1.v_offs,
 					 RKISP1_CIF_ISP_BLS_V1_START);
-			rkisp1_iowrite32(params_vdev, arg->bls_window1.v_size,
+			rkisp1_iowrite32(params, arg->bls_window1.v_size,
 					 RKISP1_CIF_ISP_BLS_V1_STOP);
 			new_control |= RKISP1_CIF_ISP_BLS_WINDOW_1;
 		}
 
-		rkisp1_iowrite32(params_vdev, arg->bls_samples,
+		rkisp1_iowrite32(params, arg->bls_samples,
 				 RKISP1_CIF_ISP_BLS_SAMPLES);
 
 		new_control |= RKISP1_CIF_ISP_BLS_MODE_MEASURED;
 	}
-	rkisp1_iowrite32(params_vdev, new_control, RKISP1_CIF_ISP_BLS_CTRL);
+	rkisp1_iowrite32(params, new_control, RKISP1_CIF_ISP_BLS_CTRL);
 }
 
 /* ISP LS correction interface function */
 static void
-rkisp1_lsc_correct_matrix_config(struct rkisp1_params_vdev *params_vdev,
+rkisp1_lsc_correct_matrix_config(struct rkisp1_params *params,
 				 const struct rkisp1_cif_isp_lsc_config *pconfig)
 {
 	unsigned int isp_lsc_status, sram_addr, isp_lsc_table_sel;
 	unsigned int i, j, data;
 
-	isp_lsc_status = rkisp1_ioread32(params_vdev,
+	isp_lsc_status = rkisp1_ioread32(params,
 					 RKISP1_CIF_ISP_LSC_STATUS);
 
 	/* RKISP1_CIF_ISP_LSC_TABLE_ADDRESS_153 = ( 17 * 18 ) >> 1 */
 	sram_addr = (isp_lsc_status & RKISP1_CIF_ISP_LSC_ACTIVE_TABLE) ?
 		     RKISP1_CIF_ISP_LSC_TABLE_ADDRESS_0 :
 		     RKISP1_CIF_ISP_LSC_TABLE_ADDRESS_153;
-	rkisp1_iowrite32(params_vdev, sram_addr,
+	rkisp1_iowrite32(params, sram_addr,
 			 RKISP1_CIF_ISP_LSC_R_TABLE_ADDR);
-	rkisp1_iowrite32(params_vdev, sram_addr,
+	rkisp1_iowrite32(params, sram_addr,
 			 RKISP1_CIF_ISP_LSC_GR_TABLE_ADDR);
-	rkisp1_iowrite32(params_vdev, sram_addr,
+	rkisp1_iowrite32(params, sram_addr,
 			 RKISP1_CIF_ISP_LSC_GB_TABLE_ADDR);
-	rkisp1_iowrite32(params_vdev, sram_addr,
+	rkisp1_iowrite32(params, sram_addr,
 			 RKISP1_CIF_ISP_LSC_B_TABLE_ADDR);
 
 	/* program data tables (table size is 9 * 17 = 153) */
@@ -229,115 +229,115 @@ rkisp1_lsc_correct_matrix_config(struct rkisp1_params_vdev *params_vdev,
 		for (j = 0; j < RKISP1_CIF_ISP_LSC_SECTORS_MAX - 1; j += 2) {
 			data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->r_data_tbl[i + j],
 							     pconfig->r_data_tbl[i + j + 1]);
-			rkisp1_iowrite32(params_vdev, data,
+			rkisp1_iowrite32(params, data,
 					 RKISP1_CIF_ISP_LSC_R_TABLE_DATA);
 
 			data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->gr_data_tbl[i + j],
 							     pconfig->gr_data_tbl[i + j + 1]);
-			rkisp1_iowrite32(params_vdev, data,
+			rkisp1_iowrite32(params, data,
 					 RKISP1_CIF_ISP_LSC_GR_TABLE_DATA);
 
 			data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->gb_data_tbl[i + j],
 							     pconfig->gb_data_tbl[i + j + 1]);
-			rkisp1_iowrite32(params_vdev, data,
+			rkisp1_iowrite32(params, data,
 					 RKISP1_CIF_ISP_LSC_GB_TABLE_DATA);
 
 			data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->b_data_tbl[i + j],
 							     pconfig->b_data_tbl[i + j + 1]);
-			rkisp1_iowrite32(params_vdev, data,
+			rkisp1_iowrite32(params, data,
 					 RKISP1_CIF_ISP_LSC_B_TABLE_DATA);
 		}
 		data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->r_data_tbl[i + j], 0);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_R_TABLE_DATA);
 
 		data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->gr_data_tbl[i + j], 0);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_GR_TABLE_DATA);
 
 		data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->gb_data_tbl[i + j], 0);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_GB_TABLE_DATA);
 
 		data = RKISP1_CIF_ISP_LSC_TABLE_DATA(pconfig->b_data_tbl[i + j], 0);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_B_TABLE_DATA);
 	}
 	isp_lsc_table_sel = (isp_lsc_status & RKISP1_CIF_ISP_LSC_ACTIVE_TABLE) ?
 			    RKISP1_CIF_ISP_LSC_TABLE_0 :
 			    RKISP1_CIF_ISP_LSC_TABLE_1;
-	rkisp1_iowrite32(params_vdev, isp_lsc_table_sel,
+	rkisp1_iowrite32(params, isp_lsc_table_sel,
 			 RKISP1_CIF_ISP_LSC_TABLE_SEL);
 }
 
-static void rkisp1_lsc_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_lsc_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_lsc_config *arg)
 {
 	unsigned int i, data;
 	u32 lsc_ctrl;
 
 	/* To config must be off , store the current status firstly */
-	lsc_ctrl = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_LSC_CTRL);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_LSC_CTRL,
+	lsc_ctrl = rkisp1_ioread32(params, RKISP1_CIF_ISP_LSC_CTRL);
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_LSC_CTRL,
 				RKISP1_CIF_ISP_LSC_CTRL_ENA);
-	rkisp1_lsc_correct_matrix_config(params_vdev, arg);
+	rkisp1_lsc_correct_matrix_config(params, arg);
 
 	for (i = 0; i < 4; i++) {
 		/* program x size tables */
 		data = RKISP1_CIF_ISP_LSC_SECT_SIZE(arg->x_size_tbl[i * 2],
 						    arg->x_size_tbl[i * 2 + 1]);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_XSIZE_01 + i * 4);
 
 		/* program x grad tables */
 		data = RKISP1_CIF_ISP_LSC_SECT_SIZE(arg->x_grad_tbl[i * 2],
 						    arg->x_grad_tbl[i * 2 + 1]);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_XGRAD_01 + i * 4);
 
 		/* program y size tables */
 		data = RKISP1_CIF_ISP_LSC_SECT_SIZE(arg->y_size_tbl[i * 2],
 						    arg->y_size_tbl[i * 2 + 1]);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_YSIZE_01 + i * 4);
 
 		/* program y grad tables */
 		data = RKISP1_CIF_ISP_LSC_SECT_SIZE(arg->y_grad_tbl[i * 2],
 						    arg->y_grad_tbl[i * 2 + 1]);
-		rkisp1_iowrite32(params_vdev, data,
+		rkisp1_iowrite32(params, data,
 				 RKISP1_CIF_ISP_LSC_YGRAD_01 + i * 4);
 	}
 
 	/* restore the lsc ctrl status */
 	if (lsc_ctrl & RKISP1_CIF_ISP_LSC_CTRL_ENA) {
-		rkisp1_param_set_bits(params_vdev,
+		rkisp1_param_set_bits(params,
 				      RKISP1_CIF_ISP_LSC_CTRL,
 				      RKISP1_CIF_ISP_LSC_CTRL_ENA);
 	} else {
-		rkisp1_param_clear_bits(params_vdev,
+		rkisp1_param_clear_bits(params,
 					RKISP1_CIF_ISP_LSC_CTRL,
 					RKISP1_CIF_ISP_LSC_CTRL_ENA);
 	}
 }
 
 /* ISP Filtering function */
-static void rkisp1_flt_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_flt_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_flt_config *arg)
 {
 	u32 filt_mode;
 
-	rkisp1_iowrite32(params_vdev, arg->thresh_bl0, RKISP1_CIF_ISP_FILT_THRESH_BL0);
-	rkisp1_iowrite32(params_vdev, arg->thresh_bl1, RKISP1_CIF_ISP_FILT_THRESH_BL1);
-	rkisp1_iowrite32(params_vdev, arg->thresh_sh0, RKISP1_CIF_ISP_FILT_THRESH_SH0);
-	rkisp1_iowrite32(params_vdev, arg->thresh_sh1, RKISP1_CIF_ISP_FILT_THRESH_SH1);
-	rkisp1_iowrite32(params_vdev, arg->fac_bl0, RKISP1_CIF_ISP_FILT_FAC_BL0);
-	rkisp1_iowrite32(params_vdev, arg->fac_bl1, RKISP1_CIF_ISP_FILT_FAC_BL1);
-	rkisp1_iowrite32(params_vdev, arg->fac_mid, RKISP1_CIF_ISP_FILT_FAC_MID);
-	rkisp1_iowrite32(params_vdev, arg->fac_sh0, RKISP1_CIF_ISP_FILT_FAC_SH0);
-	rkisp1_iowrite32(params_vdev, arg->fac_sh1, RKISP1_CIF_ISP_FILT_FAC_SH1);
-	rkisp1_iowrite32(params_vdev, arg->lum_weight, RKISP1_CIF_ISP_FILT_LUM_WEIGHT);
+	rkisp1_iowrite32(params, arg->thresh_bl0, RKISP1_CIF_ISP_FILT_THRESH_BL0);
+	rkisp1_iowrite32(params, arg->thresh_bl1, RKISP1_CIF_ISP_FILT_THRESH_BL1);
+	rkisp1_iowrite32(params, arg->thresh_sh0, RKISP1_CIF_ISP_FILT_THRESH_SH0);
+	rkisp1_iowrite32(params, arg->thresh_sh1, RKISP1_CIF_ISP_FILT_THRESH_SH1);
+	rkisp1_iowrite32(params, arg->fac_bl0, RKISP1_CIF_ISP_FILT_FAC_BL0);
+	rkisp1_iowrite32(params, arg->fac_bl1, RKISP1_CIF_ISP_FILT_FAC_BL1);
+	rkisp1_iowrite32(params, arg->fac_mid, RKISP1_CIF_ISP_FILT_FAC_MID);
+	rkisp1_iowrite32(params, arg->fac_sh0, RKISP1_CIF_ISP_FILT_FAC_SH0);
+	rkisp1_iowrite32(params, arg->fac_sh1, RKISP1_CIF_ISP_FILT_FAC_SH1);
+	rkisp1_iowrite32(params, arg->lum_weight, RKISP1_CIF_ISP_FILT_LUM_WEIGHT);
 
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 (arg->mode ? RKISP1_CIF_ISP_FLT_MODE_DNR : 0) |
 			 RKISP1_CIF_ISP_FLT_CHROMA_V_MODE(arg->chr_v_mode) |
 			 RKISP1_CIF_ISP_FLT_CHROMA_H_MODE(arg->chr_h_mode) |
@@ -345,156 +345,156 @@ static void rkisp1_flt_config(struct rkisp1_params_vdev *params_vdev,
 			 RKISP1_CIF_ISP_FILT_MODE);
 
 	/* avoid to override the old enable value */
-	filt_mode = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_FILT_MODE);
+	filt_mode = rkisp1_ioread32(params, RKISP1_CIF_ISP_FILT_MODE);
 	filt_mode &= RKISP1_CIF_ISP_FLT_ENA;
 	if (arg->mode)
 		filt_mode |= RKISP1_CIF_ISP_FLT_MODE_DNR;
 	filt_mode |= RKISP1_CIF_ISP_FLT_CHROMA_V_MODE(arg->chr_v_mode) |
 		     RKISP1_CIF_ISP_FLT_CHROMA_H_MODE(arg->chr_h_mode) |
 		     RKISP1_CIF_ISP_FLT_GREEN_STAGE1(arg->grn_stage1);
-	rkisp1_iowrite32(params_vdev, filt_mode, RKISP1_CIF_ISP_FILT_MODE);
+	rkisp1_iowrite32(params, filt_mode, RKISP1_CIF_ISP_FILT_MODE);
 }
 
 /* ISP demosaic interface function */
-static int rkisp1_bdm_config(struct rkisp1_params_vdev *params_vdev,
+static int rkisp1_bdm_config(struct rkisp1_params *params,
 			     const struct rkisp1_cif_isp_bdm_config *arg)
 {
 	u32 bdm_th;
 
 	/* avoid to override the old enable value */
-	bdm_th = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_DEMOSAIC);
+	bdm_th = rkisp1_ioread32(params, RKISP1_CIF_ISP_DEMOSAIC);
 	bdm_th &= RKISP1_CIF_ISP_DEMOSAIC_BYPASS;
 	bdm_th |= arg->demosaic_th & ~RKISP1_CIF_ISP_DEMOSAIC_BYPASS;
 	/* set demosaic threshold */
-	rkisp1_iowrite32(params_vdev, bdm_th, RKISP1_CIF_ISP_DEMOSAIC);
+	rkisp1_iowrite32(params, bdm_th, RKISP1_CIF_ISP_DEMOSAIC);
 	return 0;
 }
 
 /* ISP GAMMA correction interface function */
-static void rkisp1_sdg_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_sdg_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_sdg_config *arg)
 {
 	unsigned int i;
 
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->xa_pnts.gamma_dx0, RKISP1_CIF_ISP_GAMMA_DX_LO);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->xa_pnts.gamma_dx1, RKISP1_CIF_ISP_GAMMA_DX_HI);
 
 	for (i = 0; i < RKISP1_CIF_ISP_DEGAMMA_CURVE_SIZE; i++) {
-		rkisp1_iowrite32(params_vdev, arg->curve_r.gamma_y[i],
+		rkisp1_iowrite32(params, arg->curve_r.gamma_y[i],
 				 RKISP1_CIF_ISP_GAMMA_R_Y0 + i * 4);
-		rkisp1_iowrite32(params_vdev, arg->curve_g.gamma_y[i],
+		rkisp1_iowrite32(params, arg->curve_g.gamma_y[i],
 				 RKISP1_CIF_ISP_GAMMA_G_Y0 + i * 4);
-		rkisp1_iowrite32(params_vdev, arg->curve_b.gamma_y[i],
+		rkisp1_iowrite32(params, arg->curve_b.gamma_y[i],
 				 RKISP1_CIF_ISP_GAMMA_B_Y0 + i * 4);
 	}
 }
 
 /* ISP GAMMA correction interface function */
-static void rkisp1_goc_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_goc_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_goc_config *arg)
 {
 	unsigned int i;
 
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 				RKISP1_CIF_ISP_CTRL_ISP_GAMMA_OUT_ENA);
-	rkisp1_iowrite32(params_vdev, arg->mode, RKISP1_CIF_ISP_GAMMA_OUT_MODE);
+	rkisp1_iowrite32(params, arg->mode, RKISP1_CIF_ISP_GAMMA_OUT_MODE);
 
 	for (i = 0; i < RKISP1_CIF_ISP_GAMMA_OUT_MAX_SAMPLES; i++)
-		rkisp1_iowrite32(params_vdev, arg->gamma_y[i],
+		rkisp1_iowrite32(params, arg->gamma_y[i],
 				 RKISP1_CIF_ISP_GAMMA_OUT_Y_0 + i * 4);
 }
 
 /* ISP Cross Talk */
-static void rkisp1_ctk_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_ctk_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_ctk_config *arg)
 {
-	rkisp1_iowrite32(params_vdev, arg->coeff0, RKISP1_CIF_ISP_CT_COEFF_0);
-	rkisp1_iowrite32(params_vdev, arg->coeff1, RKISP1_CIF_ISP_CT_COEFF_1);
-	rkisp1_iowrite32(params_vdev, arg->coeff2, RKISP1_CIF_ISP_CT_COEFF_2);
-	rkisp1_iowrite32(params_vdev, arg->coeff3, RKISP1_CIF_ISP_CT_COEFF_3);
-	rkisp1_iowrite32(params_vdev, arg->coeff4, RKISP1_CIF_ISP_CT_COEFF_4);
-	rkisp1_iowrite32(params_vdev, arg->coeff5, RKISP1_CIF_ISP_CT_COEFF_5);
-	rkisp1_iowrite32(params_vdev, arg->coeff6, RKISP1_CIF_ISP_CT_COEFF_6);
-	rkisp1_iowrite32(params_vdev, arg->coeff7, RKISP1_CIF_ISP_CT_COEFF_7);
-	rkisp1_iowrite32(params_vdev, arg->coeff8, RKISP1_CIF_ISP_CT_COEFF_8);
-	rkisp1_iowrite32(params_vdev, arg->ct_offset_r,
+	rkisp1_iowrite32(params, arg->coeff0, RKISP1_CIF_ISP_CT_COEFF_0);
+	rkisp1_iowrite32(params, arg->coeff1, RKISP1_CIF_ISP_CT_COEFF_1);
+	rkisp1_iowrite32(params, arg->coeff2, RKISP1_CIF_ISP_CT_COEFF_2);
+	rkisp1_iowrite32(params, arg->coeff3, RKISP1_CIF_ISP_CT_COEFF_3);
+	rkisp1_iowrite32(params, arg->coeff4, RKISP1_CIF_ISP_CT_COEFF_4);
+	rkisp1_iowrite32(params, arg->coeff5, RKISP1_CIF_ISP_CT_COEFF_5);
+	rkisp1_iowrite32(params, arg->coeff6, RKISP1_CIF_ISP_CT_COEFF_6);
+	rkisp1_iowrite32(params, arg->coeff7, RKISP1_CIF_ISP_CT_COEFF_7);
+	rkisp1_iowrite32(params, arg->coeff8, RKISP1_CIF_ISP_CT_COEFF_8);
+	rkisp1_iowrite32(params, arg->ct_offset_r,
 			 RKISP1_CIF_ISP_CT_OFFSET_R);
-	rkisp1_iowrite32(params_vdev, arg->ct_offset_g,
+	rkisp1_iowrite32(params, arg->ct_offset_g,
 			 RKISP1_CIF_ISP_CT_OFFSET_G);
-	rkisp1_iowrite32(params_vdev, arg->ct_offset_b,
+	rkisp1_iowrite32(params, arg->ct_offset_b,
 			 RKISP1_CIF_ISP_CT_OFFSET_B);
 }
 
-static void rkisp1_ctk_enable(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_ctk_enable(struct rkisp1_params *params,
 			      bool en)
 {
 	if (en)
 		return;
 
 	/* Write back the default values. */
-	rkisp1_iowrite32(params_vdev, 0x80, RKISP1_CIF_ISP_CT_COEFF_0);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_1);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_2);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_3);
-	rkisp1_iowrite32(params_vdev, 0x80, RKISP1_CIF_ISP_CT_COEFF_4);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_5);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_6);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_COEFF_7);
-	rkisp1_iowrite32(params_vdev, 0x80, RKISP1_CIF_ISP_CT_COEFF_8);
+	rkisp1_iowrite32(params, 0x80, RKISP1_CIF_ISP_CT_COEFF_0);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_1);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_2);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_3);
+	rkisp1_iowrite32(params, 0x80, RKISP1_CIF_ISP_CT_COEFF_4);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_5);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_6);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_COEFF_7);
+	rkisp1_iowrite32(params, 0x80, RKISP1_CIF_ISP_CT_COEFF_8);
 
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_OFFSET_R);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_OFFSET_G);
-	rkisp1_iowrite32(params_vdev, 0, RKISP1_CIF_ISP_CT_OFFSET_B);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_OFFSET_R);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_OFFSET_G);
+	rkisp1_iowrite32(params, 0, RKISP1_CIF_ISP_CT_OFFSET_B);
 }
 
 /* ISP White Balance Mode */
-static void rkisp1_awb_meas_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_awb_meas_config(struct rkisp1_params *params,
 				   const struct rkisp1_cif_isp_awb_meas_config *arg)
 {
 	u32 reg_val = 0;
 	/* based on the mode,configure the awb module */
 	if (arg->awb_mode == RKISP1_CIF_ISP_AWB_MODE_YCBCR) {
 		/* Reference Cb and Cr */
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 RKISP1_CIF_ISP_AWB_REF_CR_SET(arg->awb_ref_cr) |
 				 arg->awb_ref_cb, RKISP1_CIF_ISP_AWB_REF);
 		/* Yc Threshold */
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 RKISP1_CIF_ISP_AWB_MAX_Y_SET(arg->max_y) |
 				 RKISP1_CIF_ISP_AWB_MIN_Y_SET(arg->min_y) |
 				 RKISP1_CIF_ISP_AWB_MAX_CS_SET(arg->max_csum) |
 				 arg->min_c, RKISP1_CIF_ISP_AWB_THRESH);
 	}
 
-	reg_val = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_AWB_PROP);
+	reg_val = rkisp1_ioread32(params, RKISP1_CIF_ISP_AWB_PROP);
 	if (arg->enable_ymax_cmp)
 		reg_val |= RKISP1_CIF_ISP_AWB_YMAX_CMP_EN;
 	else
 		reg_val &= ~RKISP1_CIF_ISP_AWB_YMAX_CMP_EN;
-	rkisp1_iowrite32(params_vdev, reg_val, RKISP1_CIF_ISP_AWB_PROP);
+	rkisp1_iowrite32(params, reg_val, RKISP1_CIF_ISP_AWB_PROP);
 
 	/* window offset */
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->awb_wnd.v_offs, RKISP1_CIF_ISP_AWB_WND_V_OFFS);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->awb_wnd.h_offs, RKISP1_CIF_ISP_AWB_WND_H_OFFS);
 	/* AWB window size */
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->awb_wnd.v_size, RKISP1_CIF_ISP_AWB_WND_V_SIZE);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->awb_wnd.h_size, RKISP1_CIF_ISP_AWB_WND_H_SIZE);
 	/* Number of frames */
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->frames, RKISP1_CIF_ISP_AWB_FRAMES);
 }
 
-static void rkisp1_awb_meas_enable(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_awb_meas_enable(struct rkisp1_params *params,
 				   const struct rkisp1_cif_isp_awb_meas_config *arg,
 				   bool en)
 {
-	u32 reg_val = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_AWB_PROP);
+	u32 reg_val = rkisp1_ioread32(params, RKISP1_CIF_ISP_AWB_PROP);
 
 	/* switch off */
 	reg_val &= RKISP1_CIF_ISP_AWB_MODE_MASK_NONE;
@@ -505,50 +505,50 @@ static void rkisp1_awb_meas_enable(struct rkisp1_params_vdev *params_vdev,
 		else
 			reg_val |= RKISP1_CIF_ISP_AWB_MODE_YCBCR_EN;
 
-		rkisp1_iowrite32(params_vdev, reg_val, RKISP1_CIF_ISP_AWB_PROP);
+		rkisp1_iowrite32(params, reg_val, RKISP1_CIF_ISP_AWB_PROP);
 
 		/* Measurements require AWB block be active. */
 		/* TODO: need to enable here ? awb_gain_enable has done this */
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+		rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
 				      RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
 	} else {
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 reg_val, RKISP1_CIF_ISP_AWB_PROP);
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
 	}
 }
 
-static void rkisp1_awb_gain_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_awb_gain_config(struct rkisp1_params *params,
 				   const struct rkisp1_cif_isp_awb_gain_config *arg)
 {
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 RKISP1_CIF_ISP_AWB_GAIN_R_SET(arg->gain_green_r) |
 			 arg->gain_green_b, RKISP1_CIF_ISP_AWB_GAIN_G);
 
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 RKISP1_CIF_ISP_AWB_GAIN_R_SET(arg->gain_red) |
 			 arg->gain_blue, RKISP1_CIF_ISP_AWB_GAIN_RB);
 }
 
-static void rkisp1_aec_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_aec_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_aec_config *arg)
 {
 	unsigned int block_hsize, block_vsize;
 	u32 exp_ctrl;
 
 	/* avoid to override the old enable value */
-	exp_ctrl = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_EXP_CTRL);
+	exp_ctrl = rkisp1_ioread32(params, RKISP1_CIF_ISP_EXP_CTRL);
 	exp_ctrl &= RKISP1_CIF_ISP_EXP_ENA;
 	if (arg->autostop)
 		exp_ctrl |= RKISP1_CIF_ISP_EXP_CTRL_AUTOSTOP;
 	if (arg->mode == RKISP1_CIF_ISP_EXP_MEASURING_MODE_1)
 		exp_ctrl |= RKISP1_CIF_ISP_EXP_CTRL_MEASMODE_1;
-	rkisp1_iowrite32(params_vdev, exp_ctrl, RKISP1_CIF_ISP_EXP_CTRL);
+	rkisp1_iowrite32(params, exp_ctrl, RKISP1_CIF_ISP_EXP_CTRL);
 
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->meas_window.h_offs, RKISP1_CIF_ISP_EXP_H_OFFSET);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->meas_window.v_offs, RKISP1_CIF_ISP_EXP_V_OFFSET);
 
 	block_hsize = arg->meas_window.h_size /
@@ -556,46 +556,46 @@ static void rkisp1_aec_config(struct rkisp1_params_vdev *params_vdev,
 	block_vsize = arg->meas_window.v_size /
 		      RKISP1_CIF_ISP_EXP_ROW_NUM - 1;
 
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 RKISP1_CIF_ISP_EXP_H_SIZE_SET(block_hsize),
 			 RKISP1_CIF_ISP_EXP_H_SIZE);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 RKISP1_CIF_ISP_EXP_V_SIZE_SET(block_vsize),
 			 RKISP1_CIF_ISP_EXP_V_SIZE);
 }
 
-static void rkisp1_cproc_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_cproc_config(struct rkisp1_params *params,
 				const struct rkisp1_cif_isp_cproc_config *arg)
 {
 	struct rkisp1_cif_isp_isp_other_cfg *cur_other_cfg =
-						&params_vdev->cur_params.others;
+						&params->cur_params.others;
 	struct rkisp1_cif_isp_ie_config *cur_ie_config =
 						&cur_other_cfg->ie_config;
 	u32 effect = cur_ie_config->effect;
-	u32 quantization = params_vdev->quantization;
+	u32 quantization = params->quantization;
 
-	rkisp1_iowrite32(params_vdev, arg->contrast,
+	rkisp1_iowrite32(params, arg->contrast,
 			 RKISP1_CIF_C_PROC_CONTRAST);
-	rkisp1_iowrite32(params_vdev, arg->hue, RKISP1_CIF_C_PROC_HUE);
-	rkisp1_iowrite32(params_vdev, arg->sat, RKISP1_CIF_C_PROC_SATURATION);
-	rkisp1_iowrite32(params_vdev, arg->brightness,
+	rkisp1_iowrite32(params, arg->hue, RKISP1_CIF_C_PROC_HUE);
+	rkisp1_iowrite32(params, arg->sat, RKISP1_CIF_C_PROC_SATURATION);
+	rkisp1_iowrite32(params, arg->brightness,
 			 RKISP1_CIF_C_PROC_BRIGHTNESS);
 
 	if (quantization != V4L2_QUANTIZATION_FULL_RANGE ||
 	    effect != V4L2_COLORFX_NONE) {
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_C_PROC_CTRL,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_C_PROC_CTRL,
 					RKISP1_CIF_C_PROC_YOUT_FULL |
 					RKISP1_CIF_C_PROC_YIN_FULL |
 					RKISP1_CIF_C_PROC_COUT_FULL);
 	} else {
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_C_PROC_CTRL,
+		rkisp1_param_set_bits(params, RKISP1_CIF_C_PROC_CTRL,
 				      RKISP1_CIF_C_PROC_YOUT_FULL |
 				      RKISP1_CIF_C_PROC_YIN_FULL |
 				      RKISP1_CIF_C_PROC_COUT_FULL);
 	}
 }
 
-static void rkisp1_hst_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_hst_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_hst_config *arg)
 {
 	unsigned int block_hsize, block_vsize;
@@ -613,14 +613,14 @@ static void rkisp1_hst_config(struct rkisp1_params_vdev *params_vdev,
 	u32 hist_prop;
 
 	/* avoid to override the old enable value */
-	hist_prop = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_HIST_PROP);
+	hist_prop = rkisp1_ioread32(params, RKISP1_CIF_ISP_HIST_PROP);
 	hist_prop &= RKISP1_CIF_ISP_HIST_PROP_MODE_MASK;
 	hist_prop |= RKISP1_CIF_ISP_HIST_PREDIV_SET(arg->histogram_predivider);
-	rkisp1_iowrite32(params_vdev, hist_prop, RKISP1_CIF_ISP_HIST_PROP);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params, hist_prop, RKISP1_CIF_ISP_HIST_PROP);
+	rkisp1_iowrite32(params,
 			 arg->meas_window.h_offs,
 			 RKISP1_CIF_ISP_HIST_H_OFFS);
-	rkisp1_iowrite32(params_vdev,
+	rkisp1_iowrite32(params,
 			 arg->meas_window.v_offs,
 			 RKISP1_CIF_ISP_HIST_V_OFFS);
 
@@ -628,12 +628,12 @@ static void rkisp1_hst_config(struct rkisp1_params_vdev *params_vdev,
 		      RKISP1_CIF_ISP_HIST_COLUMN_NUM - 1;
 	block_vsize = arg->meas_window.v_size / RKISP1_CIF_ISP_HIST_ROW_NUM - 1;
 
-	rkisp1_iowrite32(params_vdev, block_hsize, RKISP1_CIF_ISP_HIST_H_SIZE);
-	rkisp1_iowrite32(params_vdev, block_vsize, RKISP1_CIF_ISP_HIST_V_SIZE);
+	rkisp1_iowrite32(params, block_hsize, RKISP1_CIF_ISP_HIST_H_SIZE);
+	rkisp1_iowrite32(params, block_vsize, RKISP1_CIF_ISP_HIST_V_SIZE);
 
 	weight = arg->hist_weight;
 	for (i = 0; i < ARRAY_SIZE(hist_weight_regs); ++i, weight += 4)
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 RKISP1_CIF_ISP_HIST_WEIGHT_SET(weight[0],
 								weight[1],
 								weight[2],
@@ -641,63 +641,63 @@ static void rkisp1_hst_config(struct rkisp1_params_vdev *params_vdev,
 				 hist_weight_regs[i]);
 }
 
-static void rkisp1_hst_enable(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_hst_enable(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_hst_config *arg, bool en)
 {
 	if (en)	{
-		u32 hist_prop = rkisp1_ioread32(params_vdev,
+		u32 hist_prop = rkisp1_ioread32(params,
 						RKISP1_CIF_ISP_HIST_PROP);
 
 		hist_prop &= ~RKISP1_CIF_ISP_HIST_PROP_MODE_MASK;
 		hist_prop |= arg->mode;
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_HIST_PROP,
+		rkisp1_param_set_bits(params, RKISP1_CIF_ISP_HIST_PROP,
 				      hist_prop);
 	} else {
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_HIST_PROP,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_HIST_PROP,
 					RKISP1_CIF_ISP_HIST_PROP_MODE_MASK);
 	}
 }
 
-static void rkisp1_afm_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_afm_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_afc_config *arg)
 {
 	size_t num_of_win = min_t(size_t, ARRAY_SIZE(arg->afm_win),
 				  arg->num_afm_win);
-	u32 afm_ctrl = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_AFM_CTRL);
+	u32 afm_ctrl = rkisp1_ioread32(params, RKISP1_CIF_ISP_AFM_CTRL);
 	unsigned int i;
 
 	/* Switch off to configure. */
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_AFM_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_AFM_CTRL,
 				RKISP1_CIF_ISP_AFM_ENA);
 
 	for (i = 0; i < num_of_win; i++) {
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 RKISP1_CIF_ISP_AFM_WINDOW_X(arg->afm_win[i].h_offs) |
 				 RKISP1_CIF_ISP_AFM_WINDOW_Y(arg->afm_win[i].v_offs),
 				 RKISP1_CIF_ISP_AFM_LT_A + i * 8);
-		rkisp1_iowrite32(params_vdev,
+		rkisp1_iowrite32(params,
 				 RKISP1_CIF_ISP_AFM_WINDOW_X(arg->afm_win[i].h_size +
 							     arg->afm_win[i].h_offs) |
 				 RKISP1_CIF_ISP_AFM_WINDOW_Y(arg->afm_win[i].v_size +
 							     arg->afm_win[i].v_offs),
 				 RKISP1_CIF_ISP_AFM_RB_A + i * 8);
 	}
-	rkisp1_iowrite32(params_vdev, arg->thres, RKISP1_CIF_ISP_AFM_THRES);
-	rkisp1_iowrite32(params_vdev, arg->var_shift,
+	rkisp1_iowrite32(params, arg->thres, RKISP1_CIF_ISP_AFM_THRES);
+	rkisp1_iowrite32(params, arg->var_shift,
 			 RKISP1_CIF_ISP_AFM_VAR_SHIFT);
 	/* restore afm status */
-	rkisp1_iowrite32(params_vdev, afm_ctrl, RKISP1_CIF_ISP_AFM_CTRL);
+	rkisp1_iowrite32(params, afm_ctrl, RKISP1_CIF_ISP_AFM_CTRL);
 }
 
-static void rkisp1_ie_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_ie_config(struct rkisp1_params *params,
 			     const struct rkisp1_cif_isp_ie_config *arg)
 {
 	u32 eff_ctrl;
 
-	eff_ctrl = rkisp1_ioread32(params_vdev, RKISP1_CIF_IMG_EFF_CTRL);
+	eff_ctrl = rkisp1_ioread32(params, RKISP1_CIF_IMG_EFF_CTRL);
 	eff_ctrl &= ~RKISP1_CIF_IMG_EFF_CTRL_MODE_MASK;
 
-	if (params_vdev->quantization == V4L2_QUANTIZATION_FULL_RANGE)
+	if (params->quantization == V4L2_QUANTIZATION_FULL_RANGE)
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_YCBCR_FULL;
 
 	switch (arg->effect) {
@@ -705,7 +705,7 @@ static void rkisp1_ie_config(struct rkisp1_params_vdev *params_vdev,
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_MODE_SEPIA;
 		break;
 	case V4L2_COLORFX_SET_CBCR:
-		rkisp1_iowrite32(params_vdev, arg->eff_tint,
+		rkisp1_iowrite32(params, arg->eff_tint,
 				 RKISP1_CIF_IMG_EFF_TINT);
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_MODE_SEPIA;
 		break;
@@ -715,25 +715,25 @@ static void rkisp1_ie_config(struct rkisp1_params_vdev *params_vdev,
 		 */
 	case V4L2_COLORFX_AQUA:
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_MODE_COLOR_SEL;
-		rkisp1_iowrite32(params_vdev, arg->color_sel,
+		rkisp1_iowrite32(params, arg->color_sel,
 				 RKISP1_CIF_IMG_EFF_COLOR_SEL);
 		break;
 	case V4L2_COLORFX_EMBOSS:
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_MODE_EMBOSS;
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_1,
+		rkisp1_iowrite32(params, arg->eff_mat_1,
 				 RKISP1_CIF_IMG_EFF_MAT_1);
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_2,
+		rkisp1_iowrite32(params, arg->eff_mat_2,
 				 RKISP1_CIF_IMG_EFF_MAT_2);
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_3,
+		rkisp1_iowrite32(params, arg->eff_mat_3,
 				 RKISP1_CIF_IMG_EFF_MAT_3);
 		break;
 	case V4L2_COLORFX_SKETCH:
 		eff_ctrl |= RKISP1_CIF_IMG_EFF_CTRL_MODE_SKETCH;
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_3,
+		rkisp1_iowrite32(params, arg->eff_mat_3,
 				 RKISP1_CIF_IMG_EFF_MAT_3);
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_4,
+		rkisp1_iowrite32(params, arg->eff_mat_4,
 				 RKISP1_CIF_IMG_EFF_MAT_4);
-		rkisp1_iowrite32(params_vdev, arg->eff_mat_5,
+		rkisp1_iowrite32(params, arg->eff_mat_5,
 				 RKISP1_CIF_IMG_EFF_MAT_5);
 		break;
 	case V4L2_COLORFX_BW:
@@ -746,28 +746,28 @@ static void rkisp1_ie_config(struct rkisp1_params_vdev *params_vdev,
 		break;
 	}
 
-	rkisp1_iowrite32(params_vdev, eff_ctrl, RKISP1_CIF_IMG_EFF_CTRL);
+	rkisp1_iowrite32(params, eff_ctrl, RKISP1_CIF_IMG_EFF_CTRL);
 }
 
-static void rkisp1_ie_enable(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_ie_enable(struct rkisp1_params *params,
 			     bool en)
 {
 	if (en) {
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ICCL,
+		rkisp1_param_set_bits(params, RKISP1_CIF_ICCL,
 				      RKISP1_CIF_ICCL_IE_CLK);
-		rkisp1_iowrite32(params_vdev, RKISP1_CIF_IMG_EFF_CTRL_ENABLE,
+		rkisp1_iowrite32(params, RKISP1_CIF_IMG_EFF_CTRL_ENABLE,
 				 RKISP1_CIF_IMG_EFF_CTRL);
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_IMG_EFF_CTRL,
+		rkisp1_param_set_bits(params, RKISP1_CIF_IMG_EFF_CTRL,
 				      RKISP1_CIF_IMG_EFF_CTRL_CFG_UPD);
 	} else {
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_IMG_EFF_CTRL,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_IMG_EFF_CTRL,
 					RKISP1_CIF_IMG_EFF_CTRL_ENABLE);
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ICCL,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_ICCL,
 					RKISP1_CIF_ICCL_IE_CLK);
 	}
 }
 
-static void rkisp1_csm_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_csm_config(struct rkisp1_params *params,
 			      bool full_range)
 {
 	static const u16 full_range_coeff[] = {
@@ -784,25 +784,25 @@ static void rkisp1_csm_config(struct rkisp1_params_vdev *params_vdev,
 
 	if (full_range) {
 		for (i = 0; i < ARRAY_SIZE(full_range_coeff); i++)
-			rkisp1_iowrite32(params_vdev, full_range_coeff[i],
+			rkisp1_iowrite32(params, full_range_coeff[i],
 					 RKISP1_CIF_ISP_CC_COEFF_0 + i * 4);
 
-		rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+		rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
 				      RKISP1_CIF_ISP_CTRL_ISP_CSM_Y_FULL_ENA |
 				      RKISP1_CIF_ISP_CTRL_ISP_CSM_C_FULL_ENA);
 	} else {
 		for (i = 0; i < ARRAY_SIZE(limited_range_coeff); i++)
-			rkisp1_iowrite32(params_vdev, limited_range_coeff[i],
+			rkisp1_iowrite32(params, limited_range_coeff[i],
 					 RKISP1_CIF_ISP_CC_COEFF_0 + i * 4);
 
-		rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+		rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_CSM_Y_FULL_ENA |
 					RKISP1_CIF_ISP_CTRL_ISP_CSM_C_FULL_ENA);
 	}
 }
 
 /* ISP De-noise Pre-Filter(DPF) function */
-static void rkisp1_dpf_config(struct rkisp1_params_vdev *params_vdev,
+static void rkisp1_dpf_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_dpf_config *arg)
 {
 	unsigned int isp_dpf_mode, spatial_coeff, i;
@@ -846,19 +846,19 @@ static void rkisp1_dpf_config(struct rkisp1_params_vdev *params_vdev,
 	if (!arg->g_flt.gr_enable)
 		isp_dpf_mode |= RKISP1_CIF_ISP_DPF_MODE_GR_FLT_DIS;
 
-	rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_DPF_MODE,
+	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_DPF_MODE,
 			      isp_dpf_mode);
-	rkisp1_iowrite32(params_vdev, arg->gain.nf_b_gain,
+	rkisp1_iowrite32(params, arg->gain.nf_b_gain,
 			 RKISP1_CIF_ISP_DPF_NF_GAIN_B);
-	rkisp1_iowrite32(params_vdev, arg->gain.nf_r_gain,
+	rkisp1_iowrite32(params, arg->gain.nf_r_gain,
 			 RKISP1_CIF_ISP_DPF_NF_GAIN_R);
-	rkisp1_iowrite32(params_vdev, arg->gain.nf_gb_gain,
+	rkisp1_iowrite32(params, arg->gain.nf_gb_gain,
 			 RKISP1_CIF_ISP_DPF_NF_GAIN_GB);
-	rkisp1_iowrite32(params_vdev, arg->gain.nf_gr_gain,
+	rkisp1_iowrite32(params, arg->gain.nf_gr_gain,
 			 RKISP1_CIF_ISP_DPF_NF_GAIN_GR);
 
 	for (i = 0; i < RKISP1_CIF_ISP_DPF_MAX_NLF_COEFFS; i++) {
-		rkisp1_iowrite32(params_vdev, arg->nll.coeff[i],
+		rkisp1_iowrite32(params, arg->nll.coeff[i],
 				 RKISP1_CIF_ISP_DPF_NULL_COEFF_0 + i * 4);
 	}
 
@@ -866,38 +866,38 @@ static void rkisp1_dpf_config(struct rkisp1_params_vdev *params_vdev,
 			(arg->g_flt.spatial_coeff[1] << 8) |
 			(arg->g_flt.spatial_coeff[2] << 16) |
 			(arg->g_flt.spatial_coeff[3] << 24);
-	rkisp1_iowrite32(params_vdev, spatial_coeff,
+	rkisp1_iowrite32(params, spatial_coeff,
 			 RKISP1_CIF_ISP_DPF_S_WEIGHT_G_1_4);
 
 	spatial_coeff = arg->g_flt.spatial_coeff[4] |
 			(arg->g_flt.spatial_coeff[5] << 8);
-	rkisp1_iowrite32(params_vdev, spatial_coeff,
+	rkisp1_iowrite32(params, spatial_coeff,
 			 RKISP1_CIF_ISP_DPF_S_WEIGHT_G_5_6);
 
 	spatial_coeff = arg->rb_flt.spatial_coeff[0] |
 			(arg->rb_flt.spatial_coeff[1] << 8) |
 			(arg->rb_flt.spatial_coeff[2] << 16) |
 			(arg->rb_flt.spatial_coeff[3] << 24);
-	rkisp1_iowrite32(params_vdev, spatial_coeff,
+	rkisp1_iowrite32(params, spatial_coeff,
 			 RKISP1_CIF_ISP_DPF_S_WEIGHT_RB_1_4);
 
 	spatial_coeff = arg->rb_flt.spatial_coeff[4] |
 			(arg->rb_flt.spatial_coeff[5] << 8);
-	rkisp1_iowrite32(params_vdev, spatial_coeff,
+	rkisp1_iowrite32(params, spatial_coeff,
 			 RKISP1_CIF_ISP_DPF_S_WEIGHT_RB_5_6);
 }
 
 static void
-rkisp1_dpf_strength_config(struct rkisp1_params_vdev *params_vdev,
+rkisp1_dpf_strength_config(struct rkisp1_params *params,
 			   const struct rkisp1_cif_isp_dpf_strength_config *arg)
 {
-	rkisp1_iowrite32(params_vdev, arg->b, RKISP1_CIF_ISP_DPF_STRENGTH_B);
-	rkisp1_iowrite32(params_vdev, arg->g, RKISP1_CIF_ISP_DPF_STRENGTH_G);
-	rkisp1_iowrite32(params_vdev, arg->r, RKISP1_CIF_ISP_DPF_STRENGTH_R);
+	rkisp1_iowrite32(params, arg->b, RKISP1_CIF_ISP_DPF_STRENGTH_B);
+	rkisp1_iowrite32(params, arg->g, RKISP1_CIF_ISP_DPF_STRENGTH_G);
+	rkisp1_iowrite32(params, arg->r, RKISP1_CIF_ISP_DPF_STRENGTH_R);
 }
 
 static void
-rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
+rkisp1_isp_isr_other_config(struct rkisp1_params *params,
 			    const struct rkisp1_params_cfg *new_params)
 {
 	unsigned int module_en_update, module_cfg_update, module_ens;
@@ -910,16 +910,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_DPCC)) {
 		/*update dpc config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_DPCC))
-			rkisp1_dpcc_config(params_vdev,
+			rkisp1_dpcc_config(params,
 					   &new_params->others.dpcc_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_DPCC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_DPCC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						      RKISP1_CIF_ISP_DPCC_MODE,
 						      RKISP1_CIF_ISP_DPCC_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_ISP_DPCC_MODE,
 						RKISP1_CIF_ISP_DPCC_ENA);
 		}
@@ -929,16 +929,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_BLS)) {
 		/* update bls config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_BLS))
-			rkisp1_bls_config(params_vdev,
+			rkisp1_bls_config(params,
 					  &new_params->others.bls_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_BLS) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_BLS))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						      RKISP1_CIF_ISP_BLS_CTRL,
 						      RKISP1_CIF_ISP_BLS_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 							RKISP1_CIF_ISP_BLS_CTRL,
 							RKISP1_CIF_ISP_BLS_ENA);
 		}
@@ -948,16 +948,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_SDG)) {
 		/* update sdg config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_SDG))
-			rkisp1_sdg_config(params_vdev,
+			rkisp1_sdg_config(params,
 					  &new_params->others.sdg_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_SDG) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_SDG))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_GAMMA_IN_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_GAMMA_IN_ENA);
 		}
@@ -967,16 +967,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_LSC)) {
 		/* update lsc config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_LSC))
-			rkisp1_lsc_config(params_vdev,
+			rkisp1_lsc_config(params,
 					  &new_params->others.lsc_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_LSC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_LSC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						RKISP1_CIF_ISP_LSC_CTRL,
 						RKISP1_CIF_ISP_LSC_CTRL_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_ISP_LSC_CTRL,
 						RKISP1_CIF_ISP_LSC_CTRL_ENA);
 		}
@@ -986,16 +986,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_AWB_GAIN)) {
 		/* update awb gains */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_AWB_GAIN))
-			rkisp1_awb_gain_config(params_vdev,
+			rkisp1_awb_gain_config(params,
 					&new_params->others.awb_gain_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_AWB_GAIN) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_AWB_GAIN))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
 		}
@@ -1005,16 +1005,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_BDM)) {
 		/* update bdm config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_BDM))
-			rkisp1_bdm_config(params_vdev,
+			rkisp1_bdm_config(params,
 					  &new_params->others.bdm_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_BDM) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_BDM))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						RKISP1_CIF_ISP_DEMOSAIC,
 						RKISP1_CIF_ISP_DEMOSAIC_BYPASS);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_ISP_DEMOSAIC,
 						RKISP1_CIF_ISP_DEMOSAIC_BYPASS);
 		}
@@ -1024,16 +1024,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_FLT)) {
 		/* update filter config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_FLT))
-			rkisp1_flt_config(params_vdev,
+			rkisp1_flt_config(params,
 					  &new_params->others.flt_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_FLT) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_FLT))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						      RKISP1_CIF_ISP_FILT_MODE,
 						      RKISP1_CIF_ISP_FLT_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_ISP_FILT_MODE,
 						RKISP1_CIF_ISP_FLT_ENA);
 		}
@@ -1043,11 +1043,11 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_CTK)) {
 		/* update ctk config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_CTK))
-			rkisp1_ctk_config(params_vdev,
+			rkisp1_ctk_config(params,
 					  &new_params->others.ctk_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_CTK)
-			rkisp1_ctk_enable(params_vdev,
+			rkisp1_ctk_enable(params,
 				!!(module_ens & RKISP1_CIF_ISP_MODULE_CTK));
 	}
 
@@ -1055,16 +1055,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_GOC)) {
 		/* update goc config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_GOC))
-			rkisp1_goc_config(params_vdev,
+			rkisp1_goc_config(params,
 					  &new_params->others.goc_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_GOC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_GOC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_GAMMA_OUT_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 					RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_GAMMA_OUT_ENA);
 		}
@@ -1074,17 +1074,17 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_CPROC)) {
 		/* update cproc config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_CPROC)) {
-			rkisp1_cproc_config(params_vdev,
+			rkisp1_cproc_config(params,
 					    &new_params->others.cproc_config);
 		}
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_CPROC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_CPROC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						RKISP1_CIF_C_PROC_CTRL,
 						RKISP1_CIF_C_PROC_CTR_ENABLE);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_C_PROC_CTRL,
 						RKISP1_CIF_C_PROC_CTR_ENABLE);
 		}
@@ -1094,11 +1094,11 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_IE)) {
 		/* update ie config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_IE))
-			rkisp1_ie_config(params_vdev,
+			rkisp1_ie_config(params,
 					 &new_params->others.ie_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_IE)
-			rkisp1_ie_enable(params_vdev,
+			rkisp1_ie_enable(params,
 				!!(module_ens & RKISP1_CIF_ISP_MODULE_IE));
 	}
 
@@ -1106,16 +1106,16 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_DPF)) {
 		/* update dpf  config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_DPF))
-			rkisp1_dpf_config(params_vdev,
+			rkisp1_dpf_config(params,
 					  &new_params->others.dpf_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_DPF) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_DPF))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						   RKISP1_CIF_ISP_DPF_MODE,
 						   RKISP1_CIF_ISP_DPF_MODE_EN);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 						RKISP1_CIF_ISP_DPF_MODE,
 						RKISP1_CIF_ISP_DPF_MODE_EN);
 		}
@@ -1124,13 +1124,13 @@ rkisp1_isp_isr_other_config(struct rkisp1_params_vdev *params_vdev,
 	if ((module_en_update & RKISP1_CIF_ISP_MODULE_DPF_STRENGTH) ||
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_DPF_STRENGTH)) {
 		/* update dpf strength config */
-		rkisp1_dpf_strength_config(params_vdev,
+		rkisp1_dpf_strength_config(params,
 				&new_params->others.dpf_strength_config);
 	}
 }
 
 static void
-rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
+rkisp1_isp_isr_meas_config(struct rkisp1_params *params,
 			   struct  rkisp1_params_cfg *new_params)
 {
 	unsigned int module_en_update, module_cfg_update, module_ens;
@@ -1143,11 +1143,11 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_AWB)) {
 		/* update awb config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_AWB))
-			rkisp1_awb_meas_config(params_vdev,
+			rkisp1_awb_meas_config(params,
 					&new_params->meas.awb_meas_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_AWB)
-			rkisp1_awb_meas_enable(params_vdev,
+			rkisp1_awb_meas_enable(params,
 				&new_params->meas.awb_meas_config,
 				!!(module_ens & RKISP1_CIF_ISP_MODULE_AWB));
 	}
@@ -1156,16 +1156,16 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_AFC)) {
 		/* update afc config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_AFC))
-			rkisp1_afm_config(params_vdev,
+			rkisp1_afm_config(params,
 					  &new_params->meas.afc_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_AFC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_AFC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						      RKISP1_CIF_ISP_AFM_CTRL,
 						      RKISP1_CIF_ISP_AFM_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 							RKISP1_CIF_ISP_AFM_CTRL,
 							RKISP1_CIF_ISP_AFM_ENA);
 		}
@@ -1175,11 +1175,11 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_HST)) {
 		/* update hst config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_HST))
-			rkisp1_hst_config(params_vdev,
+			rkisp1_hst_config(params,
 					  &new_params->meas.hst_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_HST)
-			rkisp1_hst_enable(params_vdev,
+			rkisp1_hst_enable(params,
 				&new_params->meas.hst_config,
 				!!(module_ens & RKISP1_CIF_ISP_MODULE_HST));
 	}
@@ -1188,16 +1188,16 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
 	    (module_cfg_update & RKISP1_CIF_ISP_MODULE_AEC)) {
 		/* update aec config */
 		if ((module_cfg_update & RKISP1_CIF_ISP_MODULE_AEC))
-			rkisp1_aec_config(params_vdev,
+			rkisp1_aec_config(params,
 					  &new_params->meas.aec_config);
 
 		if (module_en_update & RKISP1_CIF_ISP_MODULE_AEC) {
 			if (!!(module_ens & RKISP1_CIF_ISP_MODULE_AEC))
-				rkisp1_param_set_bits(params_vdev,
+				rkisp1_param_set_bits(params,
 						      RKISP1_CIF_ISP_EXP_CTRL,
 						      RKISP1_CIF_ISP_EXP_ENA);
 			else
-				rkisp1_param_clear_bits(params_vdev,
+				rkisp1_param_clear_bits(params,
 							RKISP1_CIF_ISP_EXP_CTRL,
 							RKISP1_CIF_ISP_EXP_ENA);
 		}
@@ -1206,24 +1206,24 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params_vdev *params_vdev,
 
 void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 {
-	struct rkisp1_params_vdev *params_vdev = &rkisp1->params_vdev;
+	struct rkisp1_params *params = &rkisp1->params;
 	struct rkisp1_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf = NULL;
 	unsigned int cur_frame_id = -1;
 
 	cur_frame_id = atomic_read(&rkisp1->isp_sdev.frm_sync_seq) - 1;
 
-	spin_lock(&params_vdev->config_lock);
-	if (!params_vdev->streamon) {
-		spin_unlock(&params_vdev->config_lock);
+	spin_lock(&params->config_lock);
+	if (!params->streamon) {
+		spin_unlock(&params->config_lock);
 		return;
 	}
 
 	/* get one empty buffer */
-	if (!list_empty(&params_vdev->params))
-		cur_buf = list_first_entry(&params_vdev->params,
+	if (!list_empty(&params->params))
+		cur_buf = list_first_entry(&params->params,
 					   struct rkisp1_buffer, queue);
-	spin_unlock(&params_vdev->config_lock);
+	spin_unlock(&params->config_lock);
 
 	if (!cur_buf)
 		return;
@@ -1233,17 +1233,17 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 	if (isp_mis & RKISP1_CIF_ISP_FRAME) {
 		u32 isp_ctrl;
 
-		rkisp1_isp_isr_other_config(params_vdev, new_params);
-		rkisp1_isp_isr_meas_config(params_vdev, new_params);
+		rkisp1_isp_isr_other_config(params, new_params);
+		rkisp1_isp_isr_meas_config(params, new_params);
 
 		/* update shadow register immediately */
-		isp_ctrl = rkisp1_ioread32(params_vdev, RKISP1_CIF_ISP_CTRL);
+		isp_ctrl = rkisp1_ioread32(params, RKISP1_CIF_ISP_CTRL);
 		isp_ctrl |= RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD;
-		rkisp1_iowrite32(params_vdev, isp_ctrl, RKISP1_CIF_ISP_CTRL);
+		rkisp1_iowrite32(params, isp_ctrl, RKISP1_CIF_ISP_CTRL);
 
-		spin_lock(&params_vdev->config_lock);
+		spin_lock(&params->config_lock);
 		list_del(&cur_buf->queue);
-		spin_unlock(&params_vdev->config_lock);
+		spin_unlock(&params->config_lock);
 
 		cur_buf->vb.sequence = cur_frame_id;
 		vb2_buffer_done(&cur_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
@@ -1290,83 +1290,83 @@ static const struct rkisp1_cif_isp_afc_config rkisp1_afc_params_default_config =
 };
 
 static
-void rkisp1_params_config_parameter(struct rkisp1_params_vdev *params_vdev)
+void rkisp1_params_config_parameter(struct rkisp1_params *params)
 {
 	struct rkisp1_cif_isp_hst_config hst = rkisp1_hst_params_default_config;
 
-	spin_lock(&params_vdev->config_lock);
+	spin_lock(&params->config_lock);
 
-	rkisp1_awb_meas_config(params_vdev, &rkisp1_awb_params_default_config);
-	rkisp1_awb_meas_enable(params_vdev, &rkisp1_awb_params_default_config,
+	rkisp1_awb_meas_config(params, &rkisp1_awb_params_default_config);
+	rkisp1_awb_meas_enable(params, &rkisp1_awb_params_default_config,
 			       true);
 
-	rkisp1_aec_config(params_vdev, &rkisp1_aec_params_default_config);
-	rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_EXP_CTRL,
+	rkisp1_aec_config(params, &rkisp1_aec_params_default_config);
+	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_EXP_CTRL,
 			      RKISP1_CIF_ISP_EXP_ENA);
 
-	rkisp1_afm_config(params_vdev, &rkisp1_afc_params_default_config);
-	rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_AFM_CTRL,
+	rkisp1_afm_config(params, &rkisp1_afc_params_default_config);
+	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_AFM_CTRL,
 			      RKISP1_CIF_ISP_AFM_ENA);
 
 	memset(hst.hist_weight, 0x01, sizeof(hst.hist_weight));
-	rkisp1_hst_config(params_vdev, &hst);
-	rkisp1_param_set_bits(params_vdev, RKISP1_CIF_ISP_HIST_PROP,
+	rkisp1_hst_config(params, &hst);
+	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_HIST_PROP,
 			      ~RKISP1_CIF_ISP_HIST_PROP_MODE_MASK |
 			      rkisp1_hst_params_default_config.mode);
 
 	/* set the  range */
-	if (params_vdev->quantization == V4L2_QUANTIZATION_FULL_RANGE)
-		rkisp1_csm_config(params_vdev, true);
+	if (params->quantization == V4L2_QUANTIZATION_FULL_RANGE)
+		rkisp1_csm_config(params, true);
 	else
-		rkisp1_csm_config(params_vdev, false);
+		rkisp1_csm_config(params, false);
 
 	/* override the default things */
-	rkisp1_isp_isr_other_config(params_vdev, &params_vdev->cur_params);
-	rkisp1_isp_isr_meas_config(params_vdev, &params_vdev->cur_params);
+	rkisp1_isp_isr_other_config(params, &params->cur_params);
+	rkisp1_isp_isr_meas_config(params, &params->cur_params);
 
-	spin_unlock(&params_vdev->config_lock);
+	spin_unlock(&params->config_lock);
 }
 
 /* Not called when the camera active, thus not isr protection. */
-void rkisp1_params_configure_isp(struct rkisp1_params_vdev *params_vdev,
+void rkisp1_params_configure_isp(struct rkisp1_params *params,
 				 const struct rkisp1_fmt *in_fmt,
 				 enum v4l2_quantization quantization)
 {
-	params_vdev->quantization = quantization;
-	params_vdev->raw_type = in_fmt->bayer_pat;
-	rkisp1_params_config_parameter(params_vdev);
+	params->quantization = quantization;
+	params->raw_type = in_fmt->bayer_pat;
+	rkisp1_params_config_parameter(params);
 }
 
 /* Not called when the camera active, thus not isr protection. */
-void rkisp1_params_disable_isp(struct rkisp1_params_vdev *params_vdev)
+void rkisp1_params_disable_isp(struct rkisp1_params *params)
 {
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_DPCC_MODE,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_DPCC_MODE,
 				RKISP1_CIF_ISP_DPCC_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_LSC_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_LSC_CTRL,
 				RKISP1_CIF_ISP_LSC_CTRL_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_BLS_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_BLS_CTRL,
 				RKISP1_CIF_ISP_BLS_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 				RKISP1_CIF_ISP_CTRL_ISP_GAMMA_IN_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 				RKISP1_CIF_ISP_CTRL_ISP_GAMMA_OUT_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_DEMOSAIC,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_DEMOSAIC,
 				RKISP1_CIF_ISP_DEMOSAIC_BYPASS);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_FILT_MODE,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_FILT_MODE,
 				RKISP1_CIF_ISP_FLT_ENA);
-	rkisp1_awb_meas_enable(params_vdev, NULL, false);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_CTRL,
+	rkisp1_awb_meas_enable(params, NULL, false);
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 				RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_EXP_CTRL,
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_EXP_CTRL,
 				RKISP1_CIF_ISP_EXP_ENA);
-	rkisp1_ctk_enable(params_vdev, false);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_C_PROC_CTRL,
+	rkisp1_ctk_enable(params, false);
+	rkisp1_param_clear_bits(params, RKISP1_CIF_C_PROC_CTRL,
 				RKISP1_CIF_C_PROC_CTR_ENABLE);
-	rkisp1_hst_enable(params_vdev, NULL, false);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_AFM_CTRL,
+	rkisp1_hst_enable(params, NULL, false);
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_AFM_CTRL,
 				RKISP1_CIF_ISP_AFM_ENA);
-	rkisp1_ie_enable(params_vdev, false);
-	rkisp1_param_clear_bits(params_vdev, RKISP1_CIF_ISP_DPF_MODE,
+	rkisp1_ie_enable(params, false);
+	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_DPF_MODE,
 				RKISP1_CIF_ISP_DPF_MODE_EN);
 }
 
@@ -1374,12 +1374,12 @@ static int rkisp1_params_enum_fmt_meta_out(struct file *file, void *priv,
 					   struct v4l2_fmtdesc *f)
 {
 	struct video_device *video = video_devdata(file);
-	struct rkisp1_params_vdev *params_vdev = video_get_drvdata(video);
+	struct rkisp1_params *params = video_get_drvdata(video);
 
 	if (f->index > 0 || f->type != video->queue->type)
 		return -EINVAL;
 
-	f->pixelformat = params_vdev->vdev_fmt.fmt.meta.dataformat;
+	f->pixelformat = params->vdev_fmt.fmt.meta.dataformat;
 
 	return 0;
 }
@@ -1388,15 +1388,15 @@ static int rkisp1_params_g_fmt_meta_out(struct file *file, void *fh,
 					struct v4l2_format *f)
 {
 	struct video_device *video = video_devdata(file);
-	struct rkisp1_params_vdev *params_vdev = video_get_drvdata(video);
+	struct rkisp1_params *params = video_get_drvdata(video);
 	struct v4l2_meta_format *meta = &f->fmt.meta;
 
 	if (f->type != video->queue->type)
 		return -EINVAL;
 
 	memset(meta, 0, sizeof(*meta));
-	meta->dataformat = params_vdev->vdev_fmt.fmt.meta.dataformat;
-	meta->buffersize = params_vdev->vdev_fmt.fmt.meta.buffersize;
+	meta->dataformat = params->vdev_fmt.fmt.meta.dataformat;
+	meta->buffersize = params->vdev_fmt.fmt.meta.buffersize;
 
 	return 0;
 }
@@ -1440,7 +1440,7 @@ static int rkisp1_params_vb2_queue_setup(struct vb2_queue *vq,
 					 unsigned int sizes[],
 					 struct device *alloc_devs[])
 {
-	struct rkisp1_params_vdev *params_vdev = vq->drv_priv;
+	struct rkisp1_params *params = vq->drv_priv;
 
 	*num_buffers = clamp_t(u32, *num_buffers,
 			       RKISP1_ISP_PARAMS_REQ_BUFS_MIN,
@@ -1450,8 +1450,8 @@ static int rkisp1_params_vb2_queue_setup(struct vb2_queue *vq,
 
 	sizes[0] = sizeof(struct rkisp1_params_cfg);
 
-	INIT_LIST_HEAD(&params_vdev->params);
-	params_vdev->first_params = true;
+	INIT_LIST_HEAD(&params->params);
+	params->first_params = true;
 
 	return 0;
 }
@@ -1461,29 +1461,29 @@ static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct rkisp1_buffer *params_buf = rkisp1_to_rkisp1_buffer(vbuf);
 	struct vb2_queue *vq = vb->vb2_queue;
-	struct rkisp1_params_vdev *params_vdev = vq->drv_priv;
+	struct rkisp1_params *params = vq->drv_priv;
 	struct rkisp1_params_cfg *new_params;
 	unsigned long flags;
 
 	unsigned int cur_frame_id = -1;
 
 	cur_frame_id =
-		atomic_read(&params_vdev->rkisp1->isp_sdev.frm_sync_seq) - 1;
+		atomic_read(&params->rkisp1->isp_sdev.frm_sync_seq) - 1;
 
-	if (params_vdev->first_params) {
+	if (params->first_params) {
 		new_params = (struct rkisp1_params_cfg *)
 			(vb2_plane_vaddr(vb, 0));
 		vbuf->sequence = cur_frame_id;
 		vb2_buffer_done(&params_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
-		params_vdev->first_params = false;
-		params_vdev->cur_params = *new_params;
+		params->first_params = false;
+		params->cur_params = *new_params;
 		return;
 	}
 
 	params_buf->vaddr[0] = vb2_plane_vaddr(vb, 0);
-	spin_lock_irqsave(&params_vdev->config_lock, flags);
-	list_add_tail(&params_buf->queue, &params_vdev->params);
-	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
+	spin_lock_irqsave(&params->config_lock, flags);
+	list_add_tail(&params_buf->queue, &params->params);
+	spin_unlock_irqrestore(&params->config_lock, flags);
 }
 
 static int rkisp1_params_vb2_buf_prepare(struct vb2_buffer *vb)
@@ -1498,26 +1498,26 @@ static int rkisp1_params_vb2_buf_prepare(struct vb2_buffer *vb)
 
 static void rkisp1_params_vb2_stop_streaming(struct vb2_queue *vq)
 {
-	struct rkisp1_params_vdev *params_vdev = vq->drv_priv;
+	struct rkisp1_params *params = vq->drv_priv;
 	struct rkisp1_buffer *buf;
 	unsigned long flags;
 	unsigned int i;
 
 	/* stop params input firstly */
-	spin_lock_irqsave(&params_vdev->config_lock, flags);
-	params_vdev->streamon = false;
-	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
+	spin_lock_irqsave(&params->config_lock, flags);
+	params->streamon = false;
+	spin_unlock_irqrestore(&params->config_lock, flags);
 
 	for (i = 0; i < RKISP1_ISP_PARAMS_REQ_BUFS_MAX; i++) {
-		spin_lock_irqsave(&params_vdev->config_lock, flags);
-		if (!list_empty(&params_vdev->params)) {
-			buf = list_first_entry(&params_vdev->params,
+		spin_lock_irqsave(&params->config_lock, flags);
+		if (!list_empty(&params->params)) {
+			buf = list_first_entry(&params->params,
 					       struct rkisp1_buffer, queue);
 			list_del(&buf->queue);
-			spin_unlock_irqrestore(&params_vdev->config_lock,
+			spin_unlock_irqrestore(&params->config_lock,
 					       flags);
 		} else {
-			spin_unlock_irqrestore(&params_vdev->config_lock,
+			spin_unlock_irqrestore(&params->config_lock,
 					       flags);
 			break;
 		}
@@ -1531,12 +1531,12 @@ static void rkisp1_params_vb2_stop_streaming(struct vb2_queue *vq)
 static int
 rkisp1_params_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 {
-	struct rkisp1_params_vdev *params_vdev = queue->drv_priv;
+	struct rkisp1_params *params = queue->drv_priv;
 	unsigned long flags;
 
-	spin_lock_irqsave(&params_vdev->config_lock, flags);
-	params_vdev->streamon = true;
-	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
+	spin_lock_irqsave(&params->config_lock, flags);
+	params->streamon = true;
+	spin_unlock_irqrestore(&params->config_lock, flags);
 
 	return 0;
 }
@@ -1562,7 +1562,7 @@ static struct v4l2_file_operations rkisp1_params_fops = {
 
 static int
 rkisp1_params_init_vb2_queue(struct vb2_queue *q,
-			     struct rkisp1_params_vdev *params_vdev)
+			     struct rkisp1_params *params)
 {
 	struct rkisp1_vdev_node *node;
 
@@ -1570,7 +1570,7 @@ rkisp1_params_init_vb2_queue(struct vb2_queue *q,
 
 	q->type = V4L2_BUF_TYPE_META_OUTPUT;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
-	q->drv_priv = params_vdev;
+	q->drv_priv = params;
 	q->ops = &rkisp1_params_vb2_ops;
 	q->mem_ops = &vb2_vmalloc_memops;
 	q->buf_struct_size = sizeof(struct rkisp1_buffer);
@@ -1580,29 +1580,29 @@ rkisp1_params_init_vb2_queue(struct vb2_queue *q,
 	return vb2_queue_init(q);
 }
 
-static void rkisp1_init_params_vdev(struct rkisp1_params_vdev *params_vdev)
+static void rkisp1_init_params(struct rkisp1_params *params)
 {
-	params_vdev->vdev_fmt.fmt.meta.dataformat =
+	params->vdev_fmt.fmt.meta.dataformat =
 		V4L2_META_FMT_RK_ISP1_PARAMS;
-	params_vdev->vdev_fmt.fmt.meta.buffersize =
+	params->vdev_fmt.fmt.meta.buffersize =
 		sizeof(struct rkisp1_params_cfg);
 }
 
-int rkisp1_register_params_vdev(struct rkisp1_params_vdev *params_vdev,
+int rkisp1_register_params(struct rkisp1_params *params,
 				struct v4l2_device *v4l2_dev,
 				struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_vdev_node *node = &params_vdev->vnode;
+	struct rkisp1_vdev_node *node = &params->vnode;
 	struct video_device *vdev = &node->vdev;
 	int ret;
 
-	params_vdev->rkisp1 = rkisp1;
+	params->rkisp1 = rkisp1;
 	mutex_init(&node->vlock);
-	spin_lock_init(&params_vdev->config_lock);
+	spin_lock_init(&params->config_lock);
 
 	strscpy(vdev->name, "rkisp1-input-params", sizeof(vdev->name));
 
-	video_set_drvdata(vdev, params_vdev);
+	video_set_drvdata(vdev, params);
 	vdev->ioctl_ops = &rkisp1_params_ioctl;
 	vdev->fops = &rkisp1_params_fops;
 	vdev->release = video_device_release_empty;
@@ -1615,9 +1615,9 @@ int rkisp1_register_params_vdev(struct rkisp1_params_vdev *params_vdev,
 	vdev->queue = &node->buf_queue;
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_META_OUTPUT;
 	vdev->vfl_dir = VFL_DIR_TX;
-	rkisp1_params_init_vb2_queue(vdev->queue, params_vdev);
-	rkisp1_init_params_vdev(params_vdev);
-	video_set_drvdata(vdev, params_vdev);
+	rkisp1_params_init_vb2_queue(vdev->queue, params);
+	rkisp1_init_params(params);
+	video_set_drvdata(vdev, params);
 
 	node->pad.flags = MEDIA_PAD_FL_SOURCE;
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
@@ -1637,9 +1637,9 @@ err_release_queue:
 	return ret;
 }
 
-void rkisp1_unregister_params_vdev(struct rkisp1_params_vdev *params_vdev)
+void rkisp1_unregister_params(struct rkisp1_params *params)
 {
-	struct rkisp1_vdev_node *node = &params_vdev->vnode;
+	struct rkisp1_vdev_node *node = &params->vnode;
 	struct video_device *vdev = &node->vdev;
 
 	video_unregister_device(vdev);

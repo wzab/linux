@@ -218,12 +218,12 @@ struct rkisp1_stats {
 };
 
 /*
- * struct rkisp1_params_vdev - ISP input parameters device
+ * struct rkisp1_params - ISP input parameters device
  *
  * @cur_params: Current ISP parameters
  * @first_params: the first params should take effect immediately
  */
-struct rkisp1_params_vdev {
+struct rkisp1_params {
 	struct rkisp1_vdev_node vnode;
 	struct rkisp1_device *rkisp1;
 
@@ -245,7 +245,7 @@ struct rkisp1_params_vdev {
  * @isp_sdev: ISP sub-device
  * @rkisp1_stream: capture video device
  * @stats: ISP statistics output device
- * @params_vdev: ISP input parameters device
+ * @params: ISP input parameters device
  */
 struct rkisp1_device {
 	void __iomem *base_addr;
@@ -261,7 +261,7 @@ struct rkisp1_device {
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
 	struct rkisp1_stats stats;
-	struct rkisp1_params_vdev params_vdev;
+	struct rkisp1_params params;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
 	u32 irq_status_mi;
@@ -346,16 +346,16 @@ int rkisp1_register_stats(struct rkisp1_stats *stats,
 void rkisp1_unregister_stats(struct rkisp1_stats *stats);
 
 /* config params before ISP streaming */
-void rkisp1_params_configure_isp(struct rkisp1_params_vdev *params_vdev,
+void rkisp1_params_configure_isp(struct rkisp1_params *params,
 				 const struct rkisp1_fmt *in_fmt,
 				 enum v4l2_quantization quantization);
-void rkisp1_params_disable_isp(struct rkisp1_params_vdev *params_vdev);
+void rkisp1_params_disable_isp(struct rkisp1_params *params);
 
-int rkisp1_register_params_vdev(struct rkisp1_params_vdev *params_vdev,
+int rkisp1_register_params(struct rkisp1_params *params,
 				struct v4l2_device *v4l2_dev,
 				struct rkisp1_device *rkisp1);
 
-void rkisp1_unregister_params_vdev(struct rkisp1_params_vdev *params_vdev);
+void rkisp1_unregister_params(struct rkisp1_params *params);
 
 void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
 

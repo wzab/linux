@@ -225,14 +225,14 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, irq_mask, RKISP1_CIF_ISP_IMSC);
 
 	if (out_fmt->fmt_type == RKISP1_FMT_BAYER) {
-		rkisp1_params_disable_isp(&rkisp1->params_vdev);
+		rkisp1_params_disable_isp(&rkisp1->params);
 	} else {
 		struct v4l2_mbus_framefmt *out_frm;
 
 		out_frm = rkisp1_isp_sd_get_pad_fmt(&rkisp1->isp_sdev, NULL,
 						    RKISP1_ISP_PAD_SINK_VIDEO,
 						    V4L2_SUBDEV_FORMAT_ACTIVE);
-		rkisp1_params_configure_isp(&rkisp1->params_vdev, in_fmt,
+		rkisp1_params_configure_isp(&rkisp1->params, in_fmt,
 					    out_frm->quantization);
 	}
 
