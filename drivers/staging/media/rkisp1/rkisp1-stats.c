@@ -18,7 +18,7 @@
 
 struct rkisp1_isp_readout_work {
 	struct work_struct work;
-	struct rkisp1_stats_vdev *stats_vdev;
+	struct rkisp1_stats *stats;
 
 	unsigned int frame_id;
 	unsigned int isp_ris;
@@ -30,12 +30,12 @@ static int rkisp1_stats_enum_fmt_meta_cap(struct file *file, void *priv,
 					  struct v4l2_fmtdesc *f)
 {
 	struct video_device *video = video_devdata(file);
-	struct rkisp1_stats_vdev *stats_vdev = video_get_drvdata(video);
+	struct rkisp1_stats *stats = video_get_drvdata(video);
 
 	if (f->index > 0 || f->type != video->queue->type)
 		return -EINVAL;
 
-	f->pixelformat = stats_vdev->vdev_fmt.fmt.meta.dataformat;
+	f->pixelformat = stats->vdev_fmt.fmt.meta.dataformat;
 	return 0;
 }
 
@@ -43,15 +43,15 @@ static int rkisp1_stats_g_fmt_meta_cap(struct file *file, void *priv,
 				       struct v4l2_format *f)
 {
 	struct video_device *video = video_devdata(file);
-	struct rkisp1_stats_vdev *stats_vdev = video_get_drvdata(video);
+	struct rkisp1_stats *stats = video_get_drvdata(video);
 	struct v4l2_meta_format *meta = &f->fmt.meta;
 
 	if (f->type != video->queue->type)
 		return -EINVAL;
 
 	memset(meta, 0, sizeof(*meta));
-	meta->dataformat = stats_vdev->vdev_fmt.fmt.meta.dataformat;
-	meta->buffersize = stats_vdev->vdev_fmt.fmt.meta.buffersize;
+	meta->dataformat = stats->vdev_fmt.fmt.meta.dataformat;
+	meta->buffersize = stats->vdev_fmt.fmt.meta.buffersize;
 
 	return 0;
 }
@@ -103,7 +103,7 @@ static int rkisp1_stats_vb2_queue_setup(struct vb2_queue *vq,
 					unsigned int sizes[],
 					struct device *alloc_devs[])
 {
-	struct rkisp1_stats_vdev *stats_vdev = vq->drv_priv;
+	struct rkisp1_stats *stats = vq->drv_priv;
 
 	*num_planes = 1;
 
@@ -112,7 +112,7 @@ static int rkisp1_stats_vb2_queue_setup(struct vb2_queue *vq,
 
 	sizes[0] = sizeof(struct rkisp1_stat_buffer);
 
-	INIT_LIST_HEAD(&stats_vdev->stat);
+	INIT_LIST_HEAD(&stats->stat);
 
 	return 0;
 }
@@ -122,7 +122,7 @@ static void rkisp1_stats_vb2_buf_queue(struct vb2_buffer *vb)
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
 	struct rkisp1_buffer *stats_buf = rkisp1_to_rkisp1_buffer(vbuf);
 	struct vb2_queue *vq = vb->vb2_queue;
-	struct rkisp1_stats_vdev *stats_dev = vq->drv_priv;
+	struct rkisp1_stats *stats_dev = vq->drv_priv;
 
 	stats_buf->vaddr[0] = vb2_plane_vaddr(vb, 0);
 
@@ -143,37 +143,37 @@ static int rkisp1_stats_vb2_buf_prepare(struct vb2_buffer *vb)
 
 static void rkisp1_stats_vb2_stop_streaming(struct vb2_queue *vq)
 {
-	struct rkisp1_stats_vdev *stats_vdev = vq->drv_priv;
+	struct rkisp1_stats *stats = vq->drv_priv;
 	struct rkisp1_buffer *buf;
 	unsigned long flags;
 	unsigned int i;
 
 	/* Make sure no new work queued in isr before draining wq */
-	spin_lock_irqsave(&stats_vdev->irq_lock, flags);
-	stats_vdev->streamon = false;
-	spin_unlock_irqrestore(&stats_vdev->irq_lock, flags);
+	spin_lock_irqsave(&stats->irq_lock, flags);
+	stats->streamon = false;
+	spin_unlock_irqrestore(&stats->irq_lock, flags);
 
-	drain_workqueue(stats_vdev->readout_wq);
+	drain_workqueue(stats->readout_wq);
 
-	mutex_lock(&stats_vdev->wq_lock);
+	mutex_lock(&stats->wq_lock);
 	for (i = 0; i < RKISP1_ISP_STATS_REQ_BUFS_MAX; i++) {
-		if (list_empty(&stats_vdev->stat))
+		if (list_empty(&stats->stat))
 			break;
-		buf = list_first_entry(&stats_vdev->stat,
+		buf = list_first_entry(&stats->stat,
 				       struct rkisp1_buffer, queue);
 		list_del(&buf->queue);
 		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
 	}
-	mutex_unlock(&stats_vdev->wq_lock);
+	mutex_unlock(&stats->wq_lock);
 }
 
 static int
 rkisp1_stats_vb2_start_streaming(struct vb2_queue *queue,
 				 unsigned int count)
 {
-	struct rkisp1_stats_vdev *stats_vdev = queue->drv_priv;
+	struct rkisp1_stats *stats = queue->drv_priv;
 
-	stats_vdev->streamon = true;
+	stats->streamon = true;
 
 	return 0;
 }
@@ -189,7 +189,7 @@ static const struct vb2_ops rkisp1_stats_vb2_ops = {
 };
 
 static int rkisp1_stats_init_vb2_queue(struct vb2_queue *q,
-				       struct rkisp1_stats_vdev *stats_vdev)
+				       struct rkisp1_stats *stats)
 {
 	struct rkisp1_vdev_node *node;
 
@@ -197,7 +197,7 @@ static int rkisp1_stats_init_vb2_queue(struct vb2_queue *q,
 
 	q->type = V4L2_BUF_TYPE_META_CAPTURE;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
-	q->drv_priv = stats_vdev;
+	q->drv_priv = stats;
 	q->ops = &rkisp1_stats_vb2_ops;
 	q->mem_ops = &vb2_vmalloc_memops;
 	q->buf_struct_size = sizeof(struct rkisp1_buffer);
@@ -207,11 +207,11 @@ static int rkisp1_stats_init_vb2_queue(struct vb2_queue *q,
 	return vb2_queue_init(q);
 }
 
-static void rkisp1_stats_get_awb_meas(struct rkisp1_stats_vdev *stats_vdev,
+static void rkisp1_stats_get_awb_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
 	/* Protect against concurrent access from ISR? */
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	u32 reg_val;
 
 	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_AWB;
@@ -228,10 +228,10 @@ static void rkisp1_stats_get_awb_meas(struct rkisp1_stats_vdev *stats_vdev,
 				RKISP1_CIF_ISP_AWB_GET_MEAN_Y_G(reg_val);
 }
 
-static void rkisp1_stats_get_aec_meas(struct rkisp1_stats_vdev *stats_vdev,
+static void rkisp1_stats_get_aec_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	unsigned int i;
 
 	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_AUTOEXP;
@@ -240,10 +240,10 @@ static void rkisp1_stats_get_aec_meas(struct rkisp1_stats_vdev *stats_vdev,
 			(u8)rkisp1_read(rkisp1, RKISP1_CIF_ISP_EXP_MEAN_00 + i * 4);
 }
 
-static void rkisp1_stats_get_afc_meas(struct rkisp1_stats_vdev *stats_vdev,
+static void rkisp1_stats_get_afc_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	struct rkisp1_cif_isp_af_stat *af;
 
 	pbuf->meas_type = RKISP1_CIF_ISP_STAT_AFM_FIN;
@@ -257,10 +257,10 @@ static void rkisp1_stats_get_afc_meas(struct rkisp1_stats_vdev *stats_vdev,
 	af->window[2].lum = rkisp1_read(rkisp1, RKISP1_CIF_ISP_AFM_LUM_C);
 }
 
-static void rkisp1_stats_get_hst_meas(struct rkisp1_stats_vdev *stats_vdev,
+static void rkisp1_stats_get_hst_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	unsigned int i;
 
 	pbuf->meas_type |= RKISP1_CIF_ISP_STAT_HIST;
@@ -269,10 +269,10 @@ static void rkisp1_stats_get_hst_meas(struct rkisp1_stats_vdev *stats_vdev,
 			(u8)rkisp1_read(rkisp1, RKISP1_CIF_ISP_HIST_BIN_0 + i * 4);
 }
 
-static void rkisp1_stats_get_bls_meas(struct rkisp1_stats_vdev *stats_vdev,
+static void rkisp1_stats_get_bls_meas(struct rkisp1_stats *stats,
 				      struct rkisp1_stat_buffer *pbuf)
 {
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	const struct rkisp1_fmt *in_fmt = rkisp1->isp_sdev.in_fmt;
 	struct rkisp1_cif_isp_bls_meas_val *bls_val;
 
@@ -301,7 +301,7 @@ static void rkisp1_stats_get_bls_meas(struct rkisp1_stats_vdev *stats_vdev,
 }
 
 static void
-rkisp1_stats_send_measurement(struct rkisp1_stats_vdev *stats_vdev,
+rkisp1_stats_send_measurement(struct rkisp1_stats *stats,
 			      struct rkisp1_isp_readout_work *meas_work)
 {
 	struct rkisp1_stat_buffer *cur_stat_buf;
@@ -309,22 +309,22 @@ rkisp1_stats_send_measurement(struct rkisp1_stats_vdev *stats_vdev,
 	unsigned int cur_frame_id = -1;
 	u64 timestamp = ktime_get_ns();
 
-	cur_frame_id = atomic_read(&stats_vdev->rkisp1->isp_sdev.frm_sync_seq) - 1;
+	cur_frame_id = atomic_read(&stats->rkisp1->isp_sdev.frm_sync_seq) - 1;
 	if (cur_frame_id != meas_work->frame_id) {
-		dev_warn(stats_vdev->rkisp1->dev,
+		dev_warn(stats->rkisp1->dev,
 			 "Measurement late(%d, %d)\n",
 			 cur_frame_id, meas_work->frame_id);
 		cur_frame_id = meas_work->frame_id;
 	}
 
-	mutex_lock(&stats_vdev->wq_lock);
+	mutex_lock(&stats->wq_lock);
 	/* get one empty buffer */
-	if (!list_empty(&stats_vdev->stat)) {
-		cur_buf = list_first_entry(&stats_vdev->stat,
+	if (!list_empty(&stats->stat)) {
+		cur_buf = list_first_entry(&stats->stat,
 					   struct rkisp1_buffer, queue);
 		list_del(&cur_buf->queue);
 	}
-	mutex_unlock(&stats_vdev->wq_lock);
+	mutex_unlock(&stats->wq_lock);
 
 	if (!cur_buf)
 		return;
@@ -333,23 +333,23 @@ rkisp1_stats_send_measurement(struct rkisp1_stats_vdev *stats_vdev,
 		(struct rkisp1_stat_buffer *)(cur_buf->vaddr[0]);
 
 	if (meas_work->isp_ris & RKISP1_CIF_ISP_AWB_DONE) {
-		rkisp1_stats_get_awb_meas(stats_vdev, cur_stat_buf);
+		rkisp1_stats_get_awb_meas(stats, cur_stat_buf);
 		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AWB;
 	}
 
 	if (meas_work->isp_ris & RKISP1_CIF_ISP_AFM_FIN) {
-		rkisp1_stats_get_afc_meas(stats_vdev, cur_stat_buf);
+		rkisp1_stats_get_afc_meas(stats, cur_stat_buf);
 		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AFM_FIN;
 	}
 
 	if (meas_work->isp_ris & RKISP1_CIF_ISP_EXP_END) {
-		rkisp1_stats_get_aec_meas(stats_vdev, cur_stat_buf);
-		rkisp1_stats_get_bls_meas(stats_vdev, cur_stat_buf);
+		rkisp1_stats_get_aec_meas(stats, cur_stat_buf);
+		rkisp1_stats_get_bls_meas(stats, cur_stat_buf);
 		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_AUTOEXP;
 	}
 
 	if (meas_work->isp_ris & RKISP1_CIF_ISP_HIST_MEASURE_RDY) {
-		rkisp1_stats_get_hst_meas(stats_vdev, cur_stat_buf);
+		rkisp1_stats_get_hst_meas(stats, cur_stat_buf);
 		cur_stat_buf->meas_type |= RKISP1_CIF_ISP_STAT_HIST;
 	}
 
@@ -365,25 +365,25 @@ static void rkisp1_stats_readout_work(struct work_struct *work)
 	struct rkisp1_isp_readout_work *readout_work = container_of(work,
 						struct rkisp1_isp_readout_work,
 						work);
-	struct rkisp1_stats_vdev *stats_vdev = readout_work->stats_vdev;
+	struct rkisp1_stats *stats = readout_work->stats;
 
 	if (readout_work->readout == RKISP1_ISP_READOUT_MEAS)
-		rkisp1_stats_send_measurement(stats_vdev, readout_work);
+		rkisp1_stats_send_measurement(stats, readout_work);
 
 	kfree(readout_work);
 }
 
-void rkisp1_stats_isr_thread(struct rkisp1_stats_vdev *stats_vdev,
+void rkisp1_stats_isr_thread(struct rkisp1_stats *stats,
 			     u32 isp_ris)
 {
 	unsigned int cur_frame_id =
-		atomic_read(&stats_vdev->rkisp1->isp_sdev.frm_sync_seq) - 1;
-	struct rkisp1_device *rkisp1 = stats_vdev->rkisp1;
+		atomic_read(&stats->rkisp1->isp_sdev.frm_sync_seq) - 1;
+	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	struct rkisp1_isp_readout_work *work;
 	unsigned int isp_mis_tmp = 0;
 	u32 val;
 
-	spin_lock(&stats_vdev->irq_lock);
+	spin_lock(&stats->irq_lock);
 
 	val = RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
 	      RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY;
@@ -394,10 +394,10 @@ void rkisp1_stats_isr_thread(struct rkisp1_stats_vdev *stats_vdev,
 	if (isp_mis_tmp &
 		(RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
 		 RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY))
-		dev_err(stats_vdev->rkisp1->dev, "isp icr 3A info err: 0x%x\n",
+		dev_err(stats->rkisp1->dev, "isp icr 3A info err: 0x%x\n",
 			isp_mis_tmp);
 
-	if (!stats_vdev->streamon)
+	if (!stats->streamon)
 		goto unlock;
 	if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 		       RKISP1_CIF_ISP_AFM_FIN |
@@ -410,47 +410,47 @@ void rkisp1_stats_isr_thread(struct rkisp1_stats_vdev *stats_vdev,
 			INIT_WORK(&work->work,
 				  rkisp1_stats_readout_work);
 			work->readout = RKISP1_ISP_READOUT_MEAS;
-			work->stats_vdev = stats_vdev;
+			work->stats = stats;
 			work->frame_id = cur_frame_id;
 			work->isp_ris = isp_ris;
-			if (!queue_work(stats_vdev->readout_wq,
+			if (!queue_work(stats->readout_wq,
 					&work->work))
 				kfree(work);
 		} else {
-			dev_err(stats_vdev->rkisp1->dev,
+			dev_err(stats->rkisp1->dev,
 				"Could not allocate work\n");
 		}
 	}
 
 unlock:
-	spin_unlock(&stats_vdev->irq_lock);
+	spin_unlock(&stats->irq_lock);
 }
 
-static void rkisp1_init_stats_vdev(struct rkisp1_stats_vdev *stats_vdev)
+static void rkisp1_init_stats(struct rkisp1_stats *stats)
 {
-	stats_vdev->vdev_fmt.fmt.meta.dataformat =
+	stats->vdev_fmt.fmt.meta.dataformat =
 		V4L2_META_FMT_RK_ISP1_STAT_3A;
-	stats_vdev->vdev_fmt.fmt.meta.buffersize =
+	stats->vdev_fmt.fmt.meta.buffersize =
 		sizeof(struct rkisp1_stat_buffer);
 }
 
-int rkisp1_register_stats_vdev(struct rkisp1_stats_vdev *stats_vdev,
+int rkisp1_register_stats(struct rkisp1_stats *stats,
 			       struct v4l2_device *v4l2_dev,
 			       struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_vdev_node *node = &stats_vdev->vnode;
+	struct rkisp1_vdev_node *node = &stats->vnode;
 	struct video_device *vdev = &node->vdev;
 	int ret;
 
-	stats_vdev->rkisp1 = rkisp1;
-	mutex_init(&stats_vdev->wq_lock);
+	stats->rkisp1 = rkisp1;
+	mutex_init(&stats->wq_lock);
 	mutex_init(&node->vlock);
-	INIT_LIST_HEAD(&stats_vdev->stat);
-	spin_lock_init(&stats_vdev->irq_lock);
+	INIT_LIST_HEAD(&stats->stat);
+	spin_lock_init(&stats->irq_lock);
 
 	strscpy(vdev->name, "rkisp1-statistics", sizeof(vdev->name));
 
-	video_set_drvdata(vdev, stats_vdev);
+	video_set_drvdata(vdev, stats);
 	vdev->ioctl_ops = &rkisp1_stats_ioctl;
 	vdev->fops = &rkisp1_stats_fops;
 	vdev->release = video_device_release_empty;
@@ -459,9 +459,9 @@ int rkisp1_register_stats_vdev(struct rkisp1_stats_vdev *stats_vdev,
 	vdev->queue = &node->buf_queue;
 	vdev->device_caps = V4L2_CAP_META_CAPTURE | V4L2_CAP_STREAMING;
 	vdev->vfl_dir =  VFL_DIR_RX;
-	rkisp1_stats_init_vb2_queue(vdev->queue, stats_vdev);
-	rkisp1_init_stats_vdev(stats_vdev);
-	video_set_drvdata(vdev, stats_vdev);
+	rkisp1_stats_init_vb2_queue(vdev->queue, stats);
+	rkisp1_init_stats(stats);
+	video_set_drvdata(vdev, stats);
 
 	node->pad.flags = MEDIA_PAD_FL_SINK;
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
@@ -475,11 +475,11 @@ int rkisp1_register_stats_vdev(struct rkisp1_stats_vdev *stats_vdev,
 		goto err_cleanup_media_entity;
 	}
 
-	stats_vdev->readout_wq = alloc_workqueue("measurement_queue",
-						 WQ_UNBOUND | WQ_MEM_RECLAIM,
-						 1);
+	stats->readout_wq = alloc_workqueue("measurement_queue",
+					    WQ_UNBOUND | WQ_MEM_RECLAIM,
+					    1);
 
-	if (!stats_vdev->readout_wq) {
+	if (!stats->readout_wq) {
 		ret = -ENOMEM;
 		goto err_unreg_vdev;
 	}
@@ -493,19 +493,19 @@ err_cleanup_media_entity:
 err_release_queue:
 	vb2_queue_release(vdev->queue);
 	mutex_destroy(&node->vlock);
-	mutex_destroy(&stats_vdev->wq_lock);
+	mutex_destroy(&stats->wq_lock);
 	return ret;
 }
 
-void rkisp1_unregister_stats_vdev(struct rkisp1_stats_vdev *stats_vdev)
+void rkisp1_unregister_stats(struct rkisp1_stats *stats)
 {
-	struct rkisp1_vdev_node *node = &stats_vdev->vnode;
+	struct rkisp1_vdev_node *node = &stats->vnode;
 	struct video_device *vdev = &node->vdev;
 
-	destroy_workqueue(stats_vdev->readout_wq);
+	destroy_workqueue(stats->readout_wq);
 	video_unregister_device(vdev);
 	media_entity_cleanup(&vdev->entity);
 	vb2_queue_release(vdev->queue);
 	mutex_destroy(&node->vlock);
-	mutex_destroy(&stats_vdev->wq_lock);
+	mutex_destroy(&stats->wq_lock);
 }

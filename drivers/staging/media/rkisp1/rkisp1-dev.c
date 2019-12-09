@@ -86,7 +86,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* 3A stats links */
 	source = &rkisp1->isp_sdev.sd.entity;
-	sink = &rkisp1->stats_vdev.vnode.vdev.entity;
+	sink = &rkisp1->stats.vnode.vdev.entity;
 	return media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_STATS,
 				     sink, 0, flags);
 }
@@ -234,15 +234,14 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	if (ret < 0)
 		goto err_unreg_isp_subdev;
 
-	ret = rkisp1_register_stats_vdev(&rkisp1->stats_vdev,
-					 &rkisp1->v4l2_dev, rkisp1);
+	ret = rkisp1_register_stats(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
 		goto err_unreg_stream_vdev;
 
 	ret = rkisp1_register_params_vdev(&rkisp1->params_vdev,
 					  &rkisp1->v4l2_dev, rkisp1);
 	if (ret < 0)
-		goto err_unreg_stats_vdev;
+		goto err_unreg_stats;
 
 	ret = rkisp1_subdev_notifier(rkisp1);
 	if (ret < 0) {
@@ -254,8 +253,8 @@ static int rkisp1_register_platform_subdevs(struct rkisp1_device *rkisp1)
 	return 0;
 err_unreg_params_vdev:
 	rkisp1_unregister_params_vdev(&rkisp1->params_vdev);
-err_unreg_stats_vdev:
-	rkisp1_unregister_stats_vdev(&rkisp1->stats_vdev);
+err_unreg_stats:
+	rkisp1_unregister_stats(&rkisp1->stats);
 err_unreg_stream_vdev:
 	rkisp1_unregister_stream_vdevs(rkisp1);
 err_unreg_isp_subdev:
@@ -419,7 +418,7 @@ static int rkisp1_plat_remove(struct platform_device *pdev)
 	v4l2_async_notifier_cleanup(&rkisp1->notifier);
 
 	rkisp1_unregister_params_vdev(&rkisp1->params_vdev);
-	rkisp1_unregister_stats_vdev(&rkisp1->stats_vdev);
+	rkisp1_unregister_stats(&rkisp1->stats);
 	rkisp1_unregister_stream_vdevs(rkisp1);
 	rkisp1_unregister_isp_subdev(rkisp1);
 

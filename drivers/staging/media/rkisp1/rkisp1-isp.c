@@ -1230,7 +1230,7 @@ void rkisp1_isp_isr_thread(struct rkisp1_device *rkisp1)
 			// but that's a matter of taste, naming isr to each
 			// function that handles the interrupts can also help
 			// to navigate the code i guess.
-			rkisp1_stats_isr_thread(&rkisp1->stats_vdev, isp_ris);
+			rkisp1_stats_isr_thread(&rkisp1->stats, isp_ris);
 	}
 
 	/*

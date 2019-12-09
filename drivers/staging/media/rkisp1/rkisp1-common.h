@@ -198,13 +198,13 @@ struct rkisp1_stream {
 };
 
 /*
- * struct rkisp1_stats_vdev - ISP Statistics device
+ * struct rkisp1_stats - ISP Statistics device
  *
  * @irq_lock: buffer queue lock
  * @stat: stats buffer list
  * @readout_wq: workqueue for statistics information read
  */
-struct rkisp1_stats_vdev {
+struct rkisp1_stats {
 	struct rkisp1_vdev_node vnode;
 	struct rkisp1_device *rkisp1;
 
@@ -244,7 +244,7 @@ struct rkisp1_params_vdev {
  * @active_sensor: sensor in-use, set when streaming on
  * @isp_sdev: ISP sub-device
  * @rkisp1_stream: capture video device
- * @stats_vdev: ISP statistics output device
+ * @stats: ISP statistics output device
  * @params_vdev: ISP input parameters device
  */
 struct rkisp1_device {
@@ -260,7 +260,7 @@ struct rkisp1_device {
 	struct rkisp1_sensor_async *active_sensor;
 	struct rkisp1_isp_subdev isp_sdev;
 	struct rkisp1_stream streams[RKISP1_MAX_STREAM];
-	struct rkisp1_stats_vdev stats_vdev;
+	struct rkisp1_stats stats;
 	struct rkisp1_params_vdev params_vdev;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
@@ -339,12 +339,11 @@ int rkisp1_register_stream_vdevs(struct rkisp1_device *rkisp1);
 void rkisp1_stream_isr_thread(struct rkisp1_device *rkisp1);
 void rkisp1_stream_init(struct rkisp1_device *rkisp1, u32 id);
 
-void rkisp1_stats_isr_thread(struct rkisp1_stats_vdev *stats_vdev,
-			     u32 isp_ris);
-int rkisp1_register_stats_vdev(struct rkisp1_stats_vdev *stats_vdev,
-			       struct v4l2_device *v4l2_dev,
-			       struct rkisp1_device *rkisp1);
-void rkisp1_unregister_stats_vdev(struct rkisp1_stats_vdev *stats_vdev);
+void rkisp1_stats_isr_thread(struct rkisp1_stats *stats, u32 isp_ris);
+int rkisp1_register_stats(struct rkisp1_stats *stats,
+			  struct v4l2_device *v4l2_dev,
+			  struct rkisp1_device *rkisp1);
+void rkisp1_unregister_stats(struct rkisp1_stats *stats);
 
 /* config params before ISP streaming */
 void rkisp1_params_configure_isp(struct rkisp1_params_vdev *params_vdev,
