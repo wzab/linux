@@ -44,7 +44,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,
 						  MEDIA_PAD_FL_SOURCE);
-		if (ret < 0) {
+		if (ret) {
 			dev_err(sd->dev, "failed to find src pad for %s\n",
 				sd->name);
 			return ret;
@@ -55,7 +55,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 					    &rkisp1->isp.sd.entity,
 					    RKISP1_ISP_PAD_SINK_VIDEO,
 					    flags);
-		if (ret < 0)
+		if (ret)
 			return ret;
 
 		flags = 0;
@@ -67,7 +67,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	flags = MEDIA_LNK_FL_ENABLED;
 	ret = media_create_pad_link(source, 0, sink,
 				    RKISP1_ISP_PAD_SINK_PARAMS, flags);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	/* create ISP internal links */
@@ -76,7 +76,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	/* MP links */
@@ -84,7 +84,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, 0, flags);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	/* 3A stats links */
@@ -138,10 +138,10 @@ static int rkisp1_subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 
 	mutex_lock(&rkisp1->media_dev.graph_mutex);
 	ret = rkisp1_create_links(rkisp1);
-	if (ret < 0)
+	if (ret)
 		goto unlock;
 	ret = v4l2_device_register_subdev_nodes(&rkisp1->v4l2_dev);
-	if (ret < 0)
+	if (ret)
 		goto unlock;
 
 	dev_dbg(rkisp1->dev, "Async subdev notifier completed\n");
@@ -209,7 +209,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 	ret = v4l2_async_notifier_parse_fwnode_endpoints_by_port(dev, ntf,
 					sizeof(struct rkisp1_sensor_async),
 					0, rkisp1_fwnode_parse);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	if (list_empty(&ntf->asd_list))
@@ -238,10 +238,10 @@ static int __maybe_unused rkisp1_runtime_resume(struct device *dev)
 	int ret;
 
 	ret = pinctrl_pm_select_default_state(dev);
-	if (ret < 0)
+	if (ret)
 		return ret;
 	ret = clk_bulk_prepare_enable(rkisp1->clk_size, rkisp1->clks);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	return 0;
@@ -262,24 +262,24 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	int ret;
 
 	ret = rkisp1_isp_register(rkisp1, &rkisp1->v4l2_dev);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	ret = rkisp1_capture_devs_register(rkisp1);
-	if (ret < 0)
+	if (ret)
 		goto err_unreg_isp_subdev;
 
 	ret = rkisp1_stats_register(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
-	if (ret < 0)
+	if (ret)
 		goto err_unreg_capture_devs;
 
 	ret = rkisp1_params_register(&rkisp1->params,
 				     &rkisp1->v4l2_dev, rkisp1);
-	if (ret < 0)
+	if (ret)
 		goto err_unreg_stats;
 
 	ret = rkisp1_subdev_notifier(rkisp1);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(rkisp1->dev,
 			"Failed to register subdev notifier(%d)\n", ret);
 		goto err_unreg_params;
@@ -360,7 +360,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	ret = devm_request_irq(dev, irq, rkisp1_isr_handler, IRQF_SHARED,
 			       dev_driver_string(dev), dev);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev, "request irq failed: %d\n", ret);
 		return ret;
 	}
@@ -393,17 +393,17 @@ static int rkisp1_probe(struct platform_device *pdev)
 	strscpy(v4l2_dev->name, "rkisp1", sizeof(v4l2_dev->name));
 
 	ret = v4l2_device_register(rkisp1->dev, &rkisp1->v4l2_dev);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	ret = media_device_register(&rkisp1->media_dev);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(dev, "Failed to register media device: %d\n", ret);
 		goto err_unreg_v4l2_dev;
 	}
 
 	ret = rkisp1_entities_register(rkisp1);
-	if (ret < 0)
+	if (ret)
 		goto err_unreg_media_dev;
 
 	return 0;

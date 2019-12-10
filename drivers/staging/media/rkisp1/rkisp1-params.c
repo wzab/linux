@@ -1610,10 +1610,10 @@ int rkisp1_params_register(struct rkisp1_params *params,
 
 	node->pad.flags = MEDIA_PAD_FL_SOURCE;
 	ret = media_entity_pads_init(&vdev->entity, 1, &node->pad);
-	if (ret < 0)
+	if (ret)
 		goto err_release_queue;
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(&vdev->dev,
 			"could not register Video for Linux device\n");
 		goto err_cleanup_media_entity;

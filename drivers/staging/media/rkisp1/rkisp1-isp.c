@@ -500,10 +500,10 @@ static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 	dev_dbg(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
 
 	ret = rkisp1_config_isp(rkisp1);
-	if (ret < 0)
+	if (ret)
 		return ret;
 	ret = rkisp1_config_path(rkisp1);
-	if (ret < 0)
+	if (ret)
 		return ret;
 	rkisp1_config_ism(rkisp1);
 
@@ -1017,7 +1017,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 
 	if (!on) {
 		ret = rkisp1_isp_stop(rkisp1);
-		if (ret < 0)
+		if (ret)
 			return ret;
 		rkisp1_mipi_csi2_stop(rkisp1->active_sensor);
 		return 0;
@@ -1031,7 +1031,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 
 	atomic_set(&rkisp1->isp.frm_sync_seq, 0);
 	ret = rkisp1_config_cif(rkisp1);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	/* TODO: support other interfaces */
@@ -1039,7 +1039,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 		return -EINVAL;
 
 	ret = rkisp1_mipi_csi2_start(&rkisp1->isp, rkisp1->active_sensor);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	ret = rkisp1_isp_start(rkisp1);
@@ -1102,14 +1102,14 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 	rkisp1->isp.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
-	if (ret < 0)
+	if (ret)
 		return ret;
 
 	sd->owner = THIS_MODULE;
 	v4l2_set_subdevdata(sd, rkisp1);
 
 	ret = v4l2_device_register_subdev(v4l2_dev, sd);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(sd->dev, "Failed to register isp subdev\n");
 		goto err_cleanup_media_entity;
 	}
