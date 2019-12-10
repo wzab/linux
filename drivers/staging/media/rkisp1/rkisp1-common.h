@@ -112,6 +112,9 @@ struct rkisp1_isp {
 	const struct rkisp1_fmt *out_fmt;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
+	struct dentry *debugfs_dir;
+	unsigned long debugfs_data_loss_counter;
+	unsigned long debugfs_pic_size_error_counter;
 
 };
 
@@ -254,6 +257,7 @@ struct rkisp1_device {
 	struct rkisp1_params params;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
+	struct dentry *debugfs_dir;
 };
 
 /*

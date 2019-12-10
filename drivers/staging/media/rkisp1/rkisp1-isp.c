@@ -5,6 +5,7 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
+#include <linux/debugfs.h>
 #include <linux/iopoll.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
@@ -436,7 +437,8 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, mipi_ctrl, RKISP1_CIF_MIPI_CTRL);
 
 	/* Configure Data Type and Virtual Channel */
-	rkisp1_write(rkisp1, RKISP1_CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) |
+	rkisp1_write(rkisp1,
+		     RKISP1_CIF_MIPI_DATA_SEL_DT(in_fmt->mipi_dt) |
 		     RKISP1_CIF_MIPI_DATA_SEL_VC(0),
 		     RKISP1_CIF_MIPI_IMG_DATA_SEL);
 
@@ -1088,6 +1090,23 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 	struct v4l2_subdev *sd = &rkisp1->isp.sd;
 	int ret;
 
+	if (rkisp1->debugfs_dir) {
+		rkisp1->isp.debugfs_dir = debugfs_create_dir("isp",
+							 rkisp1->debugfs_dir);
+		if (!rkisp1->isp.debugfs_dir) {
+			dev_warn(rkisp1->dev,
+				 "failed to create debugfs isp directory\n");
+		} else {
+			debugfs_create_ulong("data_loss", S_IRUGO,
+				rkisp1->isp.debugfs_dir,
+				&rkisp1->isp.debugfs_data_loss_counter);
+
+			debugfs_create_ulong("pic_size_error", S_IRUGO,
+				rkisp1->isp.debugfs_dir,
+				&rkisp1->isp.debugfs_pic_size_error_counter);
+		}
+	}
+
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_media_ops;
@@ -1204,15 +1223,12 @@ void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
 
 	if (status & RKISP1_CIF_ISP_PIC_SIZE_ERROR) {
 		/* Clear pic_size_error */
-		// TODO just keep an err counter and debugfs-it
 		isp_err = rkisp1_read(rkisp1, RKISP1_CIF_ISP_ERR);
-		dev_err(rkisp1->dev,
-			"RKISP1_CIF_ISP_PIC_SIZE_ERROR (0x%08x)", isp_err);
 		rkisp1_write(rkisp1, isp_err, RKISP1_CIF_ISP_ERR_CLR);
+		rkisp1->isp.debugfs_pic_size_error_counter++;
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
 		/* data_loss */
-		// TODO just keep an err counter and debugfs-it
-		dev_err(rkisp1->dev, "RKISP1_CIF_ISP_DATA_LOSS\n");
+		rkisp1->isp.debugfs_data_loss_counter++;
 	}
 
 	if (status & RKISP1_CIF_ISP_FRAME) {

@@ -6,6 +6,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/debugfs.h>.
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -347,6 +348,11 @@ static int rkisp1_probe(struct platform_device *pdev)
 	if (!rkisp1)
 		return -ENOMEM;
 
+	rkisp1->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
+	if (!rkisp1->debugfs_dir)
+		dev_warn(&pdev->dev,
+			 "failed to create debugfs root directory\n");
+
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;
 
@@ -432,6 +438,8 @@ static int rkisp1_remove(struct platform_device *pdev)
 	v4l2_device_unregister(&rkisp1->v4l2_dev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	debugfs_remove_recursive(rkisp1->debugfs_dir);
 	return 0;
 }
 
