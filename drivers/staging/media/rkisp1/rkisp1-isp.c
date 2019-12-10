@@ -1104,6 +1104,10 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			debugfs_create_ulong("pic_size_error", S_IRUGO,
 				rkisp1->isp.debugfs_dir,
 				&rkisp1->isp.debugfs_pic_size_error_counter);
+
+			debugfs_create_ulong("mipi_error", S_IRUGO,
+				rkisp1->isp.debugfs_dir,
+				&rkisp1->isp.debugfs_mipi_error_counter);
 		}
 	}
 
@@ -1193,7 +1197,7 @@ void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1)
 			rkisp1->isp.dphy_errctrl_disabled = false;
 		}
 	} else {
-		dev_warn(rkisp1->dev, "MIPI status error: 0x%08x\n", status);
+		rkisp1->isp.debugfs_mipi_error_counter++;
 	}
 }
 

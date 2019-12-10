@@ -5,6 +5,7 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
+#include <linux/debugfs.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-ioctl.h>
@@ -398,10 +399,9 @@ void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris)
 
 	isp_mis_tmp = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
 	if (isp_mis_tmp &
-		(RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
-		 RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY))
-		dev_err(stats->rkisp1->dev, "isp icr 3A info err: 0x%x\n",
-			isp_mis_tmp);
+	    (RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
+	     RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY))
+		rkisp1->stats.debugfs_3a_error_counter++;
 
 	if (!stats->streamon)
 		goto unlock;
@@ -448,6 +448,19 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 	struct rkisp1_vdev_node *node = &stats->vnode;
 	struct video_device *vdev = &node->vdev;
 	int ret;
+
+	if (rkisp1->debugfs_dir) {
+		rkisp1->stats.debugfs_dir = debugfs_create_dir("stats",
+							 rkisp1->debugfs_dir);
+		if (!rkisp1->stats.debugfs_dir) {
+			dev_warn(rkisp1->dev,
+				 "failed to create debugfs stats directory\n");
+		} else {
+			debugfs_create_ulong("3A_error", S_IRUGO,
+				rkisp1->stats.debugfs_dir,
+				&rkisp1->stats.debugfs_3a_error_counter);
+		}
+	}
 
 	stats->rkisp1 = rkisp1;
 	mutex_init(&stats->wq_lock);

@@ -115,6 +115,7 @@ struct rkisp1_isp {
 	struct dentry *debugfs_dir;
 	unsigned long debugfs_data_loss_counter;
 	unsigned long debugfs_pic_size_error_counter;
+	unsigned long debugfs_mipi_error_counter;
 
 };
 
@@ -208,6 +209,8 @@ struct rkisp1_stats {
 
 	struct workqueue_struct *readout_wq;
 	struct mutex wq_lock;
+	struct dentry *debugfs_dir;
+	unsigned long debugfs_3a_error_counter;
 };
 
 /*
