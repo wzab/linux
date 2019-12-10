@@ -538,7 +538,7 @@ static void rkisp1_dcrop_disable(struct rkisp1_capture *cap,
 }
 
 /* configure dual-crop unit */
-static int rkisp1_dcrop_config(struct rkisp1_capture *cap)
+static void rkisp1_dcrop_config(struct rkisp1_capture *cap)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
 	struct v4l2_rect *dcrop = &cap->dcrop;
@@ -555,7 +555,7 @@ static int rkisp1_dcrop_config(struct rkisp1_capture *cap)
 	    dcrop->left == 0 && dcrop->top == 0) {
 		rkisp1_dcrop_disable(cap, RKISP1_SHADOW_REGS_SYNC);
 		dev_dbg(rkisp1->dev, "capture %d crop disabled\n", cap->id);
-		return 0;
+		return;
 	}
 
 	dc_ctrl = rkisp1_read(rkisp1, cap->config->dual_crop.ctrl);
@@ -571,8 +571,6 @@ static int rkisp1_dcrop_config(struct rkisp1_capture *cap)
 	dev_dbg(rkisp1->dev, "capture %d crop: %dx%d -> %dx%d\n", cap->id,
 		input_win->width, input_win->height,
 		dcrop->width, dcrop->height);
-
-	return 0;
 }
 
 /* ----------------------------------------------------------------------------
@@ -707,8 +705,8 @@ static void rkisp1_rsz_config_regs(struct rkisp1_capture *cap,
 	rkisp1_rsz_update_shadow(cap, when);
 }
 
-static int rkisp1_rsz_config(struct rkisp1_capture *cap,
-			     enum rkisp1_shadow_regs_when when)
+static void rkisp1_rsz_config(struct rkisp1_capture *cap,
+			      enum rkisp1_shadow_regs_when when)
 {
 	const struct rkisp1_capture_fmt *output_isp_fmt = cap->out_isp_fmt;
 	const struct rkisp1_fmt *input_isp_fmt = cap->rkisp1->isp.out_fmt;
@@ -716,8 +714,10 @@ static int rkisp1_rsz_config(struct rkisp1_capture *cap,
 	struct v4l2_pix_format_mplane output_fmt = cap->out_fmt;
 	struct v4l2_rect in_y, in_c, out_y, out_c;
 
-	if (input_isp_fmt->fmt_type == RKISP1_FMT_BAYER)
-		goto disable;
+	if (input_isp_fmt->fmt_type == RKISP1_FMT_BAYER) {
+		rkisp1_rsz_disable(cap, when);
+		return;
+	}
 
 	in_y.width = cap->dcrop.width;
 	in_y.height = cap->dcrop.height;
@@ -738,8 +738,10 @@ static int rkisp1_rsz_config(struct rkisp1_capture *cap,
 	out_c.height = out_y.height / vdiv;
 
 	/* TODO: why this doesn't check in_y out_y ? */
-	if (in_c.width == out_c.width && in_c.height == out_c.height)
-		goto disable;
+	if (in_c.width == out_c.width && in_c.height == out_c.height) {
+		rkisp1_rsz_disable(cap, when);
+		return;
+	}
 
 	dev_dbg(cap->rkisp1->dev, "capture %d rsz/scale: %dx%d -> %dx%d\n",
 		cap->id, cap->dcrop.width, cap->dcrop.height,
@@ -751,13 +753,6 @@ static int rkisp1_rsz_config(struct rkisp1_capture *cap,
 	rkisp1_rsz_config_regs(cap, &in_y, &in_c, &out_y, &out_c, when);
 
 	rkisp1_rsz_dump_regs(cap);
-
-	return 0;
-
-disable:
-	rkisp1_rsz_disable(cap, when);
-
-	return 0;
 }
 
 /* ----------------------------------------------------------------------------
@@ -1408,17 +1403,8 @@ static int rkisp1_stream_start(struct rkisp1_capture *cap)
 	if (other->streaming)
 		when = RKISP1_SHADOW_REGS_ASYNC;
 
-	ret = rkisp1_rsz_config(cap, when);
-	if (ret) {
-		dev_err(rkisp1->dev, "config rsz failed with error %d\n", ret);
-		return ret;
-	}
-
-	ret = rkisp1_dcrop_config(cap);
-	if (ret) {
-		dev_err(rkisp1->dev, "config dcrop failed with error %d\n", ret);
-		return ret;
-	}
+	rkisp1_rsz_config(cap, when);
+	rkisp1_dcrop_config(cap);
 
 	cap->ops->set_data_path(cap);
 	ret = cap->ops->config(cap);
