@@ -189,6 +189,8 @@ struct rkisp1_capture {
 		struct rkisp1_capture_sp sp;
 		struct rkisp1_capture_mp mp;
 	} u;
+	struct dentry *debugfs_dir;
+	unsigned long debugfs_stop_ev_timeout_counter;
 };
 
 /*

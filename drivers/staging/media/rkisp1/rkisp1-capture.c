@@ -5,6 +5,7 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
+#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/pm_runtime.h>
 #include <media/v4l2-common.h>
@@ -1001,11 +1002,8 @@ static int rkisp1_dummy_buf_create(struct rkisp1_capture *cap)
 					   &dummy_buf->dma_addr,
 					   GFP_KERNEL,
 					   DMA_ATTR_NO_KERNEL_MAPPING);
-	if (!dummy_buf->vaddr) {
-		dev_err(cap->rkisp1->dev,
-			"Failed to allocate the memory for dummy buffer\n");
+	if (!dummy_buf->vaddr)
 		return -ENOMEM;
-	}
 
 	return 0;
 }
@@ -1321,14 +1319,8 @@ static int rkisp1_pipeline_disable_cb(struct media_entity *from,
 				      struct media_entity *curr)
 {
 	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(curr);
-	int ret;
 
-	ret = v4l2_subdev_call(sd, video, s_stream, false);
-	if (ret) {
-		dev_err(sd->dev, "%s: could not disable stream.\n", sd->name);
-		return ret;
-	}
-	return 0;
+	return v4l2_subdev_call(sd, video, s_stream, false);
 }
 
 // TODO: this is a core change.
@@ -1336,16 +1328,8 @@ static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 				     struct media_entity *curr)
 {
 	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(curr);
-	int ret;
 
-	ret = v4l2_subdev_call(sd, video, s_stream, true);
-	if (ret) {
-		dev_err(sd->dev, "%s: could not enable stream.\n", sd->name);
-		rkisp1_pipeline_sink_walk(from, curr,
-					  rkisp1_pipeline_disable_cb);
-		return ret;
-	}
-	return 0;
+	return v4l2_subdev_call(sd, video, s_stream, true);
 }
 
 /*
@@ -1354,7 +1338,6 @@ static int rkisp1_pipeline_enable_cb(struct media_entity *from,
  */
 static void rkisp1_stream_stop(struct rkisp1_capture *cap)
 {
-	struct rkisp1_device *rkisp1 = cap->rkisp1;
 	int ret;
 
 	cap->stopping = true;
@@ -1362,7 +1345,7 @@ static void rkisp1_stream_stop(struct rkisp1_capture *cap)
 				 !cap->streaming,
 				 msecs_to_jiffies(1000));
 	if (!ret) {
-		dev_warn(rkisp1->dev, "waiting on event return error %d\n", ret);
+		cap->debugfs_stop_ev_timeout_counter++;
 		cap->ops->stop(cap);
 		cap->stopping = false;
 		cap->streaming = false;
@@ -1995,6 +1978,21 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 	struct rkisp1_capture *cap = &rkisp1->capture_devs[id];
 	struct v4l2_pix_format_mplane pixm;
 
+	if (rkisp1->debugfs_dir) {
+		const char *name;
+		if (id == RKISP1_CAPTURE_SP)
+			name = "mainpath";
+		else
+			name = "selfpath";
+		cap->debugfs_dir = debugfs_create_dir(name,
+						      rkisp1->debugfs_dir);
+		if (cap->debugfs_dir) {
+			debugfs_create_ulong("stop_event_timeout_counter",
+					S_IRUGO, cap->debugfs_dir,
+					&cap->debugfs_stop_ev_timeout_counter);
+		}
+	}
+
 	memset(cap, 0, sizeof(*cap));
 	cap->id = id;
 	cap->rkisp1 = rkisp1;
@@ -2029,6 +2027,19 @@ int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1)
 	struct rkisp1_capture *cap;
 	unsigned int i, j;
 	int ret;
+
+	if (rkisp1->debugfs_dir) {
+		rkisp1->isp.debugfs_dir = debugfs_create_dir("isp",
+							 rkisp1->debugfs_dir);
+		if (!rkisp1->isp.debugfs_dir) {
+			dev_warn(rkisp1->dev,
+				 "failed to create debugfs isp directory\n");
+		} else {
+			debugfs_create_ulong("data_loss", S_IRUGO,
+				rkisp1->isp.debugfs_dir,
+				&rkisp1->isp.debugfs_data_loss_counter);
+		}
+	}
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); i++) {
 

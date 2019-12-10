@@ -452,10 +452,7 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 	if (rkisp1->debugfs_dir) {
 		rkisp1->stats.debugfs_dir = debugfs_create_dir("stats",
 							 rkisp1->debugfs_dir);
-		if (!rkisp1->stats.debugfs_dir) {
-			dev_warn(rkisp1->dev,
-				 "failed to create debugfs stats directory\n");
-		} else {
+		if (rkisp1->stats.debugfs_dir) {
 			debugfs_create_ulong("3A_error", S_IRUGO,
 				rkisp1->stats.debugfs_dir,
 				&rkisp1->stats.debugfs_3a_error_counter);

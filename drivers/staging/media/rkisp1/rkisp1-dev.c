@@ -350,8 +350,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	rkisp1->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
 	if (!rkisp1->debugfs_dir)
-		dev_warn(&pdev->dev,
-			 "failed to create debugfs root directory\n");
+		dev_dbg(&pdev->dev, "failed to create debugfs directory\n");
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;
