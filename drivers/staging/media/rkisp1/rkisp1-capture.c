@@ -1009,9 +1009,9 @@ static void rkisp1_dummy_buf_destroy(struct rkisp1_capture *cap)
 
 /*
  * Update buffer info to memory interface. Called in interrupt
- * context by rkisp1_set_next_buf(), and in process context by vb2_ops.buf_queue().
+ * context by rkisp1_handle_buffer(), and in process context by vb2_ops.buf_queue().
  */
-static void rkisp1_set_next_buf_regs(struct rkisp1_capture *cap)
+static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
 	struct rkisp1_dummy_buffer *dummy_buf = &cap->dummy_buf;
 
@@ -1057,7 +1057,7 @@ static void rkisp1_set_next_buf_regs(struct rkisp1_capture *cap)
  * otherwise it will overflow.
  * ...
  */
-static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
+static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
 	struct rkisp1_isp *isp = &cap->rkisp1->isp;
@@ -1097,9 +1097,7 @@ static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 	}
 	spin_unlock_irqrestore(&cap->vbq_lock, lock_flags);
 
-	rkisp1_set_next_buf_regs(cap);
-
-	return 0;
+	rkisp1_set_next_buf(cap);
 }
 
 void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1)
@@ -1116,7 +1114,7 @@ void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1)
 		if (!(status & RKISP1_CIF_MI_FRAME(cap)))
 			continue;
 		if (!cap->stopping) {
-			rkisp1_set_next_buf(cap);
+			rkisp1_handle_buffer(cap);
 			continue;
 		}
 		/*
@@ -1208,7 +1206,7 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 	if (cap->streaming && !cap->next_buf &&
 	    atomic_read(&cap->rkisp1->isp.frm_sync_seq) == 0) {
 		cap->next_buf = ispbuf;
-		rkisp1_set_next_buf_regs(cap);
+		rkisp1_set_next_buf(cap);
 	} else {
 		list_add_tail(&ispbuf->queue, &cap->buf_queue);
 	}
@@ -1409,7 +1407,7 @@ static void rkisp1_stream_start(struct rkisp1_capture *cap)
 	cap->ops->config(cap);
 
 	/* Setup a buffer for the next frame */
-	rkisp1_set_next_buf(cap);
+	rkisp1_handle_buffer(cap);
 	cap->ops->enable(cap);
 	/* It's safe to config ACTIVE and SHADOW regs for the
 	 * first stream. While when the second is starting, do NOT
@@ -1424,7 +1422,7 @@ static void rkisp1_stream_start(struct rkisp1_capture *cap)
 		/* force cfg update */
 		rkisp1_write(rkisp1,
 			     RKISP1_CIF_MI_INIT_SOFT_UPD, RKISP1_CIF_MI_INIT);
-		rkisp1_set_next_buf(cap);
+		rkisp1_handle_buffer(cap);
 	}
 	cap->streaming = true;
 }
