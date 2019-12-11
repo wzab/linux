@@ -2005,10 +2005,7 @@ int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1)
 	if (rkisp1->debugfs_dir) {
 		rkisp1->isp.debugfs_dir = debugfs_create_dir("isp",
 							 rkisp1->debugfs_dir);
-		if (!rkisp1->isp.debugfs_dir) {
-			dev_warn(rkisp1->dev,
-				 "failed to create debugfs isp directory\n");
-		} else {
+		if (rkisp1->isp.debugfs_dir) {
 			debugfs_create_ulong("data_loss", S_IRUGO,
 				rkisp1->isp.debugfs_dir,
 				&rkisp1->isp.debugfs_data_loss_counter);
