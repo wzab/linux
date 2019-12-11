@@ -1059,23 +1059,13 @@ static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
  */
 static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 {
-	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
 	struct rkisp1_isp *isp = &cap->rkisp1->isp;
 	struct rkisp1_buffer *curr_buf = cap->curr_buf;
 	unsigned long lock_flags = 0;
-	unsigned int i;
 
 	spin_lock_irqsave(&cap->vbq_lock, lock_flags);
 
 	if (curr_buf) {
-		/* Dequeue a filled buffer */
-		for (i = 0; i < pixm->num_planes; i++) {
-			u32 payload_size =
-				cap->out_fmt.plane_fmt[i].sizeimage;
-
-			vb2_set_plane_payload(&curr_buf->vb.vb2_buf, i,
-					      payload_size);
-		}
 		curr_buf->vb.sequence = atomic_read(&isp->frm_sync_seq) - 1;
 		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		curr_buf->vb.field = V4L2_FIELD_NONE;
