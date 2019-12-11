@@ -1090,24 +1090,6 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 	struct v4l2_subdev *sd = &rkisp1->isp.sd;
 	int ret;
 
-	if (rkisp1->debugfs_dir) {
-		rkisp1->isp.debugfs_dir = debugfs_create_dir("isp",
-							 rkisp1->debugfs_dir);
-		if (rkisp1->isp.debugfs_dir) {
-			debugfs_create_ulong("data_loss", S_IRUGO,
-				rkisp1->isp.debugfs_dir,
-				&rkisp1->isp.debugfs_data_loss_counter);
-
-			debugfs_create_ulong("pic_size_error", S_IRUGO,
-				rkisp1->isp.debugfs_dir,
-				&rkisp1->isp.debugfs_pic_size_error_counter);
-
-			debugfs_create_ulong("mipi_error", S_IRUGO,
-				rkisp1->isp.debugfs_dir,
-				&rkisp1->isp.debugfs_mipi_error_counter);
-		}
-	}
-
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_media_ops;
@@ -1194,7 +1176,7 @@ void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1)
 			rkisp1->isp.dphy_errctrl_disabled = false;
 		}
 	} else {
-		rkisp1->isp.debugfs_mipi_error_counter++;
+		rkisp1->debug.mipi_error++;
 	}
 }
 

@@ -1056,6 +1056,7 @@ static void rkisp1_set_next_buf_regs(struct rkisp1_capture *cap)
  * This function is called when a frame end comes. The next frame
  * is processing and we should set up buffer for next-next frame,
  * otherwise it will overflow.
+ * ...
  */
 static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
@@ -1080,6 +1081,8 @@ static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
+	} else {
+		cap->rkisp1->debug->frame_drop[id]++;
 	}
 
 	/* Next frame is writing to it */
@@ -1337,7 +1340,7 @@ static void rkisp1_stream_stop(struct rkisp1_capture *cap)
 				 !cap->streaming,
 				 msecs_to_jiffies(1000));
 	if (!ret) {
-		cap->debugfs_stop_ev_timeout_counter++;
+		cap->rkisp1->debug.stop_timeout[cap->id]++;
 		cap->ops->stop(cap);
 		cap->stopping = false;
 		cap->streaming = false;
@@ -1951,21 +1954,6 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 {
 	struct rkisp1_capture *cap = &rkisp1->capture_devs[id];
 	struct v4l2_pix_format_mplane pixm;
-
-	if (rkisp1->debugfs_dir) {
-		const char *name;
-		if (id == RKISP1_CAPTURE_SP)
-			name = "mainpath";
-		else
-			name = "selfpath";
-		cap->debugfs_dir = debugfs_create_dir(name,
-						      rkisp1->debugfs_dir);
-		if (cap->debugfs_dir) {
-			debugfs_create_ulong("stop_event_timeout_counter",
-					S_IRUGO, cap->debugfs_dir,
-					&cap->debugfs_stop_ev_timeout_counter);
-		}
-	}
 
 	memset(cap, 0, sizeof(*cap));
 	cap->id = id;

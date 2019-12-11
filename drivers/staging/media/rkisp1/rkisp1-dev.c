@@ -332,6 +332,28 @@ static const struct of_device_id rkisp1_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rkisp1_of_match);
 
+static int rkisp1_debug_init(struct platform_device *pdev)
+{
+	rkisp1->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
+	if (!rkisp1->debugfs_dir) {
+		dev_dbg(&pdev->dev, "failed to create debugfs directory\n");
+		return;
+	}
+
+	debugfs_create_ulong("data_loss", S_IRUGO,
+		rkisp1->debugfs_dir,
+		&rkisp1->data_loss);
+
+	debugfs_create_ulong("pic_size_error", S_IRUGO,
+		rkisp1->isp.debugfs_dir,
+		&rkisp1->isp.debugfs_pic_size_error_counter);
+
+	debugfs_create_ulong("mipi_error", S_IRUGO,
+		rkisp1->isp.debugfs_dir,
+		&rkisp1->isp.debugfs_mipi_error_counter);
+	// the others
+}
+
 static int rkisp1_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
@@ -347,10 +369,6 @@ static int rkisp1_probe(struct platform_device *pdev)
 	rkisp1 = devm_kzalloc(dev, sizeof(*rkisp1), GFP_KERNEL);
 	if (!rkisp1)
 		return -ENOMEM;
-
-	rkisp1->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
-	if (!rkisp1->debugfs_dir)
-		dev_dbg(&pdev->dev, "failed to create debugfs directory\n");
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;

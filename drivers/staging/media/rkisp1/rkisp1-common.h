@@ -112,10 +112,6 @@ struct rkisp1_isp {
 	const struct rkisp1_fmt *out_fmt;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
-	struct dentry *debugfs_dir;
-	unsigned long debugfs_data_loss_counter;
-	unsigned long debugfs_pic_size_error_counter;
-	unsigned long debugfs_mipi_error_counter;
 
 };
 
@@ -189,8 +185,6 @@ struct rkisp1_capture {
 		struct rkisp1_capture_sp sp;
 		struct rkisp1_capture_mp mp;
 	} u;
-	struct dentry *debugfs_dir;
-	unsigned long debugfs_stop_ev_timeout_counter;
 };
 
 /*
@@ -211,8 +205,6 @@ struct rkisp1_stats {
 
 	struct workqueue_struct *readout_wq;
 	struct mutex wq_lock;
-	struct dentry *debugfs_dir;
-	unsigned long debugfs_3a_error_counter;
 };
 
 /*
@@ -234,6 +226,16 @@ struct rkisp1_params {
 
 	enum v4l2_quantization quantization;
 	enum rkisp1_fmt_raw_pat_type raw_type;
+};
+
+struct rkisp1_debug {
+	struct dentry *debugfs_dir;
+	unsigned long data_loss;
+	unsigned long pic_size_error;
+	unsigned long mipi_error;
+	unsigned long stats_error;
+	unsigned long stop_timeout[2];
+	unsigned long frame_drop[2];
 };
 
 /*
@@ -262,7 +264,7 @@ struct rkisp1_device {
 	struct rkisp1_params params;
 	struct media_pipeline pipe;
 	struct vb2_alloc_ctx *alloc_ctx;
-	struct dentry *debugfs_dir;
+	struct rkisp1_debug debug;
 };
 
 /*
