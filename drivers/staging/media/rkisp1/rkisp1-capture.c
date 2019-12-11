@@ -1391,12 +1391,11 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
  * Usually, each sub-module updates its shadow register after
  * processing the last pixel of a frame.
  */
-static int rkisp1_stream_start(struct rkisp1_capture *cap)
+static void rkisp1_stream_start(struct rkisp1_capture *cap)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
 	struct rkisp1_capture *other = &rkisp1->capture_devs[cap->id ^ 1];
 	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
-	int ret;
 
 	if (other->streaming)
 		when = RKISP1_SHADOW_REGS_ASYNC;
@@ -1426,8 +1425,6 @@ static int rkisp1_stream_start(struct rkisp1_capture *cap)
 		rkisp1_set_next_buf(cap);
 	}
 	cap->streaming = true;
-
-	return 0;
 }
 
 static int
@@ -1456,11 +1453,7 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 	// the get order should be reversed to the put order.
 
 	/* configure stream hardware to start */
-	ret = rkisp1_stream_start(cap);
-	if (ret) {
-		dev_err(cap->rkisp1->dev, "start streaming failed\n");
-		goto power_down;
-	}
+	rkisp1_stream_start(cap);
 
 	/* start sub-devices */
 	ret = rkisp1_pipeline_sink_walk(entity, NULL,
@@ -1480,7 +1473,6 @@ pipe_stream_off:
 	rkisp1_pipeline_sink_walk(entity, NULL, rkisp1_pipeline_disable_cb);
 stop_stream:
 	rkisp1_stream_stop(cap);
-power_down:
 	pm_runtime_put(cap->rkisp1->dev);
 close_pipe:
 	v4l2_pipeline_pm_use(entity, 0);
