@@ -19,12 +19,48 @@
 
 #include "rkisp1-common.h"
 
+/**
+ * ISP Details
+ * -----------
+ *
+ * ISP Comprises with:
+ *	MIPI serial camera interface
+ *	Image Signal Processing
+ *	Many Image Enhancement Blocks
+ *	Crop
+ *	Resizer
+ *	RBG display ready image
+ *	Image Rotation
+ *
+ * ISP Block Diagram
+ * -----------------
+ *                                                                           rkisp1-capture.c
+ *                                                          |===============================================|
+ *                                rkisp1-isp.c                 Main Picture Path
+ *                        |==========================|      |====================|
+ *                        +-----------+  +--+--+--+--+      +--------+  +--------+              +-----------+
+ *                        |           |  |  |  |  |  |      |        |  |        |              |           |
+ * +--------+    |\       |           |  |  |  |  |  |   -->|  Crop  |->|  RSZ   |------------->|           |
+ * |  MIPI  |--->|  \     |           |  |  |  |  |  |   |  |        |  |        |              |           |
+ * +--------+    |   |    |           |  |IE|IE|IE|IE|   |  +--------+  +--------+              |  Memory   |
+ *               |MUX|--->|    ISP    |->|0 |1 |2 |3 |---+                                      | Interface |
+ * +--------+    |   |    |           |  |  |  |  |  |   |  +--------+  +--------+  +--------+  |           |
+ * |Parallel|--->|  /     |           |  |  |  |  |  |   |  |        |  |        |  |        |  |           |
+ * +--------+    |/       |           |  |  |  |  |  |   -->|  Crop  |->|  RSZ   |->|  RGB   |->|           |
+ *                        |           |  |  |  |  |  |      |        |  |        |  | Rotate |  |           |
+ *                        +-----------+  +--+--+--+--+      +--------+  +--------+  +--------+  +-----------+
+ *                                               ^
+ * +--------+                                    |          |================================|
+ * |  DMA   |------------------------------------+                  Self Picture Path
+ * +--------+
+ *
+ * TODO: add diagram with the media topology
+ */
+
 struct rkisp1_match_data {
 	const char * const *clks;
 	unsigned int size;
 };
-
-/* See http://opensource.rock-chips.com/wiki_Rockchip-isp1 for Topology */
 
 /* ----------------------------------------------------------------------------
  * Sensor DT bindings
