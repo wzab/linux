@@ -141,7 +141,7 @@ struct rkisp1_capture_config {
 
 /* Different reg ops between selfpath and mainpath */
 struct rkisp1_capture_ops {
-	int (*config)(struct rkisp1_capture *cap);
+	void (*config)(struct rkisp1_capture *cap);
 	void (*stop)(struct rkisp1_capture *cap);
 	void (*enable)(struct rkisp1_capture *cap);
 	void (*disable)(struct rkisp1_capture *cap);
@@ -800,7 +800,7 @@ static void rkisp1_irq_frame_end_enable(struct rkisp1_capture *cap)
  * configure memory interface for mainpath
  * This should only be called when stream-on
  */
-static int rkisp1_mp_config(struct rkisp1_capture *cap)
+static void rkisp1_mp_config(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->out_fmt;
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
@@ -832,15 +832,13 @@ static int rkisp1_mp_config(struct rkisp1_capture *cap)
 	reg = rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL);
 	reg |= RKISP1_CIF_MI_MP_AUTOUPDATE_ENABLE;
 	rkisp1_write(rkisp1, reg, RKISP1_CIF_MI_CTRL);
-
-	return 0;
 }
 
 /*
  * configure memory interface for selfpath
  * This should only be called when stream-on
  */
-static int rkisp1_sp_config(struct rkisp1_capture *cap)
+static void rkisp1_sp_config(struct rkisp1_capture *cap)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
 	const struct rkisp1_capture_fmt *output_isp_fmt = cap->out_isp_fmt;
@@ -875,7 +873,6 @@ static int rkisp1_sp_config(struct rkisp1_capture *cap)
 		   output_isp_fmt->output_format |
 		   RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE;
 	rkisp1_write(rkisp1, mi_ctrl, RKISP1_CIF_MI_CTRL);
-	return 0;
 }
 
 static void rkisp1_mp_disable(struct rkisp1_capture *cap)
@@ -1361,7 +1358,8 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 	ret = rkisp1_pipeline_sink_walk(&node->vdev.entity, NULL,
 					rkisp1_pipeline_disable_cb);
 	if (ret)
-		dev_err(rkisp1->dev, "pipeline stream-off failed error:%d\n", ret);
+		dev_err(rkisp1->dev,
+			"pipeline stream-off failed error:%d\n", ret);
 
 	rkisp1_return_all_buffers(cap, VB2_BUF_STATE_ERROR);
 
@@ -1407,9 +1405,7 @@ static int rkisp1_stream_start(struct rkisp1_capture *cap)
 	rkisp1_dcrop_config(cap);
 
 	cap->ops->set_data_path(cap);
-	ret = cap->ops->config(cap);
-	if (ret)
-		return ret;
+	cap->ops->config(cap);
 
 	/* Setup a buffer for the next frame */
 	rkisp1_set_next_buf(cap);
