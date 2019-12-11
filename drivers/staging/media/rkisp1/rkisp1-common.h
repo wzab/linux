@@ -112,7 +112,6 @@ struct rkisp1_isp {
 	const struct rkisp1_fmt *out_fmt;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
-
 };
 
 /* One structure per video node */

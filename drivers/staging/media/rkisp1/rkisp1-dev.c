@@ -6,7 +6,7 @@
  */
 
 #include <linux/clk.h>
-#include <linux/debugfs.h>.
+#include <linux/debugfs.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -19,7 +19,7 @@
 
 #include "rkisp1-common.h"
 
-/**
+/*
  * ISP Details
  * -----------
  *
@@ -403,26 +403,39 @@ static const struct of_device_id rkisp1_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rkisp1_of_match);
 
-static int rkisp1_debug_init(struct platform_device *pdev)
+static void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 {
-	rkisp1->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
-	if (!rkisp1->debugfs_dir) {
-		dev_dbg(&pdev->dev, "failed to create debugfs directory\n");
+	struct rkisp1_debug *debug = &rkisp1->debug;
+
+	debug->debugfs_dir = debugfs_create_dir(RKISP1_DRIVER_NAME, NULL);
+	if (!debug->debugfs_dir) {
+		dev_dbg(rkisp1->dev, "failed to create debugfs directory\n");
 		return;
 	}
 
-	debugfs_create_ulong("data_loss", S_IRUGO,
-		rkisp1->debugfs_dir,
-		&rkisp1->data_loss);
+	debugfs_create_ulong("data_loss", S_IRUGO, debug->debugfs_dir,
+			     &debug->data_loss);
 
-	debugfs_create_ulong("pic_size_error", S_IRUGO,
-		rkisp1->isp.debugfs_dir,
-		&rkisp1->isp.debugfs_pic_size_error_counter);
+	debugfs_create_ulong("pic_size_error", S_IRUGO,  debug->debugfs_dir,
+			     &debug->pic_size_error);
 
-	debugfs_create_ulong("mipi_error", S_IRUGO,
-		rkisp1->isp.debugfs_dir,
-		&rkisp1->isp.debugfs_mipi_error_counter);
-	// the others
+	debugfs_create_ulong("mipi_error", S_IRUGO, debug->debugfs_dir,
+			     &debug->mipi_error);
+
+	debugfs_create_ulong("stats_error", S_IRUGO, debug->debugfs_dir,
+			     &debug->stats_error);
+
+	debugfs_create_ulong("mp_stop_timeout", S_IRUGO, debug->debugfs_dir,
+			     &debug->stop_timeout[RKISP1_CAPTURE_MP]);
+
+	debugfs_create_ulong("sp_stop_timeout", S_IRUGO, debug->debugfs_dir,
+			     &debug->stop_timeout[RKISP1_CAPTURE_SP]);
+
+	debugfs_create_ulong("mp_frame_drop", S_IRUGO, debug->debugfs_dir,
+			     &debug->frame_drop[RKISP1_CAPTURE_MP]);
+
+	debugfs_create_ulong("sp_frame_drop", S_IRUGO, debug->debugfs_dir,
+			     &debug->frame_drop[RKISP1_CAPTURE_SP]);
 }
 
 static int rkisp1_probe(struct platform_device *pdev)
@@ -443,6 +456,8 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;
+
+	rkisp1_debug_init(rkisp1);
 
 	rkisp1->base_addr = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(rkisp1->base_addr))
@@ -527,7 +542,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 
 	pm_runtime_disable(&pdev->dev);
 
-	debugfs_remove_recursive(rkisp1->debugfs_dir);
+	debugfs_remove_recursive(rkisp1->debug.debugfs_dir);
 	return 0;
 }
 

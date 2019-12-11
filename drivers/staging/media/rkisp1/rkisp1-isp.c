@@ -5,7 +5,6 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#include <linux/debugfs.h>
 #include <linux/iopoll.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-mipi-dphy.h>
@@ -1208,10 +1207,10 @@ void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
 		/* Clear pic_size_error */
 		isp_err = rkisp1_read(rkisp1, RKISP1_CIF_ISP_ERR);
 		rkisp1_write(rkisp1, isp_err, RKISP1_CIF_ISP_ERR_CLR);
-		rkisp1->isp.debugfs_pic_size_error_counter++;
+		rkisp1->debug.pic_size_error++;
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
 		/* data_loss */
-		rkisp1->isp.debugfs_data_loss_counter++;
+		rkisp1->debug.data_loss++;
 	}
 
 	if (status & RKISP1_CIF_ISP_FRAME) {

@@ -5,7 +5,6 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
-#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/pm_runtime.h>
 #include <media/v4l2-common.h>
@@ -1082,7 +1081,7 @@ static int rkisp1_set_next_buf(struct rkisp1_capture *cap)
 		curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 	} else {
-		cap->rkisp1->debug->frame_drop[id]++;
+		cap->rkisp1->debug.frame_drop[cap->id]++;
 	}
 
 	/* Next frame is writing to it */
@@ -1990,18 +1989,7 @@ int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1)
 	unsigned int i, j;
 	int ret;
 
-	if (rkisp1->debugfs_dir) {
-		rkisp1->isp.debugfs_dir = debugfs_create_dir("isp",
-							 rkisp1->debugfs_dir);
-		if (rkisp1->isp.debugfs_dir) {
-			debugfs_create_ulong("data_loss", S_IRUGO,
-				rkisp1->isp.debugfs_dir,
-				&rkisp1->isp.debugfs_data_loss_counter);
-		}
-	}
-
 	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); i++) {
-
 		rkisp1_capture_init(rkisp1, i);
 		cap = &rkisp1->capture_devs[i];
 		cap->rkisp1 = rkisp1;
