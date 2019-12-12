@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - ISP Subdevice
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -66,8 +67,6 @@ static const struct rkisp1_fmt rkisp1_isp_formats[] = {
 		.fmt_type	= RKISP1_FMT_BAYER,
 		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
 		.bayer_pat	= RKISP1_RAW_RGGB,
-		// TODO: Move bus_width to a helper, with a note that it can be moved
-		// to v4l2-common.c
 		.bus_width	= 10,
 		.direction	= RKISP1_DIR_IN_OUT,
 	}, {
@@ -354,21 +353,20 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, in_crop->width, RKISP1_CIF_ISP_OUT_H_SIZE);
 	rkisp1_write(rkisp1, in_crop->height, RKISP1_CIF_ISP_OUT_V_SIZE);
 
-	/* interrupt mask */
 	irq_mask |= RKISP1_CIF_ISP_FRAME | RKISP1_CIF_ISP_V_START |
 		    RKISP1_CIF_ISP_PIC_SIZE_ERROR | RKISP1_CIF_ISP_FRAME_IN;
 	rkisp1_write(rkisp1, irq_mask, RKISP1_CIF_ISP_IMSC);
 
 	if (out_fmt->fmt_type == RKISP1_FMT_BAYER) {
-		rkisp1_params_disable_isp(&rkisp1->params);
+		rkisp1_params_disable(&rkisp1->params);
 	} else {
 		struct v4l2_mbus_framefmt *out_frm;
 
 		out_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
 						 RKISP1_ISP_PAD_SINK_VIDEO,
 						 V4L2_SUBDEV_FORMAT_ACTIVE);
-		rkisp1_params_configure_isp(&rkisp1->params, in_fmt,
-					    out_frm->quantization);
+		rkisp1_params_configure(&rkisp1->params, in_fmt,
+					out_frm->quantization);
 	}
 
 	return 0;
@@ -379,7 +377,6 @@ static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
 	u32 val, input_sel;
 
-	// TODO: bus_w move info to core
 	switch (in_fmt->bus_width) {
 	case 8:
 		input_sel = RKISP1_CIF_ISP_ACQ_PROP_IN_SEL_8B_ZERO;
@@ -1035,7 +1032,6 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 	if (ret)
 		return ret;
 
-	/* TODO: support other interfaces */
 	if (rkisp1->active_sensor->mbus.type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
@@ -1136,7 +1132,7 @@ void rkisp1_isp_unregister(struct rkisp1_device *rkisp1)
  * Interrupt handlers
  */
 
-void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1)
+void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 {
 	u32 val, status;
 
@@ -1189,7 +1185,7 @@ static void rkisp1_isp_queue_event_sof(struct rkisp1_isp *isp)
 	v4l2_event_queue(isp->sd.devnode, &event);
 }
 
-void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
+void rkisp1_isp_isr(struct rkisp1_device *rkisp1)
 {
 	u32 status, isp_err;
 
@@ -1222,13 +1218,7 @@ void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
 			       RKISP1_CIF_ISP_AFM_FIN |
 			       RKISP1_CIF_ISP_EXP_END |
 			       RKISP1_CIF_ISP_HIST_MEASURE_RDY))
-			// TODO instead of calling isr_thread, i'd call it
-			// stats_handle or something like that.
-			// I like to reserve the name isr for the top level ISR itself.
-			// but that's a matter of taste, naming isr to each
-			// function that handles the interrupts can also help
-			// to navigate the code i guess.
-			rkisp1_stats_isr_handler(&rkisp1->stats, isp_ris);
+			rkisp1_stats_isr(&rkisp1->stats, isp_ris);
 	}
 
 	/*
@@ -1236,5 +1226,5 @@ void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1)
 	 * lot of register writes. Do those only one per frame.
 	 * Do the updates in the order of the processing flow.
 	 */
-	rkisp1_params_isr_handler(rkisp1, status);
+	rkisp1_params_isr(rkisp1, status);
 }

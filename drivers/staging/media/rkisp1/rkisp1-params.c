@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - Params subdevice
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -495,7 +496,6 @@ static void rkisp1_awb_meas_enable(struct rkisp1_params *params,
 		rkisp1_write(params->rkisp1, reg_val, RKISP1_CIF_ISP_AWB_PROP);
 
 		/* Measurements require AWB block be active. */
-		/* TODO: need to enable here ? awb_gain_enable has done this */
 		rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
 				      RKISP1_CIF_ISP_CTRL_ISP_AWB_ENA);
 	} else {
@@ -1191,7 +1191,7 @@ rkisp1_isp_isr_meas_config(struct rkisp1_params *params,
 	}
 }
 
-void rkisp1_params_isr_handler(struct rkisp1_device *rkisp1, u32 isp_mis)
+void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 {
 	struct rkisp1_params *params = &rkisp1->params;
 	struct rkisp1_params_cfg *new_params;
@@ -1315,9 +1315,9 @@ void rkisp1_params_config_parameter(struct rkisp1_params *params)
 }
 
 /* Not called when the camera active, thus not isr protection. */
-void rkisp1_params_configure_isp(struct rkisp1_params *params,
-				 const struct rkisp1_fmt *in_fmt,
-				 enum v4l2_quantization quantization)
+void rkisp1_params_configure(struct rkisp1_params *params,
+			     const struct rkisp1_fmt *in_fmt,
+			     enum v4l2_quantization quantization)
 {
 	params->quantization = quantization;
 	params->raw_type = in_fmt->bayer_pat;
@@ -1325,7 +1325,7 @@ void rkisp1_params_configure_isp(struct rkisp1_params *params,
 }
 
 /* Not called when the camera active, thus not isr protection. */
-void rkisp1_params_disable_isp(struct rkisp1_params *params)
+void rkisp1_params_disable(struct rkisp1_params *params)
 {
 	rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_DPCC_MODE,
 				RKISP1_CIF_ISP_DPCC_ENA);
@@ -1589,7 +1589,7 @@ int rkisp1_params_register(struct rkisp1_params *params,
 	mutex_init(&node->vlock);
 	spin_lock_init(&params->config_lock);
 
-	strscpy(vdev->name, "rkisp1-input-params", sizeof(vdev->name));
+	strscpy(vdev->name, KBUILD_MODNAME "param", sizeof(vdev->name));
 
 	video_set_drvdata(vdev, params);
 	vdev->ioctl_ops = &rkisp1_params_ioctl;
@@ -1615,7 +1615,7 @@ int rkisp1_params_register(struct rkisp1_params *params,
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret) {
 		dev_err(&vdev->dev,
-			"could not register Video for Linux device\n");
+			"failed to register %s, ret=%d\n", vdev->name, ret);
 		goto err_cleanup_media_entity;
 	}
 	return 0;

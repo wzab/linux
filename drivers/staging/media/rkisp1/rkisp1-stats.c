@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - Stats subdevice
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -380,7 +381,7 @@ static void rkisp1_stats_readout_work(struct work_struct *work)
 	kfree(readout_work);
 }
 
-void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris)
+void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris)
 {
 	unsigned int cur_frame_id =
 		atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
@@ -393,7 +394,6 @@ void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris)
 
 	val = RKISP1_CIF_ISP_AWB_DONE | RKISP1_CIF_ISP_AFM_FIN |
 	      RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY;
-	/* TODO: why do we need to clear interrupts again? */
 	rkisp1_write(rkisp1, val, RKISP1_CIF_ISP_ICR);
 
 	isp_mis_tmp = rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS);
@@ -408,7 +408,6 @@ void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris)
 		       RKISP1_CIF_ISP_AFM_FIN |
 		       RKISP1_CIF_ISP_EXP_END |
 		       RKISP1_CIF_ISP_HIST_MEASURE_RDY)) {
-		/* TODO: use threaded irq instead of workqueues */
 		work = (struct rkisp1_isp_readout_work *)
 			kzalloc(sizeof(struct rkisp1_isp_readout_work),
 				GFP_ATOMIC);
@@ -454,7 +453,7 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 	INIT_LIST_HEAD(&stats->stat);
 	spin_lock_init(&stats->irq_lock);
 
-	strscpy(vdev->name, "rkisp1-statistics", sizeof(vdev->name));
+	strscpy(vdev->name, KBUILD_MODNAME "stats", sizeof(vdev->name));
 
 	video_set_drvdata(vdev, stats);
 	vdev->ioctl_ops = &rkisp1_stats_ioctl;
@@ -477,7 +476,7 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret) {
 		dev_err(&vdev->dev,
-			"could not register Video for Linux device\n");
+			"failed to register %s, ret=%d\n", vdev->name, ret);
 		goto err_cleanup_media_entity;
 	}
 

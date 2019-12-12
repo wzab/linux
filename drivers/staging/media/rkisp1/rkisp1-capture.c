@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - V4l capture device
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -1090,7 +1091,7 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 	rkisp1_set_next_buf(cap);
 }
 
-void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1)
+void rkisp1_capture_isr(struct rkisp1_device *rkisp1)
 {
 	unsigned int i;
 	u32 status;
@@ -1269,7 +1270,6 @@ static int rkisp1_pipeline_sink_walk(struct media_entity *from,
 	unsigned int i;
 	int ret;
 
-	// TODO while (1) are dangerous
 	while (1) {
 		pad = NULL;
 		/* Find remote source pad */
@@ -1305,7 +1305,6 @@ static int rkisp1_pipeline_disable_cb(struct media_entity *from,
 	return v4l2_subdev_call(sd, video, s_stream, false);
 }
 
-// TODO: this is a core change.
 static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 				     struct media_entity *curr)
 {
@@ -1353,25 +1352,14 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 
 	rkisp1_return_all_buffers(cap, VB2_BUF_STATE_ERROR);
 
-	ret = pm_runtime_put(rkisp1->dev);
-	if (ret)
-		dev_err(rkisp1->dev, "power down failed error:%d\n", ret);
-
 	ret = v4l2_pipeline_pm_use(&node->vdev.entity, 0);
 	if (ret)
 		dev_err(rkisp1->dev, "pipeline close failed error:%d\n", ret);
 
-	// TODO: can be moved to the allocation ioctls. this has an impact,
-	// of course.
-	// EDIT: not true! vb2 doesn't allow this naturally, the API
-	// doesn't allow to alloc bounce buffers, and I don't want to
-	// be the one extending it!
-	// There are two ioctl for allocation: CREATE_BUF and REQUEST_BUF,
-	// we'd have to hook both - which is a pita.
-	// Also, many drivers (stk1160, coda and hantro) already allocate
-	// auxiliary buffers in start_streaming.
-	// If fragmentation is a concern, see 'keep_buffers' parameter
-	// in stk1160.
+	ret = pm_runtime_put(rkisp1->dev);
+	if (ret)
+		dev_err(rkisp1->dev, "power down failed error:%d\n", ret);
+
 	rkisp1_dummy_buf_destroy(cap);
 }
 
@@ -1426,49 +1414,45 @@ rkisp1_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 
 	ret = rkisp1_dummy_buf_create(cap);
 	if (ret)
-		goto return_queued_buf;
+		goto err_ret_buffers;
 
 	ret = pm_runtime_get_sync(cap->rkisp1->dev);
 	if (ret) {
 		dev_err(cap->rkisp1->dev, "power up failed %d\n", ret);
-		goto destroy_dummy_buf;
+		goto err_destroy_dummy;
 	}
 	ret = v4l2_pipeline_pm_use(entity, 1);
 	if (ret) {
 		dev_err(cap->rkisp1->dev, "open cif pipeline failed %d\n", ret);
-		goto close_pipe;
+		goto err_pipe_pm_put;
 	}
-	// TODO: to be symmetric --to be safe in case there's
-	// any correlation between pm_runtime and mc-pm--
-	// the get order should be reversed to the put order.
 
-	/* configure stream hardware to start */
 	rkisp1_stream_start(cap);
 
 	/* start sub-devices */
 	ret = rkisp1_pipeline_sink_walk(entity, NULL,
 					rkisp1_pipeline_enable_cb);
 	if (ret)
-		goto stop_stream;
+		goto err_stop_stream;
 
 	ret = media_pipeline_start(entity, &cap->rkisp1->pipe);
 	if (ret) {
 		dev_err(cap->rkisp1->dev, "start pipeline failed %d\n", ret);
-		goto pipe_stream_off;
+		goto err_pipe_disable;
 	}
 
 	return 0;
 
-pipe_stream_off:
+err_pipe_disable:
 	rkisp1_pipeline_sink_walk(entity, NULL, rkisp1_pipeline_disable_cb);
-stop_stream:
+err_stop_stream:
 	rkisp1_stream_stop(cap);
-	pm_runtime_put(cap->rkisp1->dev);
-close_pipe:
 	v4l2_pipeline_pm_use(entity, 0);
-destroy_dummy_buf:
+err_pipe_pm_put:
+	pm_runtime_put(cap->rkisp1->dev);
+err_destroy_dummy:
 	rkisp1_dummy_buf_destroy(cap);
-return_queued_buf:
+err_ret_buffers:
 	rkisp1_return_all_buffers(cap, VB2_BUF_STATE_QUEUED);
 
 	return ret;
@@ -1578,7 +1562,6 @@ rkisp1_try_fmt(const struct rkisp1_capture *cap,
 	rkisp1_fill_pixfmt(pixm, cap->id);
 
 	/* can not change quantization when stream-on */
-	// TODO: this checks the _other_ stream.
 	if (other_cap->streaming)
 		pixm->quantization = other_cap->out_fmt.quantization;
 	/* output full range by default, take effect in params */
@@ -1879,8 +1862,6 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	const char * const dev_names[] = {RKISP1_SP_DEV_NAME,
 					  RKISP1_MP_DEV_NAME};
 
-	// TODO: maybe this is more readable? i'm always wary of conditionals
-	// where a more expressive form is possible.
 	strscpy(vdev->name, dev_names[cap->id], sizeof(vdev->name));
 	node = rkisp1_vdev_to_node(vdev);
 	mutex_init(&node->vlock);
@@ -1900,7 +1881,7 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 
 	q = &node->buf_queue;
 	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-	q->io_modes = VB2_MMAP | VB2_DMABUF; // TODO: probably USER_PTR works as well?
+	q->io_modes = VB2_MMAP | VB2_DMABUF | VB2_USERPTR;
 	q->drv_priv = cap;
 	q->ops = &rkisp1_vb2_ops;
 	q->mem_ops = &vb2_dma_contig_memops;
@@ -1921,7 +1902,7 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
 	if (ret) {
 		dev_err(cap->rkisp1->dev,
-			"video_register_device failed with error %d\n", ret);
+			"failed to register %s, ret=%d\n", vdev->name, ret);
 		return ret;
 	}
 	v4l2_info(v4l2_dev, "registered %s as /dev/video%d\n", vdev->name,

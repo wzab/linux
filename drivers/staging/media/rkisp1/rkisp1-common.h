@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - Common definitions
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -114,7 +115,6 @@ struct rkisp1_isp {
 	atomic_t frm_sync_seq;
 };
 
-/* One structure per video node */
 struct rkisp1_vdev_node {
 	struct vb2_queue buf_queue;
 	struct mutex vlock; /* ioctl serialization mutex */
@@ -298,48 +298,35 @@ struct v4l2_mbus_framefmt *
 rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
 		       struct v4l2_subdev_pad_config *cfg,
 		       unsigned int pad, u32 which);
-
 struct v4l2_rect *rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
 					  struct v4l2_subdev_pad_config *cfg,
 					  unsigned int pad, u32 which);
 
 int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			struct v4l2_device *v4l2_dev);
-
 void rkisp1_isp_unregister(struct rkisp1_device *rkisp1);
 
-void rkisp1_isp_isr_handler(struct rkisp1_device *rkisp1);
-
-void rkisp1_mipi_isr_handler(struct rkisp1_device *rkisp1);
+void rkisp1_isp_isr(struct rkisp1_device *rkisp1);
+void rkisp1_mipi_isr(struct rkisp1_device *rkisp1);
+void rkisp1_capture_isr(struct rkisp1_device *rkisp1);
+void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris);
+void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
 
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
-
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1);
-
-void rkisp1_capture_isr_handler(struct rkisp1_device *rkisp1);
-
-void rkisp1_stats_isr_handler(struct rkisp1_stats *stats, u32 isp_ris);
 
 int rkisp1_stats_register(struct rkisp1_stats *stats,
 			  struct v4l2_device *v4l2_dev,
 			  struct rkisp1_device *rkisp1);
-
 void rkisp1_stats_unregister(struct rkisp1_stats *stats);
 
-/* config params before ISP streaming */
-void rkisp1_params_configure_isp(struct rkisp1_params *params,
-				 const struct rkisp1_fmt *in_fmt,
-				 enum v4l2_quantization quantization);
-
-void rkisp1_params_disable_isp(struct rkisp1_params *params);
-
+void rkisp1_params_configure(struct rkisp1_params *params,
+			     const struct rkisp1_fmt *in_fmt,
+			     enum v4l2_quantization quantization);
+void rkisp1_params_disable(struct rkisp1_params *params);
 int rkisp1_params_register(struct rkisp1_params *params,
 			   struct v4l2_device *v4l2_dev,
 			   struct rkisp1_device *rkisp1);
-
 void rkisp1_params_unregister(struct rkisp1_params *params);
-
-void rkisp1_params_isr_handler(struct rkisp1_device *rkisp1, u32 isp_mis);
-
 
 #endif /* _RKISP1_COMMON_H */

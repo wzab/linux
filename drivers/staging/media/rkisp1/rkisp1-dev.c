@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - Base driver
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
@@ -369,14 +370,14 @@ err_unreg_isp_subdev:
 	return ret;
 }
 
-static irqreturn_t rkisp1_isr_handler(int irq, void *ctx)
+static irqreturn_t rkisp1_isr(int irq, void *ctx)
 {
 	struct device *dev = ctx;
 	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
 
-	rkisp1_isp_isr_handler(rkisp1);
-	rkisp1_mipi_isr_handler(rkisp1);
-	rkisp1_capture_isr_handler(rkisp1);
+	rkisp1_isp_isr(rkisp1);
+	rkisp1_mipi_isr(rkisp1);
+	rkisp1_capture_isr(rkisp1);
 
 	return IRQ_HANDLED;
 }
@@ -412,28 +413,20 @@ static void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 		dev_dbg(rkisp1->dev, "failed to create debugfs directory\n");
 		return;
 	}
-
 	debugfs_create_ulong("data_loss", S_IRUGO, debug->debugfs_dir,
 			     &debug->data_loss);
-
 	debugfs_create_ulong("pic_size_error", S_IRUGO,  debug->debugfs_dir,
 			     &debug->pic_size_error);
-
 	debugfs_create_ulong("mipi_error", S_IRUGO, debug->debugfs_dir,
 			     &debug->mipi_error);
-
 	debugfs_create_ulong("stats_error", S_IRUGO, debug->debugfs_dir,
 			     &debug->stats_error);
-
 	debugfs_create_ulong("mp_stop_timeout", S_IRUGO, debug->debugfs_dir,
 			     &debug->stop_timeout[RKISP1_CAPTURE_MP]);
-
 	debugfs_create_ulong("sp_stop_timeout", S_IRUGO, debug->debugfs_dir,
 			     &debug->stop_timeout[RKISP1_CAPTURE_SP]);
-
 	debugfs_create_ulong("mp_frame_drop", S_IRUGO, debug->debugfs_dir,
 			     &debug->frame_drop[RKISP1_CAPTURE_MP]);
-
 	debugfs_create_ulong("sp_frame_drop", S_IRUGO, debug->debugfs_dir,
 			     &debug->frame_drop[RKISP1_CAPTURE_SP]);
 }
@@ -467,7 +460,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 	if (irq < 0)
 		return irq;
 
-	ret = devm_request_irq(dev, irq, rkisp1_isr_handler, IRQF_SHARED,
+	ret = devm_request_irq(dev, irq, rkisp1_isr, IRQF_SHARED,
 			       dev_driver_string(dev), dev);
 	if (ret) {
 		dev_err(dev, "request irq failed: %d\n", ret);
@@ -486,20 +479,17 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	pm_runtime_enable(&pdev->dev);
 
-	strscpy(rkisp1->media_dev.model, "rkisp1",
+	strscpy(rkisp1->media_dev.model, RKISP1_DRIVER_NAME,
 		sizeof(rkisp1->media_dev.model));
 	rkisp1->media_dev.dev = &pdev->dev;
 	strscpy(rkisp1->media_dev.bus_info,
 		"platform: " RKISP1_DRIVER_NAME,
 		sizeof(rkisp1->media_dev.bus_info));
-	// TODO: use of pm_use, is documented to need link_notify.
-	// maybe this is not needed becuase we don't pm_use in open/close,
-	// but in s_stream?
 	media_device_init(&rkisp1->media_dev);
 
 	v4l2_dev = &rkisp1->v4l2_dev;
 	v4l2_dev->mdev = &rkisp1->media_dev;
-	strscpy(v4l2_dev->name, "rkisp1", sizeof(v4l2_dev->name));
+	strscpy(v4l2_dev->name, RKISP1_DRIVER_NAME, sizeof(v4l2_dev->name));
 
 	ret = v4l2_device_register(rkisp1->dev, &rkisp1->v4l2_dev);
 	if (ret)
@@ -557,6 +547,5 @@ static struct platform_driver rkisp1_drv = {
 };
 
 module_platform_driver(rkisp1_drv);
-MODULE_AUTHOR("Rockchip Camera/ISP team");
 MODULE_DESCRIPTION("Rockchip ISP1 platform driver");
 MODULE_LICENSE("Dual BSD/GPL");

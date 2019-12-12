@@ -2,6 +2,7 @@
 /*
  * Rockchip ISP1 Driver - Registers header
  *
+ * Copyright (C) 2019 Collabora, Ltd.
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
