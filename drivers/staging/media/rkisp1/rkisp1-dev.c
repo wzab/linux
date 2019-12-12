@@ -144,18 +144,34 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 		return ret;
 
 	/* create ISP internal links */
+	// TODO: optimize this
+
 	/* SP links */
 	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
+	sink = &rkisp1->resizer_devs[RKISP1_CAPTURE_SP].sd.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
+				    sink, RKISP1_RSZ_PAD_SINK, flags);
+	if (ret)
+		return ret;
+
+	source = sink;
+	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
+	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
 				    sink, 0, flags);
 	if (ret)
 		return ret;
 
 	/* MP links */
 	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
+	sink = &rkisp1->resizer_devs[RKISP1_CAPTURE_MP].sd.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
+				    sink, RKISP1_RSZ_PAD_SINK, flags);
+	if (ret)
+		return ret;
+
+	source = sink;
+	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
+	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
 				    sink, 0, flags);
 	if (ret)
 		return ret;
@@ -338,9 +354,13 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	if (ret)
 		return ret;
 
-	ret = rkisp1_capture_devs_register(rkisp1);
+	ret = rkisp1_resizer_devs_register(rkisp1);
 	if (ret)
 		goto err_unreg_isp_subdev;
+
+	ret = rkisp1_capture_devs_register(rkisp1);
+	if (ret)
+		goto err_unreg_resizer_devs;
 
 	ret = rkisp1_stats_register(&rkisp1->stats, &rkisp1->v4l2_dev, rkisp1);
 	if (ret)
@@ -365,6 +385,8 @@ err_unreg_stats:
 	rkisp1_stats_unregister(&rkisp1->stats);
 err_unreg_capture_devs:
 	rkisp1_capture_devs_unregister(rkisp1);
+err_unreg_resizer_devs:
+	rkisp1_resizer_devs_unregister(rkisp1);
 err_unreg_isp_subdev:
 	rkisp1_isp_unregister(rkisp1);
 	return ret;
@@ -525,6 +547,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 	rkisp1_params_unregister(&rkisp1->params);
 	rkisp1_stats_unregister(&rkisp1->stats);
 	rkisp1_capture_devs_unregister(rkisp1);
+	rkisp1_resizer_devs_unregister(rkisp1);
 	rkisp1_isp_unregister(rkisp1);
 
 	media_device_unregister(&rkisp1->media_dev);

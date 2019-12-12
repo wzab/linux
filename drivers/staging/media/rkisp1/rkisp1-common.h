@@ -20,6 +20,10 @@
 #include "rkisp1-regs.h"
 #include "uapi/rkisp1-config.h"
 
+// TODO: check a better place to declare this
+#define RKISP1_MBUS_FMT_HDIV 2
+#define RKISP1_MBUS_FMT_VDIV 1
+
 /* TODO: FIXME: changing the default resolution to higher values causes the
  * stream to stall.
  * The capture node gets the crop bounds from the isp source pad crop size, but
@@ -34,9 +38,16 @@
 
 #define RKISP1_MAX_BUS_CLK	8
 
+// TODO: rename to RKISP1_ISP_DIR... to indicate this is input and output from
+// the isp subdev pov
 #define RKISP1_DIR_OUT BIT(0)
 #define RKISP1_DIR_IN BIT(1)
 #define RKISP1_DIR_IN_OUT (RKISP1_DIR_IN | RKISP1_DIR_OUT)
+
+enum rkisp1_rsz_pad {
+	RKISP1_RSZ_PAD_SINK,
+	RKISP1_RSZ_PAD_SRC,
+};
 
 enum rkisp1_capture_id {
 	RKISP1_CAPTURE_MP,
@@ -148,6 +159,64 @@ struct rkisp1_capture_mp {
 
 struct rkisp1_device;
 
+/* Different config between selfpath and mainpath */
+// TODO: shouldn't be here
+struct rkisp1_capture_config {
+	const struct rkisp1_capture_fmt *fmts;
+	int fmt_size;
+	/* constrains */
+	const int max_rsz_width;
+	const int max_rsz_height;
+	const int min_rsz_width;
+	const int min_rsz_height;
+	/* registers */
+	struct {
+		u32 ctrl;
+		u32 ctrl_shd;
+		u32 scale_hy;
+		u32 scale_hcr;
+		u32 scale_hcb;
+		u32 scale_vy;
+		u32 scale_vc;
+		u32 scale_lut;
+		u32 scale_lut_addr;
+		u32 scale_hy_shd;
+		u32 scale_hcr_shd;
+		u32 scale_hcb_shd;
+		u32 scale_vy_shd;
+		u32 scale_vc_shd;
+		u32 phase_hy;
+		u32 phase_hc;
+		u32 phase_vy;
+		u32 phase_vc;
+		u32 phase_hy_shd;
+		u32 phase_hc_shd;
+		u32 phase_vy_shd;
+		u32 phase_vc_shd;
+	} rsz;
+	struct {
+		u32 ctrl;
+		u32 yuvmode_mask;
+		u32 rawmode_mask;
+		u32 h_offset;
+		u32 v_offset;
+		u32 h_size;
+		u32 v_size;
+	} dual_crop;
+	struct {
+		u32 y_size_init;
+		u32 cb_size_init;
+		u32 cr_size_init;
+		u32 y_base_ad_init;
+		u32 cb_base_ad_init;
+		u32 cr_base_ad_init;
+		u32 y_offs_cnt_init;
+		u32 cb_offs_cnt_init;
+		u32 cr_offs_cnt_init;
+	} mi;
+};
+
+
 /*
  * struct rkisp1_capture - ISP capture video device
  *
@@ -169,7 +238,6 @@ struct rkisp1_capture {
 	struct rkisp1_vdev_node vnode;
 	const struct rkisp1_capture_fmt *out_isp_fmt;
 	struct v4l2_pix_format_mplane out_fmt;
-	struct v4l2_rect dcrop;
 	struct rkisp1_capture_ops *ops;
 	const struct rkisp1_capture_config *config;
 	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
@@ -227,6 +295,15 @@ struct rkisp1_params {
 	enum rkisp1_fmt_raw_pat_type raw_type;
 };
 
+struct rkisp1_resizer {
+	struct v4l2_subdev sd;
+	enum rkisp1_capture_id id;
+	struct rkisp1_device *rkisp1;
+	struct media_pad pads[RKISP1_ISP_PAD_MAX];
+	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
+	const struct rkisp1_fmt *rk_fmt;
+};
+
 struct rkisp1_debug {
 	struct dentry *debugfs_dir;
 	unsigned long data_loss;
@@ -258,6 +335,7 @@ struct rkisp1_device {
 	struct v4l2_async_notifier notifier;
 	struct rkisp1_sensor_async *active_sensor;
 	struct rkisp1_isp isp;
+	struct rkisp1_resizer resizer_devs[2];
 	struct rkisp1_capture capture_devs[2];
 	struct rkisp1_stats stats;
 	struct rkisp1_params params;
@@ -315,6 +393,9 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis);
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1);
 
+int rkisp1_resizer_devs_register(struct rkisp1_device *rkisp1);
+void rkisp1_resizer_devs_unregister(struct rkisp1_device *rkisp1);
+
 int rkisp1_stats_register(struct rkisp1_stats *stats,
 			  struct v4l2_device *v4l2_dev,
 			  struct rkisp1_device *rkisp1);
@@ -328,5 +409,7 @@ int rkisp1_params_register(struct rkisp1_params *params,
 			   struct v4l2_device *v4l2_dev,
 			   struct rkisp1_device *rkisp1);
 void rkisp1_params_unregister(struct rkisp1_params *params);
+
+void rkisp1_params_isr_handler(struct rkisp1_device *rkisp1, u32 isp_mis);
 
 #endif /* _RKISP1_COMMON_H */

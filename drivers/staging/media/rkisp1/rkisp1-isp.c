@@ -57,7 +57,7 @@
  * +---------------------------------------------------------+
  */
 
-static const struct rkisp1_fmt rkisp1_isp_formats[] = {
+const struct rkisp1_fmt rkisp1_isp_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_type	= RKISP1_FMT_YUV,
@@ -803,6 +803,8 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   which);
 	rkisp1_isp_set_out_crop(isp, cfg, out_crop, which);
+
+	// TODO: should we set the value back to r?
 }
 
 static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
@@ -915,6 +917,7 @@ static int rkisp1_isp_set_selection(struct v4l2_subdev *sd,
 				    struct v4l2_subdev_selection *sel)
 {
 	struct rkisp1_isp *isp = container_of(sd, struct rkisp1_isp, sd);
+	// TODO: No need, isp->rkisp1
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
 						    v4l2_dev);
@@ -1078,6 +1081,7 @@ static const struct v4l2_subdev_ops rkisp1_isp_ops = {
 	.pad = &rkisp1_isp_pad_ops,
 };
 
+// TODO: this second parameter is not required
 int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			struct v4l2_device *v4l2_dev)
 {
