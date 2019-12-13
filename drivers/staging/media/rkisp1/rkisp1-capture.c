@@ -43,13 +43,6 @@
 #define RKISP1_MIN_BUFFERS_NEEDED 3
 //#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
 
-#define RKISP1_RSZ_MP_OUT_MAX_WIDTH		4416
-#define RKISP1_RSZ_MP_OUT_MAX_HEIGHT		3312
-#define RKISP1_RSZ_SP_OUT_MAX_WIDTH		1920
-#define RKISP1_RSZ_SP_OUT_MAX_HEIGHT		1920
-#define RKISP1_RSZ_OUT_MIN_WIDTH		32
-#define RKISP1_RSZ_OUT_MIN_HEIGHT		16
-
 /* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
 #define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
@@ -80,6 +73,23 @@ struct rkisp1_capture_ops {
 	void (*disable)(struct rkisp1_capture *cap);
 	void (*set_data_path)(struct rkisp1_capture *cap);
 	bool (*is_stopped)(struct rkisp1_capture *cap);
+};
+
+struct rkisp1_capture_config {
+	const struct rkisp1_capture_fmt *fmts;
+	int fmt_size;
+	/* registers */
+	struct {
+		u32 y_size_init;
+		u32 cb_size_init;
+		u32 cr_size_init;
+		u32 y_base_ad_init;
+		u32 cb_base_ad_init;
+		u32 cr_base_ad_init;
+		u32 y_offs_cnt_init;
+		u32 cb_offs_cnt_init;
+		u32 cr_offs_cnt_init;
+	} mi;
 };
 
 static const struct rkisp1_capture_fmt rkisp1_mp_fmts[] = {
@@ -338,45 +348,6 @@ static const struct rkisp1_capture_fmt rkisp1_sp_fmts[] = {
 static const struct rkisp1_capture_config rkisp1_capture_config_mp = {
 	.fmts = rkisp1_mp_fmts,
 	.fmt_size = ARRAY_SIZE(rkisp1_mp_fmts),
-	/* constraints */
-	.max_rsz_width = RKISP1_RSZ_MP_OUT_MAX_WIDTH,
-	.max_rsz_height = RKISP1_RSZ_MP_OUT_MAX_HEIGHT,
-	.min_rsz_width = RKISP1_RSZ_OUT_MIN_WIDTH,
-	.min_rsz_height = RKISP1_RSZ_OUT_MIN_HEIGHT,
-	/* registers */
-	.rsz = {
-		.ctrl =			RKISP1_CIF_MRSZ_CTRL,
-		.scale_hy =		RKISP1_CIF_MRSZ_SCALE_HY,
-		.scale_hcr =		RKISP1_CIF_MRSZ_SCALE_HCR,
-		.scale_hcb =		RKISP1_CIF_MRSZ_SCALE_HCB,
-		.scale_vy =		RKISP1_CIF_MRSZ_SCALE_VY,
-		.scale_vc =		RKISP1_CIF_MRSZ_SCALE_VC,
-		.scale_lut =		RKISP1_CIF_MRSZ_SCALE_LUT,
-		.scale_lut_addr =	RKISP1_CIF_MRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd =		RKISP1_CIF_MRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd =	RKISP1_CIF_MRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd =	RKISP1_CIF_MRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd =		RKISP1_CIF_MRSZ_SCALE_VY_SHD,
-		.scale_vc_shd =		RKISP1_CIF_MRSZ_SCALE_VC_SHD,
-		.phase_hy =		RKISP1_CIF_MRSZ_PHASE_HY,
-		.phase_hc =		RKISP1_CIF_MRSZ_PHASE_HC,
-		.phase_vy =		RKISP1_CIF_MRSZ_PHASE_VY,
-		.phase_vc =		RKISP1_CIF_MRSZ_PHASE_VC,
-		.ctrl_shd =		RKISP1_CIF_MRSZ_CTRL_SHD,
-		.phase_hy_shd =		RKISP1_CIF_MRSZ_PHASE_HY_SHD,
-		.phase_hc_shd =		RKISP1_CIF_MRSZ_PHASE_HC_SHD,
-		.phase_vy_shd =		RKISP1_CIF_MRSZ_PHASE_VY_SHD,
-		.phase_vc_shd =		RKISP1_CIF_MRSZ_PHASE_VC_SHD,
-	},
-	.dual_crop = {
-		.ctrl =			RKISP1_CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask =		RKISP1_CIF_DUAL_CROP_MP_MODE_YUV,
-		.rawmode_mask =		RKISP1_CIF_DUAL_CROP_MP_MODE_RAW,
-		.h_offset =		RKISP1_CIF_DUAL_CROP_M_H_OFFS,
-		.v_offset =		RKISP1_CIF_DUAL_CROP_M_V_OFFS,
-		.h_size =		RKISP1_CIF_DUAL_CROP_M_H_SIZE,
-		.v_size =		RKISP1_CIF_DUAL_CROP_M_V_SIZE,
-	},
 	.mi = {
 		.y_size_init =		RKISP1_CIF_MI_MP_Y_SIZE_INIT,
 		.cb_size_init =		RKISP1_CIF_MI_MP_CB_SIZE_INIT,
@@ -393,45 +364,6 @@ static const struct rkisp1_capture_config rkisp1_capture_config_mp = {
 static const struct rkisp1_capture_config rkisp1_capture_config_sp = {
 	.fmts = rkisp1_sp_fmts,
 	.fmt_size = ARRAY_SIZE(rkisp1_sp_fmts),
-	/* constraints */
-	.max_rsz_width = RKISP1_RSZ_SP_OUT_MAX_WIDTH,
-	.max_rsz_height = RKISP1_RSZ_SP_OUT_MAX_HEIGHT,
-	.min_rsz_width = RKISP1_RSZ_OUT_MIN_WIDTH,
-	.min_rsz_height = RKISP1_RSZ_OUT_MIN_HEIGHT,
-	/* registers */
-	.rsz = {
-		.ctrl =			RKISP1_CIF_SRSZ_CTRL,
-		.scale_hy =		RKISP1_CIF_SRSZ_SCALE_HY,
-		.scale_hcr =		RKISP1_CIF_SRSZ_SCALE_HCR,
-		.scale_hcb =		RKISP1_CIF_SRSZ_SCALE_HCB,
-		.scale_vy =		RKISP1_CIF_SRSZ_SCALE_VY,
-		.scale_vc =		RKISP1_CIF_SRSZ_SCALE_VC,
-		.scale_lut =		RKISP1_CIF_SRSZ_SCALE_LUT,
-		.scale_lut_addr =	RKISP1_CIF_SRSZ_SCALE_LUT_ADDR,
-		.scale_hy_shd =		RKISP1_CIF_SRSZ_SCALE_HY_SHD,
-		.scale_hcr_shd =	RKISP1_CIF_SRSZ_SCALE_HCR_SHD,
-		.scale_hcb_shd =	RKISP1_CIF_SRSZ_SCALE_HCB_SHD,
-		.scale_vy_shd =		RKISP1_CIF_SRSZ_SCALE_VY_SHD,
-		.scale_vc_shd =		RKISP1_CIF_SRSZ_SCALE_VC_SHD,
-		.phase_hy =		RKISP1_CIF_SRSZ_PHASE_HY,
-		.phase_hc =		RKISP1_CIF_SRSZ_PHASE_HC,
-		.phase_vy =		RKISP1_CIF_SRSZ_PHASE_VY,
-		.phase_vc =		RKISP1_CIF_SRSZ_PHASE_VC,
-		.ctrl_shd =		RKISP1_CIF_SRSZ_CTRL_SHD,
-		.phase_hy_shd =		RKISP1_CIF_SRSZ_PHASE_HY_SHD,
-		.phase_hc_shd =		RKISP1_CIF_SRSZ_PHASE_HC_SHD,
-		.phase_vy_shd =		RKISP1_CIF_SRSZ_PHASE_VY_SHD,
-		.phase_vc_shd =		RKISP1_CIF_SRSZ_PHASE_VC_SHD,
-	},
-	.dual_crop = {
-		.ctrl =			RKISP1_CIF_DUAL_CROP_CTRL,
-		.yuvmode_mask =		RKISP1_CIF_DUAL_CROP_SP_MODE_YUV,
-		.rawmode_mask =		RKISP1_CIF_DUAL_CROP_SP_MODE_RAW,
-		.h_offset =		RKISP1_CIF_DUAL_CROP_S_H_OFFS,
-		.v_offset =		RKISP1_CIF_DUAL_CROP_S_V_OFFS,
-		.h_size =		RKISP1_CIF_DUAL_CROP_S_H_SIZE,
-		.v_size =		RKISP1_CIF_DUAL_CROP_S_V_SIZE,
-	},
 	.mi = {
 		.y_size_init =		RKISP1_CIF_MI_SP_Y_SIZE_INIT,
 		.cb_size_init =		RKISP1_CIF_MI_SP_CB_SIZE_INIT,
@@ -1373,7 +1305,6 @@ static int rkisp1_capture_link_validate(struct media_link *link)
 		media_entity_to_v4l2_subdev(link->source->entity);
 	struct rkisp1_capture *cap = video_get_drvdata(vdev);
 	struct rkisp1_isp *isp = &cap->rkisp1->isp;
-	const struct vimc_pix_map *pix_map;
 	struct v4l2_subdev_format sd_fmt;
 	int ret;
 
