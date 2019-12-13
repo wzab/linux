@@ -189,7 +189,8 @@ struct rkisp1_capture {
 	bool stopping;
 	wait_queue_head_t done;
 	struct {
-		const struct rkisp1_capture_fmt *info;
+		const struct rkisp1_capture_fmt_cfg *cfg;
+		const struct v4l2_format_info *info;
 		struct v4l2_pix_format_mplane fmt;
 	} pix;
 	union {
