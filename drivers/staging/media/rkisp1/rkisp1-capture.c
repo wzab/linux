@@ -1142,7 +1142,7 @@ rkisp1_fill_pixfmt(struct v4l2_pix_format_mplane *pixm,
 }
 
 static const struct rkisp1_capture_fmt_cfg *
-rkisp1_find_fmt(const struct rkisp1_capture *cap, const u32 pixelfmt)
+rkisp1_find_fmt_cfg(const struct rkisp1_capture *cap, const u32 pixelfmt)
 {
 	unsigned int i;
 
@@ -1164,7 +1164,7 @@ static void rkisp1_try_fmt(const struct rkisp1_capture *cap,
 	const struct rkisp1_capture_fmt_cfg *fmt;
 	const struct v4l2_format_info *info;
 
-	fmt = rkisp1_find_fmt(cap, pixm->pixelformat);
+	fmt = rkisp1_find_fmt_cfg(cap, pixm->pixelformat);
 	if (!fmt)
 		fmt = config->fmts;
 
