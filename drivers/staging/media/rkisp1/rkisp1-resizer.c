@@ -273,7 +273,6 @@ static const struct rkisp1_fmt rkisp1_rsz_formats[] = {
 	},
 };
 
-// TODO: move to common
 static struct v4l2_mbus_framefmt *
 rkisp1_rsz_get_pad_fmt(struct rkisp1_resizer *rsz,
 		       struct v4l2_subdev_pad_config *cfg,

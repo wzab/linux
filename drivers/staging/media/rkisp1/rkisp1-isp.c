@@ -213,7 +213,7 @@ static struct v4l2_subdev *rkisp1_get_remote_sensor(struct v4l2_subdev *sd)
 	return media_entity_to_v4l2_subdev(sensor_me);
 }
 
-struct v4l2_mbus_framefmt *
+static struct v4l2_mbus_framefmt *
 rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
 		       struct v4l2_subdev_pad_config *cfg,
 		       unsigned int pad, u32 which)
@@ -224,9 +224,10 @@ rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
 		return v4l2_subdev_get_try_format(&isp->sd, isp->pad_cfg, pad);
 }
 
-struct v4l2_rect *rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
-					  struct v4l2_subdev_pad_config *cfg,
-					  unsigned int pad, u32 which)
+static struct v4l2_rect *
+rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
+			struct v4l2_subdev_pad_config *cfg,
+			unsigned int pad, u32 which)
 {
 	if (which == V4L2_SUBDEV_FORMAT_TRY)
 		return v4l2_subdev_get_try_crop(&isp->sd, cfg, pad);
