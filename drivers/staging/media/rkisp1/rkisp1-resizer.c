@@ -928,4 +928,3 @@ void rkisp1_resizer_devs_unregister(struct rkisp1_device *rkisp1)
 	rkisp1_rsz_unregister(mp);
 	rkisp1_rsz_unregister(sp);
 }
-
