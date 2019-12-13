@@ -112,7 +112,9 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	/* sensor links */
 	flags = MEDIA_LNK_FL_ENABLED;
 	list_for_each_entry(sd, &rkisp1->v4l2_dev.subdevs, list) {
-		if (sd == &rkisp1->isp.sd)
+		if (sd == &rkisp1->isp.sd ||
+		    sd == &rkisp1->resizer_devs[RKISP1_CAPTURE_MP].sd ||
+		    sd == &rkisp1->resizer_devs[RKISP1_CAPTURE_SP].sd)
 			continue;
 
 		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,

@@ -463,8 +463,7 @@ static int rkisp1_rsz_init_config(struct v4l2_subdev *sd,
 	mf_in_crop->left = 0;
 	mf_in_crop->top = 0;
 
-	mf_out = v4l2_subdev_get_try_format(sd, cfg,
-					    RKISP1_ISP_PAD_SOURCE_VIDEO);
+	mf_out = v4l2_subdev_get_try_format(sd, cfg, RKISP1_RSZ_PAD_SINK);
 	*mf_out = *mf_in;
 
 	/* NOTE: there is no crop in the source pad, only in the sink */
