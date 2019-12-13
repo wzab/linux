@@ -343,7 +343,7 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 void rkisp1_stats_unregister(struct rkisp1_stats *stats);
 
 void rkisp1_params_configure(struct rkisp1_params *params,
-			     const struct rkisp1_fmt *in_fmt,
+			     enum rkisp1_fmt_raw_pat_type bayer_pat,
 			     enum v4l2_quantization quantization);
 void rkisp1_params_disable(struct rkisp1_params *params);
 int rkisp1_params_register(struct rkisp1_params *params,

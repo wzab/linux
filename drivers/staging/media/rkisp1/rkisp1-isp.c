@@ -366,7 +366,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 		out_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
 						 RKISP1_ISP_PAD_SINK_VIDEO,
 						 V4L2_SUBDEV_FORMAT_ACTIVE);
-		rkisp1_params_configure(&rkisp1->params, in_fmt,
+		rkisp1_params_configure(&rkisp1->params, in_fmt->bayer_pat,
 					out_frm->quantization);
 	}
 

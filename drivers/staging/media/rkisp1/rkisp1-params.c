@@ -1316,11 +1316,11 @@ void rkisp1_params_config_parameter(struct rkisp1_params *params)
 
 /* Not called when the camera active, thus not isr protection. */
 void rkisp1_params_configure(struct rkisp1_params *params,
-			     const struct rkisp1_fmt *in_fmt,
+			     enum rkisp1_fmt_raw_pat_type bayer_pat,
 			     enum v4l2_quantization quantization)
 {
 	params->quantization = quantization;
-	params->raw_type = in_fmt->bayer_pat;
+	params->raw_type = bayer_pat;
 	rkisp1_params_config_parameter(params);
 }
 
