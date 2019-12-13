@@ -525,7 +525,7 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 		struct rkisp1_capture *cap =
 			&rsz->rkisp1->capture_devs[rsz->id];
 		const struct v4l2_format_info *pixfmt_info =
-			v4l2_format_info(cap->out_fmt.pixelformat);
+			v4l2_format_info(cap->pix.fmt.pixelformat);
 
 		hdiv = pixfmt_info->hdiv;
 		vdiv = pixfmt_info->vdiv;

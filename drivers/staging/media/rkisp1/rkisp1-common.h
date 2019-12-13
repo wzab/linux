@@ -178,8 +178,6 @@ struct rkisp1_capture {
 	enum rkisp1_stream_id id;
 	struct rkisp1_device *rkisp1;
 	struct rkisp1_vdev_node vnode;
-	const struct rkisp1_capture_fmt *out_isp_fmt;
-	struct v4l2_pix_format_mplane out_fmt;
 	struct rkisp1_capture_ops *ops;
 	const struct rkisp1_capture_config *config;
 	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
@@ -190,6 +188,10 @@ struct rkisp1_capture {
 	bool streaming;
 	bool stopping;
 	wait_queue_head_t done;
+	struct {
+		const struct rkisp1_capture_fmt *info;
+		struct v4l2_pix_format_mplane fmt;
+	} pix;
 	union {
 		struct rkisp1_capture_sp sp;
 		struct rkisp1_capture_mp mp;
