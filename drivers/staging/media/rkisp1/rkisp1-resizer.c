@@ -558,24 +558,20 @@ static int rkisp1_rsz_enum_mbus_code(struct v4l2_subdev *sd,
 				     struct v4l2_subdev_pad_config *cfg,
 				     struct v4l2_subdev_mbus_code_enum *code)
 {
-	unsigned int i, pos = 0;
+	struct rkisp1_resizer *rsz = container_of(sd, struct rkisp1_resizer,
+						  sd);
+	struct v4l2_subdev_pad_config dummy_cfg;
+	u32 pad = code->pad;
+	int ret;
 
-	if (code->index >= ARRAY_SIZE(rkisp1_rsz_formats))
-		return -EINVAL;
+	/* supported mbus codes are the same in isp sink pad */
+	code->pad = RKISP1_ISP_PAD_SINK_VIDEO;
+	ret = v4l2_subdev_call(&rsz->rkisp1->isp.sd, pad, enum_mbus_code,
+				&dummy_cfg, code);
 
-	for (i = 0; i < ARRAY_SIZE(rkisp1_rsz_formats); i++) {
-		const struct rkisp1_fmt *fmt = &rkisp1_rsz_formats[i];
-
-		if (fmt->direction & RKISP1_DIR_OUT)
-			pos++;
-
-		if (code->index == pos - 1) {
-			code->code = fmt->mbus_code;
-			return 0;
-		}
-	}
-
-	return -EINVAL;
+	/* restore pad */
+	code->pad = pad;
+	return ret;
 }
 
 static int rkisp1_rsz_init_config(struct v4l2_subdev *sd,
