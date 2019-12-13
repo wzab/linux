@@ -1440,8 +1440,8 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 	struct rkisp1_vdev_node *node;
 	struct vb2_queue *q;
 	int ret;
-	const char * const dev_names[] = {RKISP1_SP_DEV_NAME,
-					  RKISP1_MP_DEV_NAME};
+	const char * const dev_names[] = {RKISP1_MP_DEV_NAME,
+					  RKISP1_SP_DEV_NAME};
 
 	strscpy(vdev->name, dev_names[cap->id], sizeof(vdev->name));
 	node = rkisp1_vdev_to_node(vdev);
