@@ -162,32 +162,35 @@ struct rkisp1_device;
 /*
  * struct rkisp1_capture - ISP capture video device
  *
- * @out_isp_fmt: output ISP format
- * @out_fmt: output buffer size
- * @dcrop: coordinates of dual-crop
+ * @pix.fmt: buffer format
+ * @pix.info: pixel information
+ * @pix.cfg: pixel configuration
  *
- * @vbq_lock: lock to protect buf_queue
- * @buf_queue: queued buffer list
- * @dummy_buf: dummy space to store dropped data
+ * @buf.lock: lock to protect buf_queue
+ * @buf.queue: queued buffer list
+ * @buf.dummy: dummy space to store dropped data
  *
  * rkisp1 use shadowsock registers, so it need two buffer at a time
- * @curr_buf: the buffer used for current frame
- * @next_buf: the buffer used for next frame
+ * @buf.curr: the buffer used for current frame
+ * @buf.next: the buffer used for next frame
  */
 struct rkisp1_capture {
+	struct rkisp1_vdev_node vnode;
 	enum rkisp1_stream_id id;
 	struct rkisp1_device *rkisp1;
-	struct rkisp1_vdev_node vnode;
 	struct rkisp1_capture_ops *ops;
 	const struct rkisp1_capture_config *config;
-	spinlock_t vbq_lock; /* protects buf_queue, curr_buf and next_buf */
-	struct list_head buf_queue;
-	struct rkisp1_dummy_buffer dummy_buf;
-	struct rkisp1_buffer *curr_buf;
-	struct rkisp1_buffer *next_buf;
 	bool streaming;
 	bool stopping;
 	wait_queue_head_t done;
+	struct {
+		/* protects queue, curr and next */
+		spinlock_t lock;
+		struct list_head queue;
+		struct rkisp1_dummy_buffer dummy;
+		struct rkisp1_buffer *curr;
+		struct rkisp1_buffer *next;
+	} buf;
 	struct {
 		const struct rkisp1_capture_fmt_cfg *cfg;
 		const struct v4l2_format_info *info;

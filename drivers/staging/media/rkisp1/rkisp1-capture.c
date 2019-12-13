@@ -607,7 +607,7 @@ static struct rkisp1_capture_ops rkisp1_capture_ops_sp = {
 static int rkisp1_dummy_buf_create(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->pix.fmt;
-	struct rkisp1_dummy_buffer *dummy_buf = &cap->dummy_buf;
+	struct rkisp1_dummy_buffer *dummy_buf = &cap->buf.dummy;
 
 	dummy_buf->size = max3(rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_Y),
 			       rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB),
@@ -627,10 +627,9 @@ static int rkisp1_dummy_buf_create(struct rkisp1_capture *cap)
 
 static void rkisp1_dummy_buf_destroy(struct rkisp1_capture *cap)
 {
-	struct rkisp1_dummy_buffer *dummy_buf = &cap->dummy_buf;
-
-	dma_free_attrs(cap->rkisp1->dev, dummy_buf->size, dummy_buf->vaddr,
-		       dummy_buf->dma_addr, DMA_ATTR_NO_KERNEL_MAPPING);
+	dma_free_attrs(cap->rkisp1->dev,
+		       cap->buf.dummy.size, cap->buf.dummy.vaddr,
+		       cap->buf.dummy.dma_addr, DMA_ATTR_NO_KERNEL_MAPPING);
 }
 
 /*
@@ -639,14 +638,12 @@ static void rkisp1_dummy_buf_destroy(struct rkisp1_capture *cap)
  */
 static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
-	struct rkisp1_dummy_buffer *dummy_buf = &cap->dummy_buf;
-
 	/*
 	 * The dummy space allocated by dma_alloc_coherent is used, we can
 	 * throw data to it if there is no available buffer.
 	 */
-	if (cap->next_buf) {
-		u32 *buff_addr = cap->next_buf->buff_addr;
+	if (cap->buf.next) {
+		u32 *buff_addr = cap->buf.next->buff_addr;
 
 		rkisp1_write(cap->rkisp1,
 			     buff_addr[RKISP1_PLANE_Y],
@@ -661,13 +658,13 @@ static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
 		dev_dbg(cap->rkisp1->dev,
 			"capture %d: to dummy buf\n", cap->id);
 		rkisp1_write(cap->rkisp1,
-			     dummy_buf->dma_addr,
+			     cap->buf.dummy.dma_addr,
 			     cap->config->mi.y_base_ad_init);
 		rkisp1_write(cap->rkisp1,
-			     dummy_buf->dma_addr,
+			     cap->buf.dummy.dma_addr,
 			     cap->config->mi.cb_base_ad_init);
 		rkisp1_write(cap->rkisp1,
-			     dummy_buf->dma_addr,
+			     cap->buf.dummy.dma_addr,
 			     cap->config->mi.cr_base_ad_init);
 	}
 
@@ -686,10 +683,10 @@ static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
 static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 {
 	struct rkisp1_isp *isp = &cap->rkisp1->isp;
-	struct rkisp1_buffer *curr_buf = cap->curr_buf;
+	struct rkisp1_buffer *curr_buf = cap->buf.curr;
 	unsigned long lock_flags = 0;
 
-	spin_lock_irqsave(&cap->vbq_lock, lock_flags);
+	spin_lock_irqsave(&cap->buf.lock, lock_flags);
 
 	if (curr_buf) {
 		curr_buf->vb.sequence = atomic_read(&isp->frm_sync_seq) - 1;
@@ -701,17 +698,17 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 	}
 
 	/* Next frame is writing to it */
-	cap->curr_buf = cap->next_buf;
-	cap->next_buf = NULL;
+	cap->buf.curr = cap->buf.next;
+	cap->buf.next = NULL;
 
 	/* Setup an empty buffer for the next-next frame */
-	if (!list_empty(&cap->buf_queue)) {
-		cap->next_buf = list_first_entry(&cap->buf_queue,
+	if (!list_empty(&cap->buf.queue)) {
+		cap->buf.next = list_first_entry(&cap->buf.queue,
 						    struct rkisp1_buffer,
 						    queue);
-		list_del(&cap->next_buf->queue);
+		list_del(&cap->buf.next->queue);
 	}
-	spin_unlock_irqrestore(&cap->vbq_lock, lock_flags);
+	spin_unlock_irqrestore(&cap->buf.lock, lock_flags);
 
 	rkisp1_set_next_buf(cap);
 }
@@ -813,20 +810,20 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 			rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CB);
 	}
 
-	spin_lock_irqsave(&cap->vbq_lock, lock_flags);
+	spin_lock_irqsave(&cap->buf.lock, lock_flags);
 
 	/*
 	 * If there's no next buffer assigned, queue this buffer directly
 	 * as the next buffer, and update the memory interface.
 	 */
-	if (cap->streaming && !cap->next_buf &&
+	if (cap->streaming && !cap->buf.next &&
 	    atomic_read(&cap->rkisp1->isp.frm_sync_seq) == 0) {
-		cap->next_buf = ispbuf;
+		cap->buf.next = ispbuf;
 		rkisp1_set_next_buf(cap);
 	} else {
-		list_add_tail(&ispbuf->queue, &cap->buf_queue);
+		list_add_tail(&ispbuf->queue, &cap->buf.queue);
 	}
-	spin_unlock_irqrestore(&cap->vbq_lock, lock_flags);
+	spin_unlock_irqrestore(&cap->buf.lock, lock_flags);
 }
 
 static int rkisp1_vb2_buf_prepare(struct vb2_buffer *vb)
@@ -855,22 +852,22 @@ static void rkisp1_return_all_buffers(struct rkisp1_capture *cap,
 	unsigned long lock_flags = 0;
 	struct rkisp1_buffer *buf;
 
-	spin_lock_irqsave(&cap->vbq_lock, lock_flags);
-	if (cap->curr_buf) {
-		list_add_tail(&cap->curr_buf->queue, &cap->buf_queue);
-		cap->curr_buf = NULL;
+	spin_lock_irqsave(&cap->buf.lock, lock_flags);
+	if (cap->buf.curr) {
+		list_add_tail(&cap->buf.curr->queue, &cap->buf.queue);
+		cap->buf.curr = NULL;
 	}
-	if (cap->next_buf) {
-		list_add_tail(&cap->next_buf->queue, &cap->buf_queue);
-		cap->next_buf = NULL;
+	if (cap->buf.next) {
+		list_add_tail(&cap->buf.next->queue, &cap->buf.queue);
+		cap->buf.next = NULL;
 	}
-	while (!list_empty(&cap->buf_queue)) {
-		buf = list_first_entry(&cap->buf_queue,
+	while (!list_empty(&cap->buf.queue)) {
+		buf = list_first_entry(&cap->buf.queue,
 				       struct rkisp1_buffer, queue);
 		list_del(&buf->queue);
 		vb2_buffer_done(&buf->vb.vb2_buf, state);
 	}
-	spin_unlock_irqrestore(&cap->vbq_lock, lock_flags);
+	spin_unlock_irqrestore(&cap->buf.lock, lock_flags);
 }
 
 /*
@@ -1441,9 +1438,9 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_stream_id id)
 	cap->id = id;
 	cap->rkisp1 = rkisp1;
 
-	INIT_LIST_HEAD(&cap->buf_queue);
+	INIT_LIST_HEAD(&cap->buf.queue);
 	init_waitqueue_head(&cap->done);
-	spin_lock_init(&cap->vbq_lock);
+	spin_lock_init(&cap->buf.lock);
 	if (cap->id == RKISP1_SELFPATH) {
 		cap->ops = &rkisp1_capture_ops_sp;
 		cap->config = &rkisp1_capture_config_sp;
