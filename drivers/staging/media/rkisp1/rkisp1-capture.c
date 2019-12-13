@@ -1161,7 +1161,7 @@ static struct vb2_ops rkisp1_vb2_ops = {
 
 /* TODO: check how we can integrate with v4l2_fill_pixfmt_mp() */
 static void rkisp1_fill_pixfmt(struct v4l2_pix_format_mplane *pixm,
-			       enum rkisp1_capture_id id)
+			       enum rkisp1_stream_id id)
 {
 	struct v4l2_plane_pix_format *plane_y = &pixm->plane_fmt[0];
 	const struct v4l2_format_info *info;
@@ -1184,7 +1184,7 @@ static void rkisp1_fill_pixfmt(struct v4l2_pix_format_mplane *pixm,
 	pixm->num_planes = info->mem_planes;
 	stride = info->bpp[0] * pixm->width;
 	/* Self path supports custom stride but Main path doesn't */
-	if (id == RKISP1_CAPTURE_MP || plane_y->bytesperline < stride )
+	if (id == RKISP1_MAINPATH || plane_y->bytesperline < stride )
 		plane_y->bytesperline = stride;
 	plane_y->sizeimage = plane_y->bytesperline * pixm->height;
 
@@ -1269,7 +1269,7 @@ static void rkisp1_set_fmt(struct rkisp1_capture *cap,
 	cap->out_fmt = *pixm;
 
 	/* SP supports custom stride in number of pixels of the Y plane */
-	if (cap->id == RKISP1_CAPTURE_SP)
+	if (cap->id == RKISP1_SELFPATH)
 		cap->u.sp.y_stride = pixm->plane_fmt[0].bytesperline /
 					pixfmt_info->bpp[0];
 	else
@@ -1426,8 +1426,8 @@ static void rkisp1_unregister_capture(struct rkisp1_capture *cap)
 
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_capture *mp = &rkisp1->capture_devs[RKISP1_CAPTURE_MP];
-	struct rkisp1_capture *sp = &rkisp1->capture_devs[RKISP1_CAPTURE_SP];
+	struct rkisp1_capture *mp = &rkisp1->capture_devs[RKISP1_MAINPATH];
+	struct rkisp1_capture *sp = &rkisp1->capture_devs[RKISP1_SELFPATH];
 
 	rkisp1_unregister_capture(mp);
 	rkisp1_unregister_capture(sp);
@@ -1499,7 +1499,7 @@ static int rkisp1_register_capture(struct rkisp1_capture *cap)
 }
 
 static void
-rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
+rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_stream_id id)
 {
 	struct rkisp1_capture *cap = &rkisp1->capture_devs[id];
 	struct v4l2_pix_format_mplane pixm;
@@ -1511,7 +1511,7 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_capture_id id)
 	INIT_LIST_HEAD(&cap->buf_queue);
 	init_waitqueue_head(&cap->done);
 	spin_lock_init(&cap->vbq_lock);
-	if (cap->id == RKISP1_CAPTURE_SP) {
+	if (cap->id == RKISP1_SELFPATH) {
 		cap->ops = &rkisp1_capture_ops_sp;
 		cap->config = &rkisp1_capture_config_sp;
 	} else {

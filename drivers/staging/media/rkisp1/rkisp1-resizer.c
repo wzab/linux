@@ -510,7 +510,7 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 	/* Not crop for MP bayer raw data */
 	// TODO: optimize this, improve this rk_fmt cache
 	rk_fmt = rkisp1_find_fmt(in_fmt->code);
-	if (rsz->id == RKISP1_CAPTURE_MP &&
+	if (rsz->id == RKISP1_MAINPATH &&
 	    rk_fmt->fmt_type == RKISP1_FMT_BAYER) {
 		in_crop->left = 0;
 		in_crop->top = 0;
@@ -568,7 +568,7 @@ static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		rsz->rk_fmt = rk_fmt;
 
-	if (rsz->id == RKISP1_CAPTURE_MP &&
+	if (rsz->id == RKISP1_MAINPATH &&
 	    rk_fmt->fmt_type == RKISP1_FMT_BAYER) {
 		in_crop->left = 0;
 		in_crop->top = 0;
@@ -784,8 +784,8 @@ err_unreg_resizer_devs:
 
 void rkisp1_resizer_devs_unregister(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_resizer *mp = &rkisp1->resizer_devs[RKISP1_CAPTURE_MP];
-	struct rkisp1_resizer *sp = &rkisp1->resizer_devs[RKISP1_CAPTURE_SP];
+	struct rkisp1_resizer *mp = &rkisp1->resizer_devs[RKISP1_MAINPATH];
+	struct rkisp1_resizer *sp = &rkisp1->resizer_devs[RKISP1_SELFPATH];
 
 	rkisp1_rsz_unregister(mp);
 	rkisp1_rsz_unregister(sp);

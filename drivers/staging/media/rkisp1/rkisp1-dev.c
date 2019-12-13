@@ -113,8 +113,8 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	flags = MEDIA_LNK_FL_ENABLED;
 	list_for_each_entry(sd, &rkisp1->v4l2_dev.subdevs, list) {
 		if (sd == &rkisp1->isp.sd ||
-		    sd == &rkisp1->resizer_devs[RKISP1_CAPTURE_MP].sd ||
-		    sd == &rkisp1->resizer_devs[RKISP1_CAPTURE_SP].sd)
+		    sd == &rkisp1->resizer_devs[RKISP1_MAINPATH].sd ||
+		    sd == &rkisp1->resizer_devs[RKISP1_SELFPATH].sd)
 			continue;
 
 		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,
@@ -150,14 +150,14 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* SP links */
 	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->resizer_devs[RKISP1_CAPTURE_SP].sd.entity;
+	sink = &rkisp1->resizer_devs[RKISP1_SELFPATH].sd.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, RKISP1_RSZ_PAD_SINK, flags);
 	if (ret)
 		return ret;
 
 	source = sink;
-	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_SP].vnode.vdev.entity;
+	sink = &rkisp1->capture_devs[RKISP1_SELFPATH].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
 				    sink, 0, flags);
 	if (ret)
@@ -165,14 +165,14 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 	/* MP links */
 	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->resizer_devs[RKISP1_CAPTURE_MP].sd.entity;
+	sink = &rkisp1->resizer_devs[RKISP1_MAINPATH].sd.entity;
 	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
 				    sink, RKISP1_RSZ_PAD_SINK, flags);
 	if (ret)
 		return ret;
 
 	source = sink;
-	sink = &rkisp1->capture_devs[RKISP1_CAPTURE_MP].vnode.vdev.entity;
+	sink = &rkisp1->capture_devs[RKISP1_MAINPATH].vnode.vdev.entity;
 	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
 				    sink, 0, flags);
 	if (ret)
@@ -446,13 +446,13 @@ static void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 	debugfs_create_ulong("stats_error", S_IRUGO, debug->debugfs_dir,
 			     &debug->stats_error);
 	debugfs_create_ulong("mp_stop_timeout", S_IRUGO, debug->debugfs_dir,
-			     &debug->stop_timeout[RKISP1_CAPTURE_MP]);
+			     &debug->stop_timeout[RKISP1_MAINPATH]);
 	debugfs_create_ulong("sp_stop_timeout", S_IRUGO, debug->debugfs_dir,
-			     &debug->stop_timeout[RKISP1_CAPTURE_SP]);
+			     &debug->stop_timeout[RKISP1_SELFPATH]);
 	debugfs_create_ulong("mp_frame_drop", S_IRUGO, debug->debugfs_dir,
-			     &debug->frame_drop[RKISP1_CAPTURE_MP]);
+			     &debug->frame_drop[RKISP1_MAINPATH]);
 	debugfs_create_ulong("sp_frame_drop", S_IRUGO, debug->debugfs_dir,
-			     &debug->frame_drop[RKISP1_CAPTURE_SP]);
+			     &debug->frame_drop[RKISP1_SELFPATH]);
 }
 
 static int rkisp1_probe(struct platform_device *pdev)

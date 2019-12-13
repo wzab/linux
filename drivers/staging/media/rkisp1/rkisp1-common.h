@@ -49,9 +49,9 @@ enum rkisp1_rsz_pad {
 	RKISP1_RSZ_PAD_SRC,
 };
 
-enum rkisp1_capture_id {
-	RKISP1_CAPTURE_MP,
-	RKISP1_CAPTURE_SP,
+enum rkisp1_stream_id {
+	RKISP1_MAINPATH,
+	RKISP1_SELFPATH,
 };
 
 enum rkisp1_plane {
@@ -233,7 +233,7 @@ struct rkisp1_capture_config {
  * @next_buf: the buffer used for next frame
  */
 struct rkisp1_capture {
-	enum rkisp1_capture_id id;
+	enum rkisp1_stream_id id;
 	struct rkisp1_device *rkisp1;
 	struct rkisp1_vdev_node vnode;
 	const struct rkisp1_capture_fmt *out_isp_fmt;
@@ -297,7 +297,7 @@ struct rkisp1_params {
 
 struct rkisp1_resizer {
 	struct v4l2_subdev sd;
-	enum rkisp1_capture_id id;
+	enum rkisp1_stream_id id;
 	struct rkisp1_device *rkisp1;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
