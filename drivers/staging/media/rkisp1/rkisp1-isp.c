@@ -50,14 +50,14 @@
  * | | |    in_crop                                 |    |   |
  * | | |    +---------------------------------+     |    |   |
  * | | |    |   ISP_IS                        |     |    |   |
- * | | |    |   rkisp1_isp: out_crop   |     |    |   |
+ * | | |    |   rkisp1_isp: out_crop          |     |    |   |
  * | | |    +---------------------------------+     |    |   |
  * | | +--------------------------------------------+    |   |
  * | +---------------------------------------------------+   |
  * +---------------------------------------------------------+
  */
 
-const struct rkisp1_fmt rkisp1_isp_formats[] = {
+const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_type	= RKISP1_FMT_YUV,
@@ -182,12 +182,13 @@ const struct rkisp1_fmt rkisp1_isp_formats[] = {
  * Helpers
  */
 
-static const struct rkisp1_fmt *rkisp1_find_fmt(u32 mbus_code)
+/* TODO: think a better way to expose this through a rkisp1-common.c */
+const struct rkisp1_isp_mbus_info *rkisp1_isp_mbus_info_get(u32 mbus_code)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_formats); i++) {
-		const struct rkisp1_fmt *fmt = &rkisp1_isp_formats[i];
+		const struct rkisp1_isp_mbus_info *fmt = &rkisp1_isp_formats[i];
 
 		if (fmt->mbus_code == mbus_code)
 			return fmt;
@@ -274,7 +275,7 @@ static void rkisp1_config_ism(struct rkisp1_device *rkisp1)
 static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 {
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
-	const struct rkisp1_fmt *out_fmt, *in_fmt;
+	const struct rkisp1_isp_mbus_info *out_fmt, *in_fmt;
 	struct v4l2_rect *in_crop;
 	struct rkisp1_sensor_async *sensor;
 	struct v4l2_mbus_framefmt *in_frm;
@@ -375,7 +376,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 
 static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
+	const struct rkisp1_isp_mbus_info *in_fmt = rkisp1->isp.in_fmt;
 	u32 val, input_sel;
 
 	switch (in_fmt->bus_width) {
@@ -401,7 +402,7 @@ static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 
 static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_fmt *in_fmt = rkisp1->isp.in_fmt;
+	const struct rkisp1_isp_mbus_info *in_fmt = rkisp1->isp.in_fmt;
 	unsigned int lanes;
 	u32 mipi_ctrl;
 
@@ -642,7 +643,7 @@ static int rkisp1_isp_enum_mbus_code(struct v4l2_subdev *sd,
 		return -EINVAL;
 
 	for (i = 0; i < ARRAY_SIZE(rkisp1_isp_formats); i++) {
-		const struct rkisp1_fmt *fmt = &rkisp1_isp_formats[i];
+		const struct rkisp1_isp_mbus_info *fmt = &rkisp1_isp_formats[i];
 
 		if (fmt->direction & dir)
 			pos++;
@@ -736,7 +737,7 @@ static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
 				   unsigned int which)
 {
 	struct v4l2_mbus_framefmt *out_fmt;
-	const struct rkisp1_fmt *rk_fmt;
+	const struct rkisp1_isp_mbus_info *rk_fmt;
 	const struct v4l2_rect *in_crop;
 
 	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
@@ -749,10 +750,10 @@ static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
 	 * also configurable. If yes, then accept them from userspace.
 	 */
 	out_fmt->code = format->code;
-	rk_fmt = rkisp1_find_fmt(out_fmt->code);
+	rk_fmt = rkisp1_isp_mbus_info_get(out_fmt->code);
 	if (!rk_fmt) {
 		out_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
-		rk_fmt = rkisp1_find_fmt(out_fmt->code);
+		rk_fmt = rkisp1_isp_mbus_info_get(out_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		isp->out_fmt = rk_fmt;
@@ -814,7 +815,7 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 				  unsigned int which)
 {
 	struct v4l2_mbus_framefmt *in_fmt;
-	const struct rkisp1_fmt *rk_fmt;
+	const struct rkisp1_isp_mbus_info *rk_fmt;
 	struct v4l2_rect *in_crop;
 
 	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
@@ -825,10 +826,10 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 	 * also configurable. If yes, then accept them from userspace.
 	 */
 	in_fmt->code = format->code;
-	rk_fmt = rkisp1_find_fmt(in_fmt->code);
+	rk_fmt = rkisp1_isp_mbus_info_get(in_fmt->code);
 	if (!rk_fmt) {
 		in_fmt->code = RKISP1_DEF_SINK_PAD_FMT;
-		rk_fmt = rkisp1_find_fmt(in_fmt->code);
+		rk_fmt = rkisp1_isp_mbus_info_get(in_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		isp->in_fmt = rk_fmt;
@@ -1100,8 +1101,8 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 	pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
-	rkisp1->isp.in_fmt = rkisp1_find_fmt(RKISP1_DEF_SINK_PAD_FMT);
-	rkisp1->isp.out_fmt = rkisp1_find_fmt(RKISP1_DEF_SRC_PAD_FMT);
+	rkisp1->isp.in_fmt = rkisp1_isp_mbus_info_get(RKISP1_DEF_SINK_PAD_FMT);
+	rkisp1->isp.out_fmt = rkisp1_isp_mbus_info_get(RKISP1_DEF_SRC_PAD_FMT);
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
 	if (ret)

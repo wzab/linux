@@ -15,6 +15,7 @@
 #define RKISP1_RSZ_OUT_MIN_HEIGHT		16
 
 #define RKISP1_DEF_FMT MEDIA_BUS_FMT_YUYV8_2X8
+#define RKISP1_DEF_FMT_TYPE RKISP1_FMT_YUV
 #define RKISP1_IN_MIN_WIDTH		32
 #define RKISP1_IN_MIN_HEIGHT		32
 
@@ -149,130 +150,6 @@ static const struct rkisp1_rsz_config rkisp1_rsz_config_sp = {
 	},
 };
 
-
-// TODO: Just adding here for test now, this is to be removed!!!
-static const struct rkisp1_fmt rkisp1_rsz_formats[] = {
-	{
-		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
-		.fmt_type	= RKISP1_FMT_YUV,
-		.direction	= RKISP1_DIR_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
-		.bayer_pat	= RKISP1_RAW_RGGB,
-		// TODO: Move bus_width to a helper, with a note that it can be moved
-		// to v4l2-common.c
-		.bus_width	= 10,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
-		.bayer_pat	= RKISP1_RAW_BGGR,
-		.bus_width	= 10,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
-		.bayer_pat	= RKISP1_RAW_GBRG,
-		.bus_width	= 10,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW10,
-		.bayer_pat	= RKISP1_RAW_GRBG,
-		.bus_width	= 10,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW12,
-		.bayer_pat	= RKISP1_RAW_RGGB,
-		.bus_width	= 12,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW12,
-		.bayer_pat	= RKISP1_RAW_BGGR,
-		.bus_width	= 12,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW12,
-		.bayer_pat	= RKISP1_RAW_GBRG,
-		.bus_width	= 12,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW12,
-		.bayer_pat	= RKISP1_RAW_GRBG,
-		.bus_width	= 12,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
-		.bayer_pat	= RKISP1_RAW_RGGB,
-		.bus_width	= 8,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
-		.bayer_pat	= RKISP1_RAW_BGGR,
-		.bus_width	= 8,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
-		.bayer_pat	= RKISP1_RAW_GBRG,
-		.bus_width	= 8,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
-		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
-		.bayer_pat	= RKISP1_RAW_GRBG,
-		.bus_width	= 8,
-		.direction	= RKISP1_DIR_IN_OUT,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
-		.fmt_type	= RKISP1_FMT_YUV,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
-		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_YCBYCR,
-		.bus_width	= 16,
-		.direction	= RKISP1_DIR_IN,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_YVYU8_1X16,
-		.fmt_type	= RKISP1_FMT_YUV,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
-		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_YCRYCB,
-		.bus_width	= 16,
-		.direction	= RKISP1_DIR_IN,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
-		.fmt_type	= RKISP1_FMT_YUV,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
-		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_CBYCRY,
-		.bus_width	= 16,
-		.direction	= RKISP1_DIR_IN,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_VYUY8_1X16,
-		.fmt_type	= RKISP1_FMT_YUV,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
-		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_CRYCBY,
-		.bus_width	= 16,
-		.direction	= RKISP1_DIR_IN,
-	},
-};
-
 static struct v4l2_mbus_framefmt *
 rkisp1_rsz_get_pad_fmt(struct rkisp1_resizer *rsz,
 		       struct v4l2_subdev_pad_config *cfg,
@@ -292,20 +169,6 @@ static struct v4l2_rect *rkisp1_rsz_get_pad_crop(struct rkisp1_resizer *rsz,
 		return v4l2_subdev_get_try_crop(&rsz->sd, cfg, pad);
 	else
 		return v4l2_subdev_get_try_crop(&rsz->sd, rsz->pad_cfg, pad);
-}
-
-static const struct rkisp1_fmt *rkisp1_find_fmt(u32 mbus_code)
-{
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(rkisp1_rsz_formats); i++) {
-		const struct rkisp1_fmt *fmt = &rkisp1_rsz_formats[i];
-
-		if (fmt->mbus_code == mbus_code)
-			return fmt;
-	}
-
-	return NULL;
 }
 
 /* ----------------------------------------------------------------------------
@@ -507,7 +370,7 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 	out_fmt = rkisp1_rsz_get_pad_fmt(rsz, NULL, RKISP1_RSZ_PAD_SRC,
 					 V4L2_SUBDEV_FORMAT_ACTIVE);
 
-	if (rsz->rk_fmt->fmt_type == RKISP1_FMT_BAYER) {
+	if (rsz->fmt_type == RKISP1_FMT_BAYER) {
 		rkisp1_rsz_disable(rsz, when);
 		return;
 	}
@@ -520,7 +383,7 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 	in_c.width = in_y.width / RKISP1_MBUS_FMT_HDIV;
 	in_c.height = in_y.height / RKISP1_MBUS_FMT_VDIV;
 
-	if (rsz->rk_fmt->fmt_type == RKISP1_FMT_YUV) {
+	if (rsz->fmt_type == RKISP1_FMT_YUV) {
 		struct rkisp1_capture *cap =
 			&rsz->rkisp1->capture_devs[rsz->id];
 		const struct v4l2_format_info *pixfmt_info =
@@ -626,8 +489,8 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 				   struct v4l2_subdev_pad_config *cfg,
 				   struct v4l2_rect *r, unsigned int which)
 {
+	const struct rkisp1_isp_mbus_info *mbus_info;
 	struct v4l2_mbus_framefmt *in_fmt;
-	const struct rkisp1_fmt *rk_fmt;
 	struct v4l2_rect *in_crop;
 
 	in_fmt = rkisp1_rsz_get_pad_fmt(rsz, cfg, RKISP1_RSZ_PAD_SINK, which);
@@ -636,10 +499,10 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 	// TODO: should we set the value back to r?
 
 	/* Not crop for MP bayer raw data */
-	// TODO: optimize this, improve this rk_fmt cache
-	rk_fmt = rkisp1_find_fmt(in_fmt->code);
+	mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
+
 	if (rsz->id == RKISP1_MAINPATH &&
-	    rk_fmt->fmt_type == RKISP1_FMT_BAYER) {
+	    mbus_info->fmt_type == RKISP1_FMT_BAYER) {
 		in_crop->left = 0;
 		in_crop->top = 0;
 		in_crop->width = in_fmt->width;
@@ -675,8 +538,8 @@ static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
 				  struct v4l2_mbus_framefmt *format,
 				  unsigned int which)
 {
+	const struct rkisp1_isp_mbus_info *mbus_info;
 	struct v4l2_mbus_framefmt *in_fmt, *out_fmt;
-	const struct rkisp1_fmt *rk_fmt;
 	struct v4l2_rect *in_crop;
 
 	in_fmt = rkisp1_rsz_get_pad_fmt(rsz, cfg, RKISP1_RSZ_PAD_SINK, which);
@@ -688,16 +551,16 @@ static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
 	 * also configurable. If yes, then accept them from userspace.
 	 */
 	in_fmt->code = format->code;
-	rk_fmt = rkisp1_find_fmt(in_fmt->code);
-	if (!rk_fmt) {
+	mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
+	if (!mbus_info) {
 		in_fmt->code = RKISP1_DEF_FMT;
-		rk_fmt = rkisp1_find_fmt(in_fmt->code);
+		mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		rsz->rk_fmt = rk_fmt;
+		rsz->fmt_type = mbus_info->fmt_type;
 
 	if (rsz->id == RKISP1_MAINPATH &&
-	    rk_fmt->fmt_type == RKISP1_FMT_BAYER) {
+	    mbus_info->fmt_type == RKISP1_FMT_BAYER) {
 		in_crop->left = 0;
 		in_crop->top = 0;
 		in_crop->width = in_fmt->width;
@@ -866,7 +729,7 @@ static int rkisp1_rsz_register(struct rkisp1_resizer *rsz)
 	pads[RKISP1_RSZ_PAD_SRC].flags = MEDIA_PAD_FL_SOURCE |
 					 MEDIA_PAD_FL_MUST_CONNECT;
 
-	rsz->rk_fmt = rkisp1_find_fmt(RKISP1_DEF_FMT);
+	rsz->fmt_type = RKISP1_DEF_FMT_TYPE;
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
 	ret = media_entity_pads_init(&sd->entity, 2, pads);
 	if (ret)

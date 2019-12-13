@@ -120,8 +120,8 @@ struct rkisp1_isp {
 	struct v4l2_subdev sd;
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
-	const struct rkisp1_fmt *in_fmt;
-	const struct rkisp1_fmt *out_fmt;
+	const struct rkisp1_isp_mbus_info *in_fmt;
+	const struct rkisp1_isp_mbus_info *out_fmt;
 	bool dphy_errctrl_disabled;
 	atomic_t frm_sync_seq;
 };
@@ -250,7 +250,7 @@ struct rkisp1_resizer {
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
 	const struct rkisp1_rsz_config *config;
-	const struct rkisp1_fmt *rk_fmt;
+	enum rkisp1_fmt_pix_type fmt_type;
 };
 
 struct rkisp1_debug {
@@ -294,15 +294,15 @@ struct rkisp1_device {
 };
 
 /*
- * struct rkisp1_fmt - ISP pad format
+ * struct rkisp1_isp_mbus_info - ISP pad format info
  *
  * Translate mbus_code to hardware format values
  *
  * @bus_width: used for parallel
  */
-struct rkisp1_fmt {
+struct rkisp1_isp_mbus_info {
 	u32 mbus_code;
-	u8 fmt_type;
+	enum rkisp1_fmt_pix_type fmt_type;
 	u32 mipi_dt;
 	u32 yuv_seq;
 	u8 bus_width;
@@ -324,6 +324,8 @@ static inline u32 rkisp1_read(struct rkisp1_device *rkisp1, unsigned int addr)
 int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			struct v4l2_device *v4l2_dev);
 void rkisp1_isp_unregister(struct rkisp1_device *rkisp1);
+
+const struct rkisp1_isp_mbus_info *rkisp1_isp_mbus_info_get(u32 mbus_code);
 
 void rkisp1_isp_isr(struct rkisp1_device *rkisp1);
 void rkisp1_mipi_isr(struct rkisp1_device *rkisp1);
