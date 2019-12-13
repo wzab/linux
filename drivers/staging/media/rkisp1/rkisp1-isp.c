@@ -737,7 +737,7 @@ static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
 				   unsigned int which)
 {
 	struct v4l2_mbus_framefmt *out_fmt;
-	const struct rkisp1_isp_mbus_info *rk_fmt;
+	const struct rkisp1_isp_mbus_info *mbus_info;
 	const struct v4l2_rect *in_crop;
 
 	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
@@ -750,13 +750,13 @@ static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
 	 * also configurable. If yes, then accept them from userspace.
 	 */
 	out_fmt->code = format->code;
-	rk_fmt = rkisp1_isp_mbus_info_get(out_fmt->code);
-	if (!rk_fmt) {
+	mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
+	if (!mbus_info) {
 		out_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
-		rk_fmt = rkisp1_isp_mbus_info_get(out_fmt->code);
+		mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp->out_fmt = rk_fmt;
+		isp->out_fmt = mbus_info;
 	/* window size is set in s_selection */
 	out_fmt->width  = in_crop->width;
 	out_fmt->height = in_crop->height;
@@ -815,7 +815,7 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 				  unsigned int which)
 {
 	struct v4l2_mbus_framefmt *in_fmt;
-	const struct rkisp1_isp_mbus_info *rk_fmt;
+	const struct rkisp1_isp_mbus_info *mbus_info;
 	struct v4l2_rect *in_crop;
 
 	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
@@ -826,13 +826,13 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 	 * also configurable. If yes, then accept them from userspace.
 	 */
 	in_fmt->code = format->code;
-	rk_fmt = rkisp1_isp_mbus_info_get(in_fmt->code);
-	if (!rk_fmt) {
+	mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
+	if (!mbus_info) {
 		in_fmt->code = RKISP1_DEF_SINK_PAD_FMT;
-		rk_fmt = rkisp1_isp_mbus_info_get(in_fmt->code);
+		mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp->in_fmt = rk_fmt;
+		isp->in_fmt = mbus_info;
 	in_fmt->width = clamp_t(u32, format->width,
 				RKISP1_CIF_ISP_INPUT_W_MIN,
 				RKISP1_CIF_ISP_INPUT_W_MAX);
