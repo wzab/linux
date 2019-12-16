@@ -20,6 +20,11 @@
 #include "rkisp1-regs.h"
 #include "uapi/rkisp1-config.h"
 
+#define RKISP1_ISP_MAX_WIDTH		4032
+#define RKISP1_ISP_MAX_HEIGHT		3024
+#define RKISP1_ISP_MIN_WIDTH		32
+#define RKISP1_ISP_MIN_HEIGHT		32
+
 // TODO: check a better place to declare this
 #define RKISP1_MBUS_FMT_HDIV 2
 #define RKISP1_MBUS_FMT_VDIV 1

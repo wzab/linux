@@ -16,15 +16,6 @@
 
 #include "rkisp1-common.h"
 
-#define RKISP1_CIF_ISP_INPUT_W_MAX		4032
-#define RKISP1_CIF_ISP_INPUT_H_MAX		3024
-#define RKISP1_CIF_ISP_INPUT_W_MIN		32
-#define RKISP1_CIF_ISP_INPUT_H_MIN		32
-#define RKISP1_CIF_ISP_OUTPUT_W_MAX		RKISP1_CIF_ISP_INPUT_W_MAX
-#define RKISP1_CIF_ISP_OUTPUT_H_MAX		RKISP1_CIF_ISP_INPUT_H_MAX
-#define RKISP1_CIF_ISP_OUTPUT_W_MIN		RKISP1_CIF_ISP_INPUT_W_MIN
-#define RKISP1_CIF_ISP_OUTPUT_H_MIN		RKISP1_CIF_ISP_INPUT_H_MIN
-
 #define RKISP1_DEF_SINK_PAD_FMT MEDIA_BUS_FMT_SRGGB10_1X10
 #define RKISP1_DEF_SRC_PAD_FMT MEDIA_BUS_FMT_YUYV8_2X8
 
@@ -724,10 +715,10 @@ static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
 	out_crop->left = clamp_t(u32, out_crop->left, 0, in_crop->width);
 	out_crop->top = clamp_t(u32, out_crop->top, 0, in_crop->height);
 	out_crop->width = clamp_t(u32, out_crop->width,
-				  RKISP1_CIF_ISP_OUTPUT_W_MIN,
+				  RKISP1_ISP_MIN_WIDTH,
 				  in_crop->width - out_crop->left);
 	out_crop->height = clamp_t(u32, out_crop->height,
-				   RKISP1_CIF_ISP_OUTPUT_H_MIN,
+				   RKISP1_ISP_MIN_HEIGHT,
 				   in_crop->height - out_crop->top);
 }
 
@@ -790,10 +781,10 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 	in_crop->left = clamp_t(u32, in_crop->left, 0, in_fmt->width);
 	in_crop->top = clamp_t(u32, in_crop->top, 0, in_fmt->height);
 	in_crop->width = clamp_t(u32, in_crop->width,
-				 RKISP1_CIF_ISP_INPUT_W_MIN,
+				 RKISP1_ISP_MIN_WIDTH,
 				 in_fmt->width - in_crop->left);
 	in_crop->height = clamp_t(u32, in_crop->height,
-				  RKISP1_CIF_ISP_INPUT_H_MIN,
+				  RKISP1_ISP_MIN_HEIGHT,
 				  in_fmt->height - in_crop->top);
 
 	/* Update source crop and format */
@@ -834,11 +825,9 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		isp->in_fmt = mbus_info;
 	in_fmt->width = clamp_t(u32, format->width,
-				RKISP1_CIF_ISP_INPUT_W_MIN,
-				RKISP1_CIF_ISP_INPUT_W_MAX);
+				RKISP1_ISP_MIN_WIDTH, RKISP1_ISP_MAX_WIDTH);
 	in_fmt->height = clamp_t(u32, format->height,
-				 RKISP1_CIF_ISP_INPUT_H_MIN,
-				 RKISP1_CIF_ISP_INPUT_H_MAX);
+				 RKISP1_ISP_MIN_HEIGHT, RKISP1_ISP_MAX_HEIGHT);
 
 	*format = *in_fmt;
 

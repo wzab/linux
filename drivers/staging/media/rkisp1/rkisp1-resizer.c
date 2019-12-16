@@ -14,10 +14,13 @@
 #define RKISP1_RSZ_OUT_MIN_WIDTH		32
 #define RKISP1_RSZ_OUT_MIN_HEIGHT		16
 
+#define RKISP1_IN_MIN_WIDTH		RKISP1_ISP_MIN_WIDTH
+#define RKISP1_IN_MIN_HEIGHT		RKISP1_ISP_MIN_HEIGHT
+#define RKISP1_IN_MAX_WIDTH		RKISP1_ISP_MAX_WIDTH
+#define RKISP1_IN_MAX_HEIGHT		RKISP1_ISP_MAX_HEIGHT
+
 #define RKISP1_DEF_FMT MEDIA_BUS_FMT_YUYV8_2X8
 #define RKISP1_DEF_FMT_TYPE RKISP1_FMT_YUV
-#define RKISP1_IN_MIN_WIDTH		32
-#define RKISP1_IN_MIN_HEIGHT		32
 
 enum rkisp1_shadow_regs_when {
 	RKISP1_SHADOW_REGS_SYNC,
@@ -572,6 +575,12 @@ static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
 	out_fmt->code = in_fmt->code;
 
 	// TODO: check input restrictions
+	in_fmt->width = clamp_t(u32, format->width,
+				rsz->config->min_rsz_width,
+				rsz->config->max_rsz_width);
+	in_fmt->height = clamp_t(u32, format->height,
+				 rsz->config->min_rsz_height,
+				 rsz->config->max_rsz_height);
 
 	*format = *in_fmt;
 
