@@ -664,6 +664,10 @@ static int rkisp1_rsz_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static const struct media_entity_operations rkisp1_rsz_media_ops = {
+	.link_validate = v4l2_subdev_link_validate,
+};
+
 static const struct v4l2_subdev_pad_ops rkisp1_rsz_pad_ops = {
 	.enum_mbus_code = rkisp1_rsz_enum_mbus_code,
 	.get_selection = rkisp1_rsz_get_selection,
@@ -731,6 +735,7 @@ static int rkisp1_rsz_register(struct rkisp1_resizer *rsz)
 
 	v4l2_subdev_init(sd, &rkisp1_rsz_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+	sd->entity.ops = &rkisp1_rsz_media_ops;
 	strscpy(sd->name, "rkisp1-resizer-subdev", sizeof(sd->name));
 
 	pads[RKISP1_RSZ_PAD_SINK].flags = MEDIA_PAD_FL_SINK |
