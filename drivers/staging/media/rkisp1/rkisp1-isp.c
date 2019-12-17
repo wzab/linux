@@ -699,10 +699,49 @@ static int rkisp1_isp_init_config(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
+				   struct v4l2_subdev_pad_config *cfg,
+				   struct v4l2_mbus_framefmt *format,
+				   unsigned int which)
+{
+	struct v4l2_mbus_framefmt *out_fmt;
+	const struct rkisp1_isp_mbus_info *mbus_info;
+	const struct v4l2_rect *out_crop;
+
+	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg,
+					 RKISP1_ISP_PAD_SOURCE_VIDEO, which);
+	out_crop = rkisp1_isp_get_pad_crop(isp, cfg,
+					   RKISP1_ISP_PAD_SOURCE_VIDEO, which);
+
+	/*
+	 * TODO: check if other fields besides mbus code and quantization are
+	 * also configurable. If yes, then accept them from userspace.
+	 */
+	out_fmt->code = format->code;
+	mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
+	if (!mbus_info) {
+		out_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
+		mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
+	}
+	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		isp->out_fmt = mbus_info;
+	/* window size is set in s_selection */
+	out_fmt->width  = out_crop->width;
+	out_fmt->height = out_crop->height;
+	/* TODO: validate quantization value */
+	out_fmt->quantization = format->quantization;
+	/* full range by default */
+	if (!out_fmt->quantization)
+		out_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+
+	*format = *out_fmt;
+}
+
 static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
 				    struct v4l2_subdev_pad_config *cfg,
 				    struct v4l2_rect *r, unsigned int which)
 {
+	struct v4l2_mbus_framefmt *out_fmt;
 	const struct v4l2_rect *in_crop;
 	struct v4l2_rect *out_crop;
 
@@ -719,52 +758,19 @@ static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
 	rkisp1_sd_adjust_crop_rect(out_crop, in_crop);
 
 	*r = *out_crop;
-}
 
-static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
-				   struct v4l2_subdev_pad_config *cfg,
-				   struct v4l2_mbus_framefmt *format,
-				   unsigned int which)
-{
-	struct v4l2_mbus_framefmt *out_fmt;
-	const struct rkisp1_isp_mbus_info *mbus_info;
-	const struct v4l2_rect *in_crop;
-
-	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
-					 which);
-	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
-					  which);
-
-	/*
-	 * TODO: check if other fields besides width/height/quantization are
-	 * also configurable. If yes, then accept them from userspace.
-	 */
-	out_fmt->code = format->code;
-	mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
-	if (!mbus_info) {
-		out_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
-		mbus_info = rkisp1_isp_mbus_info_get(out_fmt->code);
-	}
-	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp->out_fmt = mbus_info;
-	/* window size is set in s_selection */
-	out_fmt->width  = in_crop->width;
-	out_fmt->height = in_crop->height;
-	/* TODO: validate quantization value */
-	out_fmt->quantization = format->quantization;
-	/* full range by default */
-	if (!out_fmt->quantization)
-		out_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
-
-	*format = *out_fmt;
+	/* Propagate to out format */
+	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg,
+					 RKISP1_ISP_PAD_SOURCE_VIDEO, which);
+	rkisp1_isp_set_out_fmt(isp, cfg, out_fmt, which);
 }
 
 static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 				   struct v4l2_subdev_pad_config *cfg,
 				   struct v4l2_rect *r, unsigned int which)
 {
-	struct v4l2_mbus_framefmt *in_fmt, *out_fmt;
 	struct v4l2_rect *in_crop, *out_crop;
+	struct v4l2_mbus_framefmt *in_fmt;
 
 	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
 					  which);
@@ -779,15 +785,11 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 
 	*r = *in_crop;
 
-	/* Update source crop and format */
-	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
-					 which);
-	rkisp1_isp_set_out_fmt(isp, cfg, out_fmt, which);
-
+	/* Propagate to out crop */
 	out_crop = rkisp1_isp_get_pad_crop(isp, cfg,
-					   RKISP1_ISP_PAD_SOURCE_VIDEO,
-					   which);
+					   RKISP1_ISP_PAD_SOURCE_VIDEO, which);
 	rkisp1_isp_set_out_crop(isp, cfg, out_crop, which);
+
 }
 
 static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
@@ -795,8 +797,8 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 				  struct v4l2_mbus_framefmt *format,
 				  unsigned int which)
 {
-	struct v4l2_mbus_framefmt *in_fmt;
 	const struct rkisp1_isp_mbus_info *mbus_info;
+	struct v4l2_mbus_framefmt *in_fmt;
 	struct v4l2_rect *in_crop;
 
 	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
@@ -814,6 +816,7 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		isp->in_fmt = mbus_info;
+
 	in_fmt->width = clamp_t(u32, format->width,
 				RKISP1_ISP_MIN_WIDTH, RKISP1_ISP_MAX_WIDTH);
 	in_fmt->height = clamp_t(u32, format->height,
@@ -821,7 +824,7 @@ static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,
 
 	*format = *in_fmt;
 
-	/* Update sink crop */
+	/* Propagate to in crop */
 	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
 					  which);
 	rkisp1_isp_set_in_crop(isp, cfg, in_crop, which);
