@@ -19,6 +19,8 @@
 #define RKISP1_DEF_SINK_PAD_FMT MEDIA_BUS_FMT_SRGGB10_1X10
 #define RKISP1_DEF_SRC_PAD_FMT MEDIA_BUS_FMT_YUYV8_2X8
 
+#define RKISP1_ISP_DEV_NAME	RKISP1_DRIVER_NAME "_isp"
+
 /*
  * NOTE: MIPI controller and input MUX are also configured in this file,
  * because ISP Subdev is not only describe ISP submodule(input size,format,
@@ -1067,7 +1069,7 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_media_ops;
-	strscpy(sd->name, "rkisp1-isp-subdev", sizeof(sd->name));
+	strscpy(sd->name, RKISP1_ISP_DEV_NAME, sizeof(sd->name));
 
 	pads[RKISP1_ISP_PAD_SINK_VIDEO].flags =
 		MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;

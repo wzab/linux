@@ -14,6 +14,8 @@
 
 #include "rkisp1-common.h"
 
+#define RKISP1_PARAMS_DEV_NAME	RKISP1_DRIVER_NAME "_params"
+
 #define RKISP1_ISP_PARAMS_REQ_BUFS_MIN	2
 #define RKISP1_ISP_PARAMS_REQ_BUFS_MAX	8
 
@@ -1589,7 +1591,7 @@ int rkisp1_params_register(struct rkisp1_params *params,
 	mutex_init(&node->vlock);
 	spin_lock_init(&params->config_lock);
 
-	strscpy(vdev->name, KBUILD_MODNAME "param", sizeof(vdev->name));
+	strscpy(vdev->name, RKISP1_PARAMS_DEV_NAME, sizeof(vdev->name));
 
 	video_set_drvdata(vdev, params);
 	vdev->ioctl_ops = &rkisp1_params_ioctl;

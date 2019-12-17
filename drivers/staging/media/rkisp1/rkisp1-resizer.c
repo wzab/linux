@@ -7,6 +7,9 @@
 
 #include "rkisp1-common.h"
 
+#define RKISP1_RSZ_SP_DEV_NAME	RKISP1_DRIVER_NAME "_resizer_selfpath"
+#define RKISP1_RSZ_MP_DEV_NAME	RKISP1_DRIVER_NAME "_resizer_mainpath"
+
 #define RKISP1_RSZ_MP_OUT_MAX_WIDTH		4416
 #define RKISP1_RSZ_MP_OUT_MAX_HEIGHT		3312
 #define RKISP1_RSZ_SP_OUT_MAX_WIDTH		1920
@@ -724,6 +727,8 @@ static void rkisp1_rsz_unregister(struct rkisp1_resizer *rsz)
 
 static int rkisp1_rsz_register(struct rkisp1_resizer *rsz)
 {
+	const char * const dev_names[] = {RKISP1_RSZ_MP_DEV_NAME,
+					  RKISP1_RSZ_SP_DEV_NAME};
 	struct media_pad *pads = rsz->pads;
 	struct v4l2_subdev *sd = &rsz->sd;
 	int ret;
@@ -736,7 +741,7 @@ static int rkisp1_rsz_register(struct rkisp1_resizer *rsz)
 	v4l2_subdev_init(sd, &rkisp1_rsz_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 	sd->entity.ops = &rkisp1_rsz_media_ops;
-	strscpy(sd->name, "rkisp1-resizer-subdev", sizeof(sd->name));
+	strscpy(sd->name, dev_names[rsz->id], sizeof(sd->name));
 
 	pads[RKISP1_RSZ_PAD_SINK].flags = MEDIA_PAD_FL_SINK |
 					  MEDIA_PAD_FL_MUST_CONNECT;

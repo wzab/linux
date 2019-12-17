@@ -14,6 +14,8 @@
 
 #include "rkisp1-common.h"
 
+#define RKISP1_STATS_DEV_NAME	RKISP1_DRIVER_NAME "_stats"
+
 #define RKISP1_ISP_STATS_REQ_BUFS_MIN 2
 #define RKISP1_ISP_STATS_REQ_BUFS_MAX 8
 
@@ -453,7 +455,7 @@ int rkisp1_stats_register(struct rkisp1_stats *stats,
 	INIT_LIST_HEAD(&stats->stat);
 	spin_lock_init(&stats->irq_lock);
 
-	strscpy(vdev->name, KBUILD_MODNAME "stats", sizeof(vdev->name));
+	strscpy(vdev->name, RKISP1_STATS_DEV_NAME, sizeof(vdev->name));
 
 	video_set_drvdata(vdev, stats);
 	vdev->ioctl_ops = &rkisp1_stats_ioctl;
