@@ -1165,8 +1165,10 @@ static void rkisp1_try_fmt(const struct rkisp1_capture *cap,
 	const struct v4l2_format_info *info;
 
 	fmt = rkisp1_find_fmt_cfg(cap, pixm->pixelformat);
-	if (!fmt)
+	if (!fmt) {
 		fmt = config->fmts;
+		pixm->pixelformat = fmt->fourcc;
+	}
 
 	pixm->field = V4L2_FIELD_NONE;
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
