@@ -1163,12 +1163,21 @@ static void rkisp1_try_fmt(const struct rkisp1_capture *cap,
 			&cap->rkisp1->capture_devs[cap->id ^ 1];
 	const struct rkisp1_capture_fmt_cfg *fmt;
 	const struct v4l2_format_info *info;
+	const unsigned int max_widths[] = { RKISP1_RSZ_MP_OUT_MAX_WIDTH,
+					    RKISP1_RSZ_SP_OUT_MAX_WIDTH };
+	const unsigned int max_heights[] = { RKISP1_RSZ_MP_OUT_MAX_HEIGHT,
+					     RKISP1_RSZ_SP_OUT_MAX_HEIGHT};
 
 	fmt = rkisp1_find_fmt_cfg(cap, pixm->pixelformat);
 	if (!fmt) {
 		fmt = config->fmts;
 		pixm->pixelformat = fmt->fourcc;
 	}
+
+	pixm->width = clamp_t(u32, pixm->width,
+			      RKISP1_RSZ_OUT_MIN_WIDTH, max_widths[cap->id]);
+	pixm->height = clamp_t(u32, pixm->height,
+			       RKISP1_RSZ_OUT_MIN_HEIGHT, max_heights[cap->id]);
 
 	pixm->field = V4L2_FIELD_NONE;
 	pixm->colorspace = V4L2_COLORSPACE_DEFAULT;
