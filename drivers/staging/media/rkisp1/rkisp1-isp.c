@@ -21,6 +21,10 @@
 
 #define RKISP1_ISP_DEV_NAME	RKISP1_DRIVER_NAME "_isp"
 
+#define RKISP1_DIR_OUT BIT(0)
+#define RKISP1_DIR_IN BIT(1)
+#define RKISP1_DIR_IN_OUT (RKISP1_DIR_IN | RKISP1_DIR_OUT)
+
 /*
  * NOTE: MIPI controller and input MUX are also configured in this file,
  * because ISP Subdev is not only describe ISP submodule(input size,format,

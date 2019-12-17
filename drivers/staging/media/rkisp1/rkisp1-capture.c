@@ -46,6 +46,12 @@
 /* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
 #define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
+enum rkisp1_plane {
+	RKISP1_PLANE_Y	= 0,
+	RKISP1_PLANE_CB	= 1,
+	RKISP1_PLANE_CR	= 2
+};
+
 /*
  * @fourcc: pixel format
  * @fmt_type: helper filed for pixel format

@@ -32,29 +32,12 @@
 #define RKISP1_RSZ_OUT_MIN_WIDTH		32
 #define RKISP1_RSZ_OUT_MIN_HEIGHT		16
 
-// TODO: check a better place to declare this
-#define RKISP1_MBUS_FMT_HDIV 2
-#define RKISP1_MBUS_FMT_VDIV 1
-
-/* TODO: FIXME: changing the default resolution to higher values causes the
- * stream to stall.
- * The capture node gets the crop bounds from the isp source pad crop size, but
- * if the user updates isp source pad crop size and start streaming, the capture
- * doesn't detect the new crop bounds, and if the isp source pad crop size is
- * smaller then the capture crop size, the stream doesn't work.
- */
 #define RKISP1_DEFAULT_WIDTH		800
 #define RKISP1_DEFAULT_HEIGHT		600
 
 #define RKISP1_DRIVER_NAME	"rkisp1"
 
 #define RKISP1_MAX_BUS_CLK	8
-
-// TODO: rename to RKISP1_ISP_DIR... to indicate this is input and output from
-// the isp subdev pov
-#define RKISP1_DIR_OUT BIT(0)
-#define RKISP1_DIR_IN BIT(1)
-#define RKISP1_DIR_IN_OUT (RKISP1_DIR_IN | RKISP1_DIR_OUT)
 
 enum rkisp1_rsz_pad {
 	RKISP1_RSZ_PAD_SINK,
@@ -64,12 +47,6 @@ enum rkisp1_rsz_pad {
 enum rkisp1_stream_id {
 	RKISP1_MAINPATH,
 	RKISP1_SELFPATH,
-};
-
-enum rkisp1_plane {
-	RKISP1_PLANE_Y	= 0,
-	RKISP1_PLANE_CB	= 1,
-	RKISP1_PLANE_CR	= 2
 };
 
 enum rkisp1_fmt_pix_type {
@@ -188,8 +165,8 @@ struct rkisp1_device;
  */
 struct rkisp1_capture {
 	struct rkisp1_vdev_node vnode;
-	enum rkisp1_stream_id id;
 	struct rkisp1_device *rkisp1;
+	enum rkisp1_stream_id id;
 	struct rkisp1_capture_ops *ops;
 	const struct rkisp1_capture_config *config;
 	bool streaming;
