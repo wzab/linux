@@ -726,6 +726,8 @@ static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
 	out_crop->height = clamp_t(u32, out_crop->height,
 				   RKISP1_ISP_MIN_HEIGHT,
 				   in_crop->height - out_crop->top);
+
+	*r = *out_crop;
 }
 
 static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
@@ -803,7 +805,7 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 					   which);
 	rkisp1_isp_set_out_crop(isp, cfg, out_crop, which);
 
-	// TODO: should we set the value back to r?
+	*r = *in_crop;
 }
 
 static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,

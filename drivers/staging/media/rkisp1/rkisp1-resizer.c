@@ -498,8 +498,6 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 	in_fmt = rkisp1_rsz_get_pad_fmt(rsz, cfg, RKISP1_RSZ_PAD_SINK, which);
 	in_crop = rkisp1_rsz_get_pad_crop(rsz, cfg, RKISP1_RSZ_PAD_SINK, which);
 
-	// TODO: should we set the value back to r?
-
 	/* Not crop for MP bayer raw data */
 	mbus_info = rkisp1_isp_mbus_info_get(in_fmt->code);
 
@@ -531,8 +529,7 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 				  RKISP1_IN_MIN_HEIGHT,
 				  in_fmt->height - in_crop->top);
 
-	/* Update source format if needed */
-	// TODO, check rsz restrictions, and if the output requires update
+	*r = *in_crop;
 }
 
 static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
