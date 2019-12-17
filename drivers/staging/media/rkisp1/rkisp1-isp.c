@@ -929,22 +929,6 @@ static int rkisp1_isp_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int rkisp1_subdev_fmt_link_validate(struct v4l2_subdev *sd,
-					struct media_link *link,
-					struct v4l2_subdev_format *source_fmt,
-					struct v4l2_subdev_format *sink_fmt)
-{
-	if (source_fmt->format.code != sink_fmt->format.code)
-		return -EPIPE;
-
-	/* Crop is available */
-	if (source_fmt->format.width < sink_fmt->format.width ||
-	    source_fmt->format.height < sink_fmt->format.height)
-		return -EPIPE;
-
-	return 0;
-}
-
 static int rkisp1_subdev_link_validate(struct media_link *link)
 {
 	if (link->sink->index == RKISP1_ISP_PAD_SINK_PARAMS)
@@ -960,7 +944,7 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_pad_ops = {
 	.init_cfg = rkisp1_isp_init_config,
 	.get_fmt = rkisp1_isp_get_fmt,
 	.set_fmt = rkisp1_isp_set_fmt,
-	.link_validate = rkisp1_subdev_fmt_link_validate,
+	.link_validate = v4l2_subdev_link_validate_default,
 };
 
 /* ----------------------------------------------------------------------------
