@@ -310,6 +310,12 @@ static inline u32 rkisp1_read(struct rkisp1_device *rkisp1, unsigned int addr)
 	return readl(rkisp1->base_addr + addr);
 }
 
+void rkisp1_sd_adjust_crop_rect(struct v4l2_rect *crop,
+				const struct v4l2_rect *bounds);
+
+void rkisp1_sd_adjust_crop(struct v4l2_rect *crop,
+			   const struct v4l2_mbus_framefmt *bounds);
+
 int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			struct v4l2_device *v4l2_dev);
 void rkisp1_isp_unregister(struct rkisp1_device *rkisp1);

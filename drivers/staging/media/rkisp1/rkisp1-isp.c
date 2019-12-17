@@ -54,7 +54,7 @@
  * +---------------------------------------------------------+
  */
 
-const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
+static const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
 		.fmt_type	= RKISP1_FMT_YUV,
@@ -709,23 +709,14 @@ static void rkisp1_isp_set_out_crop(struct rkisp1_isp *isp,
 	out_crop = rkisp1_isp_get_pad_crop(isp, cfg,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   which);
+	in_crop = rkisp1_isp_get_pad_crop(isp, cfg,
+					  RKISP1_ISP_PAD_SINK_VIDEO, which);
 
 	out_crop->left = ALIGN(r->left, 2);
 	out_crop->width = ALIGN(r->width, 2);
 	out_crop->top = r->top;
 	out_crop->height = r->height;
-
-	in_crop = rkisp1_isp_get_pad_crop(isp, cfg,
-					  RKISP1_ISP_PAD_SINK_VIDEO, which);
-
-	out_crop->left = clamp_t(u32, out_crop->left, 0, in_crop->width);
-	out_crop->top = clamp_t(u32, out_crop->top, 0, in_crop->height);
-	out_crop->width = clamp_t(u32, out_crop->width,
-				  RKISP1_ISP_MIN_WIDTH,
-				  in_crop->width - out_crop->left);
-	out_crop->height = clamp_t(u32, out_crop->height,
-				   RKISP1_ISP_MIN_HEIGHT,
-				   in_crop->height - out_crop->top);
+	rkisp1_sd_adjust_crop_rect(out_crop, in_crop);
 
 	*r = *out_crop;
 }
@@ -777,23 +768,16 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 
 	in_crop = rkisp1_isp_get_pad_crop(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
 					  which);
+	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
+					which);
 
 	in_crop->left = ALIGN(r->left, 2);
 	in_crop->width = ALIGN(r->width, 2);
 	in_crop->top = r->top;
 	in_crop->height = r->height;
+	rkisp1_sd_adjust_crop(in_crop, in_fmt);
 
-	in_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SINK_VIDEO,
-					which);
-
-	in_crop->left = clamp_t(u32, in_crop->left, 0, in_fmt->width);
-	in_crop->top = clamp_t(u32, in_crop->top, 0, in_fmt->height);
-	in_crop->width = clamp_t(u32, in_crop->width,
-				 RKISP1_ISP_MIN_WIDTH,
-				 in_fmt->width - in_crop->left);
-	in_crop->height = clamp_t(u32, in_crop->height,
-				  RKISP1_ISP_MIN_HEIGHT,
-				  in_fmt->height - in_crop->top);
+	*r = *in_crop;
 
 	/* Update source crop and format */
 	out_fmt = rkisp1_isp_get_pad_fmt(isp, cfg, RKISP1_ISP_PAD_SOURCE_VIDEO,
@@ -804,8 +788,6 @@ static void rkisp1_isp_set_in_crop(struct rkisp1_isp *isp,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO,
 					   which);
 	rkisp1_isp_set_out_crop(isp, cfg, out_crop, which);
-
-	*r = *in_crop;
 }
 
 static void rkisp1_isp_set_in_fmt(struct rkisp1_isp *isp,

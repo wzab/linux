@@ -10,11 +10,6 @@
 #define RKISP1_RSZ_SP_DEV_NAME	RKISP1_DRIVER_NAME "_resizer_selfpath"
 #define RKISP1_RSZ_MP_DEV_NAME	RKISP1_DRIVER_NAME "_resizer_mainpath"
 
-#define RKISP1_IN_MIN_WIDTH		RKISP1_ISP_MIN_WIDTH
-#define RKISP1_IN_MIN_HEIGHT		RKISP1_ISP_MIN_HEIGHT
-#define RKISP1_IN_MAX_WIDTH		RKISP1_ISP_MAX_WIDTH
-#define RKISP1_IN_MAX_HEIGHT		RKISP1_ISP_MAX_HEIGHT
-
 #define RKISP1_DEF_FMT MEDIA_BUS_FMT_YUYV8_2X8
 #define RKISP1_DEF_FMT_TYPE RKISP1_FMT_YUV
 
@@ -514,20 +509,7 @@ static void rkisp1_rsz_set_in_crop(struct rkisp1_resizer *rsz,
 	in_crop->width = ALIGN(r->width, 2);
 	in_crop->top = r->top;
 	in_crop->height = r->height;
-
-	/* TODO: use v4l2_rect_set_min_size() and v4l2_rect_map_inside() */
-	in_crop->left = ALIGN(in_crop->left, 2);
-	in_crop->width = ALIGN(in_crop->width, 2);
-	in_crop->left = clamp_t(u32, in_crop->left, 0,
-				in_fmt->width - RKISP1_IN_MIN_WIDTH);
-	in_crop->top = clamp_t(u32, in_crop->top, 0,
-			       in_fmt->height - RKISP1_IN_MIN_HEIGHT);
-	in_crop->width = clamp_t(u32, in_crop->width,
-				 RKISP1_IN_MIN_WIDTH,
-				 in_fmt->width - in_crop->left);
-	in_crop->height = clamp_t(u32, in_crop->height,
-				  RKISP1_IN_MIN_HEIGHT,
-				  in_fmt->height - in_crop->top);
+	rkisp1_sd_adjust_crop(in_crop, in_fmt);
 
 	*r = *in_crop;
 }
