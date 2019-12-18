@@ -405,9 +405,15 @@ static irqreturn_t rkisp1_isr(int irq, void *ctx)
 	struct device *dev = ctx;
 	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
 
+	/*
+	 * Call rkisp1_capture_isr() first to handle the frame that
+	 * potentially completed using the current frame_sequence number before
+	 * it is potentially incremented by rkisp1_isp_isr() in the vertical
+	 * sync.
+	 */
+	rkisp1_capture_isr(rkisp1);
 	rkisp1_isp_isr(rkisp1);
 	rkisp1_mipi_isr(rkisp1);
-	rkisp1_capture_isr(rkisp1);
 
 	return IRQ_HANDLED;
 }
