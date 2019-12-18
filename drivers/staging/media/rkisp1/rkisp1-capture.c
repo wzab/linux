@@ -43,8 +43,6 @@
 #define RKISP1_MIN_BUFFERS_NEEDED 3
 //#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
 
-/* Considering self path bus format MEDIA_BUS_FMT_YUYV8_2X8 */
-#define RKISP1_SP_IN_FMT RKISP1_MI_CTRL_SP_INPUT_YUV422
 
 enum rkisp1_plane {
 	RKISP1_PLANE_Y	= 0,
@@ -500,7 +498,7 @@ static void rkisp1_sp_config(struct rkisp1_capture *cap)
 	mi_ctrl = rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL);
 	mi_ctrl &= ~RKISP1_MI_CTRL_SP_FMT_MASK;
 	mi_ctrl |= cap->pix.cfg->write_format |
-		   RKISP1_SP_IN_FMT |
+		   RKISP1_MI_CTRL_SP_INPUT_YUV422 |
 		   cap->pix.cfg->output_format |
 		   RKISP1_CIF_MI_SP_AUTOUPDATE_ENABLE;
 	rkisp1_write(rkisp1, mi_ctrl, RKISP1_CIF_MI_CTRL);
@@ -1321,8 +1319,16 @@ static int rkisp1_capture_link_validate(struct media_link *link)
 	struct v4l2_subdev_format sd_fmt;
 	int ret;
 
+	/* TODO: check if all the 422 formats shouldn't be allowed too */
+	if (cap->id == RKISP1_SELFPATH &&
+	    isp->out_fmt->mbus_code != MEDIA_BUS_FMT_YUYV8_2X8) {
+		dev_err(cap->rkisp1->dev,
+			"selfpath only supports MEDIA_BUS_FMT_YUYV8_2X8\n");
+		return -EPIPE;
+	}
+
 	if (cap->pix.cfg->fmt_type != isp->out_fmt->fmt_type) {
-		dev_err(isp->sd.dev,
+		dev_err(cap->rkisp1->dev,
 			"format type mismatch in link '%s:%d->%s:%d'\n",
 			link->source->entity->name, link->source->index,
 			link->sink->entity->name, link->sink->index);
