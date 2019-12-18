@@ -19,15 +19,8 @@
 #include "rkisp1-common.h"
 
 /*
- * NOTE:
- * 1. There are two capture video devices in rkisp1, selfpath and mainpath
- * 2. Two capture device have separated memory-interface/crop/scale units.
- * 3. Besides describing stream hardware, this file also contain entries
- *    for pipeline operations.
- * 4. The register read/write operations in this file are put into regs.c.
- */
-
-/*
+ * NOTE: There are two capture video devices in rkisp1, selfpath and mainpath.
+ *
  * differences between selfpath and mainpath
  * available mp sink input: isp
  * available sp sink input : isp, dma(TODO)
@@ -41,8 +34,6 @@
 #define RKISP1_MP_DEV_NAME	RKISP1_DRIVER_NAME "_mainpath"
 
 #define RKISP1_MIN_BUFFERS_NEEDED 3
-//#define RKISP1_CIF_ISP_REQ_BUFS_MAX 8
-
 
 enum rkisp1_plane {
 	RKISP1_PLANE_Y	= 0,
@@ -53,10 +44,8 @@ enum rkisp1_plane {
 /*
  * @fourcc: pixel format
  * @fmt_type: helper filed for pixel format
- * @bayer_pat: bayer patten type
  * @uv_swap: if cb cr swaped, for yuv
  * @write_format: defines how YCbCr self picture data is written to memory
- * @input_format: defines sp input format
  * @output_format: defines sp output format
  */
 struct rkisp1_capture_fmt_cfg {
@@ -67,7 +56,6 @@ struct rkisp1_capture_fmt_cfg {
 	u32 output_format;
 };
 
-/* Different reg ops between selfpath and mainpath */
 struct rkisp1_capture_ops {
 	void (*config)(struct rkisp1_capture *cap);
 	void (*stop)(struct rkisp1_capture *cap);
@@ -80,7 +68,6 @@ struct rkisp1_capture_ops {
 struct rkisp1_capture_config {
 	const struct rkisp1_capture_fmt_cfg *fmts;
 	int fmt_size;
-	/* registers */
 	struct {
 		u32 y_size_init;
 		u32 cb_size_init;
@@ -426,10 +413,6 @@ static void rkisp1_irq_frame_end_enable(struct rkisp1_capture *cap)
 	rkisp1_write(cap->rkisp1, mi_imsc, RKISP1_CIF_MI_IMSC);
 }
 
-/*
- * configure memory interface for mainpath
- * This should only be called when stream-on
- */
 static void rkisp1_mp_config(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->pix.fmt;
@@ -464,10 +447,6 @@ static void rkisp1_mp_config(struct rkisp1_capture *cap)
 	rkisp1_write(rkisp1, reg, RKISP1_CIF_MI_CTRL);
 }
 
-/*
- * configure memory interface for selfpath
- * This should only be called when stream-on
- */
 static void rkisp1_sp_config(struct rkisp1_capture *cap)
 {
 	const struct v4l2_pix_format_mplane *pixm = &cap->pix.fmt;
@@ -636,15 +615,11 @@ static void rkisp1_dummy_buf_destroy(struct rkisp1_capture *cap)
 		       cap->buf.dummy.dma_addr, DMA_ATTR_NO_KERNEL_MAPPING);
 }
 
-/*
- * Update buffer info to memory interface. Called in interrupt
- * context by rkisp1_handle_buffer(), and in process context by vb2_ops.buf_queue().
- */
 static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
 {
 	/*
-	 * The dummy space allocated by dma_alloc_coherent is used, we can
-	 * throw data to it if there is no available buffer.
+	 * Use the dummy space allocated by dma_alloc_coherent to
+	 * throw data if there is no available buffer.
 	 */
 	if (cap->buf.next) {
 		u32 *buff_addr = cap->buf.next->buff_addr;
@@ -682,7 +657,6 @@ static void rkisp1_set_next_buf(struct rkisp1_capture *cap)
  * This function is called when a frame end comes. The next frame
  * is processing and we should set up buffer for next-next frame,
  * otherwise it will overflow.
- * ...
  */
 static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 {
@@ -701,11 +675,9 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 		cap->rkisp1->debug.frame_drop[cap->id]++;
 	}
 
-	/* Next frame is writing to it */
 	cap->buf.curr = cap->buf.next;
 	cap->buf.next = NULL;
 
-	/* Setup an empty buffer for the next-next frame */
 	if (!list_empty(&cap->buf.queue)) {
 		cap->buf.next = list_first_entry(&cap->buf.queue,
 						    struct rkisp1_buffer,
@@ -785,10 +757,6 @@ static int rkisp1_vb2_queue_setup(struct vb2_queue *queue,
 	return 0;
 }
 
-/*
- * The vb2_buffer are stored in rkisp1_buffer, in order to unify
- * mplane buffer and none-mplane buffer.
- */
 static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
@@ -939,14 +907,11 @@ static int rkisp1_pipeline_enable_cb(struct media_entity *from,
 	return v4l2_subdev_call(sd, video, s_stream, true);
 }
 
-/*
- * Set flags and wait, it should stop in interrupt.
- * If it didn't, stop it by force.
- */
 static void rkisp1_stream_stop(struct rkisp1_capture *cap)
 {
 	int ret;
 
+	/* Stream should stop in interrupt. If it dosn't, stop it by force. */
 	cap->is_stopping = true;
 	ret = wait_event_timeout(cap->done,
 				 !cap->is_streaming,
@@ -989,7 +954,7 @@ static void rkisp1_vb2_stop_streaming(struct vb2_queue *queue)
 
 /*
  * Most of registers inside rockchip ISP1 have shadow register since
- * they must be not changed during processing a frame.
+ * they must be not be changed during processing a frame.
  * Usually, each sub-module updates its shadow register after
  * processing the last pixel of a frame.
  */

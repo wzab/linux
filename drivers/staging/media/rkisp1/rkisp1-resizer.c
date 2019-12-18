@@ -552,7 +552,7 @@ static void rkisp1_rsz_set_in_fmt(struct rkisp1_resizer *rsz,
 	/* Propagete to source pad */
 	out_fmt->code = in_fmt->code;
 
-	// TODO: check input restrictions
+	/* TODO: check input restrictions */
 	in_fmt->width = clamp_t(u32, format->width,
 				rsz->config->min_rsz_width,
 				rsz->config->max_rsz_width);

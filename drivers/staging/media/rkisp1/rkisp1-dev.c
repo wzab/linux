@@ -152,7 +152,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 		return ret;
 
 	/* create ISP internal links */
-	// TODO: optimize this
+	/* TODO: optimize this */
 
 	/* SP links */
 	source = &rkisp1->isp.sd.entity;
@@ -310,7 +310,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 		return ret;
 
 	if (list_empty(&ntf->asd_list))
-		return -ENODEV;	/* no endpoint */
+		return -ENODEV;
 
 	ntf->ops = &rkisp1_subdev_notifier_ops;
 

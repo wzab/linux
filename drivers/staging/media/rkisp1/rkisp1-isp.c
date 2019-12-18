@@ -34,20 +34,22 @@
 /*
  * There are many variables named with format/frame in below code,
  * please see here for their meaning.
+ * Cropping in the sink pad defines the image region from the sensor.
+ * Cropping in the source pad defines the region for the Image Stabilizer (IS)
  *
  * Cropping regions of ISP
  *
  * +---------------------------------------------------------+
  * | Sensor image                                            |
  * | +---------------------------------------------------+   |
- * | | ISP_ACQ (for black level)                         |   |
- * | | in_frm                                            |   |
+ * | | CIF_ISP_ACQ (for black level)                     |   |
+ * | | sink pad format                                   |   |
  * | | +--------------------------------------------+    |   |
- * | | |    ISP_OUT                                 |    |   |
- * | | |    in_crop                                 |    |   |
+ * | | |    CIF_ISP_OUT                             |    |   |
+ * | | |    sink pad crop                           |    |   |
  * | | |    +---------------------------------+     |    |   |
- * | | |    |   ISP_IS                        |     |    |   |
- * | | |    |   rkisp1_isp: out_crop          |     |    |   |
+ * | | |    |   CIF_ISP_IS                    |     |    |   |
+ * | | |    |   source pad crop and format    |     |    |   |
  * | | |    +---------------------------------+     |    |   |
  * | | +--------------------------------------------+    |   |
  * | +---------------------------------------------------+   |
@@ -194,7 +196,6 @@ const struct rkisp1_isp_mbus_info *rkisp1_isp_mbus_info_get(u32 mbus_code)
 	return NULL;
 }
 
-/* Get sensor by enabled media link */
 static struct v4l2_subdev *rkisp1_get_remote_sensor(struct v4l2_subdev *sd)
 {
 	struct media_pad *local, *remote;
@@ -507,7 +508,6 @@ static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 	return 0;
 }
 
-/* Mess register operations to stop ISP */
 static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 {
 	u32 val;
@@ -571,7 +571,6 @@ static void rkisp1_config_clk(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, val, RKISP1_CIF_ICCL);
 }
 
-/* Mess register operations to start ISP */
 static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_sensor_async *sensor = rkisp1->active_sensor;
@@ -596,7 +595,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	       RKISP1_CIF_ISP_CTRL_ISP_INFORM_ENABLE;
 	rkisp1_write(rkisp1, val, RKISP1_CIF_ISP_CTRL);
 
-	/* XXX: Is the 1000us too long?
+	/*
+	 * TODO: Is the 1000us too long?
 	 * CIF spec says to wait for sufficient time after enabling
 	 * the MIPI interface and before starting the sensor output.
 	 */
@@ -687,7 +687,7 @@ static int rkisp1_isp_init_config(struct v4l2_subdev *sd,
 	mf_out = v4l2_subdev_get_try_format(sd, cfg,
 					    RKISP1_ISP_PAD_SOURCE_STATS);
 	/*
-	 * NOTE: setting a format here doesn't make much sense
+	 * TODO: setting a format here doesn't make much sense
 	 * but v4l2-compliance complains
 	 */
 	mf_in->width = RKISP1_DEFAULT_WIDTH;
@@ -725,7 +725,6 @@ static void rkisp1_isp_set_out_fmt(struct rkisp1_isp *isp,
 	}
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		isp->out_fmt = mbus_info;
-	/* window size is set in s_selection */
 	out_fmt->width  = out_crop->width;
 	out_fmt->height = out_crop->height;
 	/* TODO: validate quantization value */
@@ -901,7 +900,7 @@ static int rkisp1_isp_set_selection(struct v4l2_subdev *sd,
 				    struct v4l2_subdev_selection *sel)
 {
 	struct rkisp1_isp *isp = container_of(sd, struct rkisp1_isp, sd);
-	// TODO: No need, isp->rkisp1
+	/* TODO: No need, isp->rkisp1 */
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
 						    v4l2_dev);
@@ -1049,7 +1048,6 @@ static const struct v4l2_subdev_ops rkisp1_isp_ops = {
 	.pad = &rkisp1_isp_pad_ops,
 };
 
-// TODO: this second parameter is not required
 int rkisp1_isp_register(struct rkisp1_device *rkisp1,
 			struct v4l2_device *v4l2_dev)
 {
@@ -1174,7 +1172,7 @@ void rkisp1_isp_isr(struct rkisp1_device *rkisp1)
 
 	rkisp1_write(rkisp1, status, RKISP1_CIF_ISP_ICR);
 
-	/* start edge of v_sync */
+	/* Vertical sync signal, starting generating new frame */
 	if (status & RKISP1_CIF_ISP_V_START)
 		rkisp1_isp_queue_event_sof(&rkisp1->isp);
 
@@ -1184,14 +1182,14 @@ void rkisp1_isp_isr(struct rkisp1_device *rkisp1)
 		rkisp1_write(rkisp1, isp_err, RKISP1_CIF_ISP_ERR_CLR);
 		rkisp1->debug.pic_size_error++;
 	} else if (status & RKISP1_CIF_ISP_DATA_LOSS) {
-		/* data_loss */
+		/* keep track of data_loss in debugfs */
 		rkisp1->debug.data_loss++;
 	}
 
 	if (status & RKISP1_CIF_ISP_FRAME) {
 		u32 isp_ris;
 
-		/* Frame In (ISP) */
+		/* New frame from the sensor received */
 		isp_ris = rkisp1_read(rkisp1, RKISP1_CIF_ISP_RIS);
 		if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 			       RKISP1_CIF_ISP_AFM_FIN |
