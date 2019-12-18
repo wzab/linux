@@ -660,7 +660,7 @@ static const struct v4l2_subdev_pad_ops rkisp1_rsz_pad_ops = {
  * Stream operations
  */
 
-static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int on)
+static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct rkisp1_resizer *rsz = container_of(sd, struct rkisp1_resizer,
 						  sd);
@@ -668,7 +668,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int on)
 	struct rkisp1_capture *other = &rkisp1->capture_devs[rsz->id ^ 1];
 	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
 
-	if (!on) {
+	if (!enable) {
 		rkisp1_dcrop_disable(rsz, RKISP1_SHADOW_REGS_ASYNC);
 		rkisp1_rsz_disable(rsz, RKISP1_SHADOW_REGS_ASYNC);
 		return 0;

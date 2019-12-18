@@ -973,7 +973,7 @@ static void rkisp1_mipi_csi2_stop(struct rkisp1_sensor_async *sensor)
 	phy_power_off(sensor->dphy);
 }
 
-static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
+static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
@@ -981,7 +981,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int on)
 	struct v4l2_subdev *sensor_sd;
 	int ret = 0;
 
-	if (!on) {
+	if (!enable) {
 		ret = rkisp1_isp_stop(rkisp1);
 		if (ret)
 			return ret;
