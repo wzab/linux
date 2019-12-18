@@ -550,7 +550,7 @@ static void rkisp1_sp_enable(struct rkisp1_capture *cap)
 
 static void rkisp1_mp_sp_stop(struct rkisp1_capture *cap)
 {
-	if (!cap->streaming)
+	if (!cap->is_streaming)
 		return;
 	rkisp1_write(cap->rkisp1,
 		     RKISP1_CIF_MI_FRAME(cap), RKISP1_CIF_MI_ICR);
@@ -732,7 +732,7 @@ void rkisp1_capture_isr(struct rkisp1_device *rkisp1)
 
 		if (!(status & RKISP1_CIF_MI_FRAME(cap)))
 			continue;
-		if (!cap->stopping) {
+		if (!cap->is_stopping) {
 			rkisp1_handle_buffer(cap);
 			continue;
 		}
@@ -748,8 +748,8 @@ void rkisp1_capture_isr(struct rkisp1_device *rkisp1)
 			cap->ops->stop(cap);
 			continue;
 		}
-		cap->stopping = false;
-		cap->streaming = false;
+		cap->is_stopping = false;
+		cap->is_streaming = false;
 		wake_up(&cap->done);
 	}
 }
@@ -822,7 +822,7 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 	 * If there's no next buffer assigned, queue this buffer directly
 	 * as the next buffer, and update the memory interface.
 	 */
-	if (cap->streaming && !cap->buf.next &&
+	if (cap->is_streaming && !cap->buf.next &&
 	    atomic_read(&cap->rkisp1->isp.frame_sequence) == -1) {
 		cap->buf.next = ispbuf;
 		rkisp1_set_next_buf(cap);
@@ -949,15 +949,15 @@ static void rkisp1_stream_stop(struct rkisp1_capture *cap)
 {
 	int ret;
 
-	cap->stopping = true;
+	cap->is_stopping = true;
 	ret = wait_event_timeout(cap->done,
-				 !cap->streaming,
+				 !cap->is_streaming,
 				 msecs_to_jiffies(1000));
 	if (!ret) {
 		cap->rkisp1->debug.stop_timeout[cap->id]++;
 		cap->ops->stop(cap);
-		cap->stopping = false;
-		cap->streaming = false;
+		cap->is_stopping = false;
+		cap->is_streaming = false;
 	}
 }
 
@@ -1015,13 +1015,13 @@ static void rkisp1_stream_start(struct rkisp1_capture *cap)
 	 * also required because the second FE maybe corrupt especially
 	 * when run at 120fps.
 	 */
-	if (!other->streaming) {
+	if (!other->is_streaming) {
 		/* force cfg update */
 		rkisp1_write(rkisp1,
 			     RKISP1_CIF_MI_INIT_SOFT_UPD, RKISP1_CIF_MI_INIT);
 		rkisp1_handle_buffer(cap);
 	}
-	cap->streaming = true;
+	cap->is_streaming = true;
 }
 
 static int
@@ -1192,7 +1192,7 @@ static void rkisp1_try_fmt(const struct rkisp1_capture *cap,
 	info = rkisp1_fill_pixfmt(pixm, cap->id);
 
 	/* can not change quantization when stream-on */
-	if (other_cap->streaming)
+	if (other_cap->is_streaming)
 		pixm->quantization = other_cap->pix.fmt.quantization;
 	/* output full range by default, take effect in params */
 	else if (!pixm->quantization ||
@@ -1221,8 +1221,7 @@ static void rkisp1_set_fmt(struct rkisp1_capture *cap,
 		cap->u.sp.y_stride = pixm->plane_fmt[0].bytesperline /
 				     cap->pix.info->bpp[0];
 	else
-		cap->u.mp.raw_enable =
-			(cap->pix.cfg->fmt_type == RKISP1_FMT_BAYER);
+		cap->u.mp.is_raw = (cap->pix.cfg->fmt_type == RKISP1_FMT_BAYER);
 
 	dev_dbg(cap->rkisp1->dev,
 		"%s: capture: %d req(%d, %d) out(%d, %d)\n", __func__,
@@ -1466,7 +1465,7 @@ rkisp1_capture_init(struct rkisp1_device *rkisp1, enum rkisp1_stream_id id)
 		cap->config = &rkisp1_capture_config_mp;
 	}
 
-	cap->streaming = false;
+	cap->is_streaming = false;
 
 	memset(&pixm, 0, sizeof(pixm));
 	pixm.pixelformat = V4L2_PIX_FMT_YUYV;

@@ -490,8 +490,8 @@ static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 	int ret;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->capture_devs[RKISP1_SELFPATH].streaming,
-		rkisp1->capture_devs[RKISP1_MAINPATH].streaming);
+		rkisp1->capture_devs[RKISP1_SELFPATH].is_streaming,
+		rkisp1->capture_devs[RKISP1_MAINPATH].is_streaming);
 
 	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
 	dev_dbg(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
@@ -513,8 +513,8 @@ static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 	u32 val;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->capture_devs[RKISP1_SELFPATH].streaming,
-		rkisp1->capture_devs[RKISP1_MAINPATH].streaming);
+		rkisp1->capture_devs[RKISP1_SELFPATH].is_streaming,
+		rkisp1->capture_devs[RKISP1_MAINPATH].is_streaming);
 
 	/*
 	 * ISP(mi) stop in mi frame end -> Stop ISP(mipi) ->
@@ -546,8 +546,8 @@ static int rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 			   val, val & RKISP1_CIF_ISP_OFF, 20, 100);
 	dev_dbg(rkisp1->dev,
 		"streaming(MP:%d, SP:%d), MI_CTRL:%x, ISP_CTRL:%x, MIPI_CTRL:%x\n",
-		rkisp1->capture_devs[RKISP1_SELFPATH].streaming,
-		rkisp1->capture_devs[RKISP1_MAINPATH].streaming,
+		rkisp1->capture_devs[RKISP1_SELFPATH].is_streaming,
+		rkisp1->capture_devs[RKISP1_MAINPATH].is_streaming,
 		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
@@ -578,8 +578,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	u32 val;
 
 	dev_dbg(rkisp1->dev, "SP streaming = %d, MP streaming = %d\n",
-		rkisp1->capture_devs[RKISP1_SELFPATH].streaming,
-		rkisp1->capture_devs[RKISP1_MAINPATH].streaming);
+		rkisp1->capture_devs[RKISP1_SELFPATH].is_streaming,
+		rkisp1->capture_devs[RKISP1_MAINPATH].is_streaming);
 
 	rkisp1_config_clk(rkisp1);
 
@@ -605,8 +605,8 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	dev_dbg(rkisp1->dev,
 		"SP streaming = %d, MP streaming = %d MI_CTRL 0x%08x\n"
 		"  ISP_CTRL 0x%08x MIPI_CTRL 0x%08x\n",
-		rkisp1->capture_devs[RKISP1_SELFPATH].streaming,
-		rkisp1->capture_devs[RKISP1_MAINPATH].streaming,
+		rkisp1->capture_devs[RKISP1_SELFPATH].is_streaming,
+		rkisp1->capture_devs[RKISP1_MAINPATH].is_streaming,
 		rkisp1_read(rkisp1, RKISP1_CIF_MI_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL),
 		rkisp1_read(rkisp1, RKISP1_CIF_MIPI_CTRL));
@@ -1124,7 +1124,7 @@ void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 		val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
 		rkisp1_write(rkisp1, val & ~RKISP1_CIF_MIPI_ERR_CTRL(0x0f),
 			     RKISP1_CIF_MIPI_IMSC);
-		rkisp1->isp.dphy_errctrl_disabled = true;
+		rkisp1->isp.is_dphy_errctrl_disabled = true;
 	}
 
 	/*
@@ -1136,11 +1136,11 @@ void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 		 * Enable DPHY errctrl interrupt again, if mipi have receive
 		 * the whole frame without any error.
 		 */
-		if (rkisp1->isp.dphy_errctrl_disabled) {
+		if (rkisp1->isp.is_dphy_errctrl_disabled) {
 			val = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_IMSC);
 			val |= RKISP1_CIF_MIPI_ERR_CTRL(0x0f);
 			rkisp1_write(rkisp1, val, RKISP1_CIF_MIPI_IMSC);
-			rkisp1->isp.dphy_errctrl_disabled = false;
+			rkisp1->isp.is_dphy_errctrl_disabled = false;
 		}
 	} else {
 		rkisp1->debug.mipi_error++;

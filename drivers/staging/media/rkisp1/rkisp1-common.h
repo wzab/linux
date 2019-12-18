@@ -99,7 +99,7 @@ struct rkisp1_sensor_async {
  * @out_fmt: output format
  * @out_crop: output size
  *
- * @dphy_errctrl_disabled : if dphy errctrl is disabled (avoid endless interrupt)
+ * @is_dphy_errctrl_disabled : if dphy errctrl is disabled (avoid endless interrupt)
  * @frame_sequence: used to synchronize frame_id between video devices.
  * @quantization: output quantization
  *
@@ -111,7 +111,7 @@ struct rkisp1_isp {
 	struct v4l2_subdev_pad_config pad_cfg[RKISP1_ISP_PAD_MAX];
 	const struct rkisp1_isp_mbus_info *in_fmt;
 	const struct rkisp1_isp_mbus_info *out_fmt;
-	bool dphy_errctrl_disabled;
+	bool is_dphy_errctrl_disabled;
 	atomic_t frame_sequence;
 };
 
@@ -143,7 +143,7 @@ struct rkisp1_capture_sp {
 };
 
 struct rkisp1_capture_mp {
-	bool raw_enable;
+	bool is_raw;
 };
 
 struct rkisp1_device;
@@ -169,8 +169,8 @@ struct rkisp1_capture {
 	enum rkisp1_stream_id id;
 	struct rkisp1_capture_ops *ops;
 	const struct rkisp1_capture_config *config;
-	bool streaming;
-	bool stopping;
+	bool is_streaming;
+	bool is_stopping;
 	wait_queue_head_t done;
 	struct {
 		/* protects queue, curr and next */
@@ -205,7 +205,7 @@ struct rkisp1_stats {
 	spinlock_t irq_lock;
 	struct list_head stat;
 	struct v4l2_format vdev_fmt;
-	bool streamon;
+	bool is_streaming;
 
 	struct workqueue_struct *readout_wq;
 	struct mutex wq_lock;
@@ -215,7 +215,7 @@ struct rkisp1_stats {
  * struct rkisp1_params - ISP input parameters device
  *
  * @cur_params: Current ISP parameters
- * @first_params: the first params should take effect immediately
+ * @is_first_params: the first params should take effect immediately
  */
 struct rkisp1_params {
 	struct rkisp1_vdev_node vnode;
@@ -225,8 +225,8 @@ struct rkisp1_params {
 	struct list_head params;
 	struct rkisp1_params_cfg cur_params;
 	struct v4l2_format vdev_fmt;
-	bool streamon;
-	bool first_params;
+	bool is_streaming;
+	bool is_first_params;
 
 	enum v4l2_quantization quantization;
 	enum rkisp1_fmt_raw_pat_type raw_type;

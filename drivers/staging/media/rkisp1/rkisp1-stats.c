@@ -160,7 +160,7 @@ static void rkisp1_stats_vb2_stop_streaming(struct vb2_queue *vq)
 
 	/* Make sure no new work queued in isr before draining wq */
 	spin_lock_irqsave(&stats->irq_lock, flags);
-	stats->streamon = false;
+	stats->is_streaming = false;
 	spin_unlock_irqrestore(&stats->irq_lock, flags);
 
 	drain_workqueue(stats->readout_wq);
@@ -183,7 +183,7 @@ rkisp1_stats_vb2_start_streaming(struct vb2_queue *queue,
 {
 	struct rkisp1_stats *stats = queue->drv_priv;
 
-	stats->streamon = true;
+	stats->is_streaming = true;
 
 	return 0;
 }
@@ -404,7 +404,7 @@ void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris)
 	     RKISP1_CIF_ISP_EXP_END | RKISP1_CIF_ISP_HIST_MEASURE_RDY))
 		rkisp1->debug.stats_error++;
 
-	if (!stats->streamon)
+	if (!stats->is_streaming)
 		goto unlock;
 	if (isp_ris & (RKISP1_CIF_ISP_AWB_DONE |
 		       RKISP1_CIF_ISP_AFM_FIN |

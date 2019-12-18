@@ -1201,7 +1201,7 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 	unsigned int frame_sequence = atomic_read(&rkisp1->isp.frame_sequence);
 
 	spin_lock(&params->config_lock);
-	if (!params->streamon) {
+	if (!params->is_streaming) {
 		spin_unlock(&params->config_lock);
 		return;
 	}
@@ -1438,7 +1438,7 @@ static int rkisp1_params_vb2_queue_setup(struct vb2_queue *vq,
 	sizes[0] = sizeof(struct rkisp1_params_cfg);
 
 	INIT_LIST_HEAD(&params->params);
-	params->first_params = true;
+	params->is_first_params = true;
 
 	return 0;
 }
@@ -1456,12 +1456,12 @@ static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 	unsigned int frame_sequence =
 		atomic_read(&params->rkisp1->isp.frame_sequence);
 
-	if (params->first_params) {
+	if (params->is_first_params) {
 		new_params = (struct rkisp1_params_cfg *)
 			(vb2_plane_vaddr(vb, 0));
 		vbuf->sequence = frame_sequence;
 		vb2_buffer_done(&params_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
-		params->first_params = false;
+		params->is_first_params = false;
 		params->cur_params = *new_params;
 		return;
 	}
@@ -1491,7 +1491,7 @@ static void rkisp1_params_vb2_stop_streaming(struct vb2_queue *vq)
 
 	/* stop params input firstly */
 	spin_lock_irqsave(&params->config_lock, flags);
-	params->streamon = false;
+	params->is_streaming = false;
 	spin_unlock_irqrestore(&params->config_lock, flags);
 
 	for (i = 0; i < RKISP1_ISP_PARAMS_REQ_BUFS_MAX; i++) {
@@ -1521,7 +1521,7 @@ rkisp1_params_vb2_start_streaming(struct vb2_queue *queue, unsigned int count)
 	unsigned long flags;
 
 	spin_lock_irqsave(&params->config_lock, flags);
-	params->streamon = true;
+	params->is_streaming = true;
 	spin_unlock_irqrestore(&params->config_lock, flags);
 
 	return 0;

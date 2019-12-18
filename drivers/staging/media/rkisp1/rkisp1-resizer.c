@@ -676,7 +676,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 
 	/* TODO: I don't think the driver supports streaming from both captures
 	 * at the same time, maybe it should fail here */
-	if (other->streaming)
+	if (other->is_streaming)
 		when = RKISP1_SHADOW_REGS_ASYNC;
 
 	rkisp1_rsz_config(rsz, when);
