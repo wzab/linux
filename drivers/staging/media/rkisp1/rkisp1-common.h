@@ -71,11 +71,6 @@ enum rkisp1_isp_pad {
 	RKISP1_ISP_PAD_MAX
 };
 
-enum rkisp1_sp_inp {
-	RKISP1_SP_INP_ISP,
-	RKISP1_SP_INP_DMA_SP,
-};
-
 /*
  * struct rkisp1_sensor_async - Sensor information
  * @mbus: media bus configuration
@@ -137,15 +132,6 @@ struct rkisp1_dummy_buffer {
 	u32 size;
 };
 
-struct rkisp1_capture_sp {
-	int y_stride;
-	enum rkisp1_sp_inp input_sel;
-};
-
-struct rkisp1_capture_mp {
-	bool is_raw;
-};
-
 struct rkisp1_device;
 
 /*
@@ -172,6 +158,7 @@ struct rkisp1_capture {
 	bool is_streaming;
 	bool is_stopping;
 	wait_queue_head_t done;
+	unsigned int sp_y_stride;
 	struct {
 		/* protects queue, curr and next */
 		spinlock_t lock;
@@ -185,10 +172,6 @@ struct rkisp1_capture {
 		const struct v4l2_format_info *info;
 		struct v4l2_pix_format_mplane fmt;
 	} pix;
-	union {
-		struct rkisp1_capture_sp sp;
-		struct rkisp1_capture_mp mp;
-	} u;
 };
 
 /*

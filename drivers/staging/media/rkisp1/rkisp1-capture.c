@@ -485,7 +485,7 @@ static void rkisp1_sp_config(struct rkisp1_capture *cap)
 
 	rkisp1_write(rkisp1, pixm->width, RKISP1_CIF_MI_SP_Y_PIC_WIDTH);
 	rkisp1_write(rkisp1, pixm->height, RKISP1_CIF_MI_SP_Y_PIC_HEIGHT);
-	rkisp1_write(rkisp1, cap->u.sp.y_stride, RKISP1_CIF_MI_SP_Y_LLENGTH);
+	rkisp1_write(rkisp1, cap->sp_y_stride, RKISP1_CIF_MI_SP_Y_LLENGTH);
 
 	rkisp1_irq_frame_end_enable(cap);
 	if (cap->pix.cfg->uv_swap) {
@@ -1218,10 +1218,8 @@ static void rkisp1_set_fmt(struct rkisp1_capture *cap,
 
 	/* SP supports custom stride in number of pixels of the Y plane */
 	if (cap->id == RKISP1_SELFPATH)
-		cap->u.sp.y_stride = pixm->plane_fmt[0].bytesperline /
-				     cap->pix.info->bpp[0];
-	else
-		cap->u.mp.is_raw = (cap->pix.cfg->fmt_type == RKISP1_FMT_BAYER);
+		cap->sp_y_stride = pixm->plane_fmt[0].bytesperline /
+				   cap->pix.info->bpp[0];
 
 	dev_dbg(cap->rkisp1->dev,
 		"%s: capture: %d req(%d, %d) out(%d, %d)\n", __func__,
