@@ -316,15 +316,15 @@ rkisp1_stats_send_measurement(struct rkisp1_stats *stats,
 {
 	struct rkisp1_stat_buffer *cur_stat_buf;
 	struct rkisp1_buffer *cur_buf = NULL;
-	unsigned int cur_frame_id = -1;
+	unsigned int frame_sequence =
+		atomic_read(&stats->rkisp1->isp.frame_sequence);
 	u64 timestamp = ktime_get_ns();
 
-	cur_frame_id = atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
-	if (cur_frame_id != meas_work->frame_id) {
+	if (frame_sequence != meas_work->frame_id) {
 		dev_warn(stats->rkisp1->dev,
 			 "Measurement late(%d, %d)\n",
-			 cur_frame_id, meas_work->frame_id);
-		cur_frame_id = meas_work->frame_id;
+			 frame_sequence, meas_work->frame_id);
+		frame_sequence = meas_work->frame_id;
 	}
 
 	mutex_lock(&stats->wq_lock);
@@ -365,7 +365,7 @@ rkisp1_stats_send_measurement(struct rkisp1_stats *stats,
 
 	vb2_set_plane_payload(&cur_buf->vb.vb2_buf, 0,
 			      sizeof(struct rkisp1_stat_buffer));
-	cur_buf->vb.sequence = cur_frame_id;
+	cur_buf->vb.sequence = frame_sequence;
 	cur_buf->vb.vb2_buf.timestamp = timestamp;
 	vb2_buffer_done(&cur_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 }
@@ -385,8 +385,8 @@ static void rkisp1_stats_readout_work(struct work_struct *work)
 
 void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris)
 {
-	unsigned int cur_frame_id =
-		atomic_read(&stats->rkisp1->isp.frm_sync_seq) - 1;
+	unsigned int frame_sequence =
+		atomic_read(&stats->rkisp1->isp.frame_sequence);
 	struct rkisp1_device *rkisp1 = stats->rkisp1;
 	struct rkisp1_isp_readout_work *work;
 	unsigned int isp_mis_tmp = 0;
@@ -418,7 +418,7 @@ void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris)
 				  rkisp1_stats_readout_work);
 			work->readout = RKISP1_ISP_READOUT_MEAS;
 			work->stats = stats;
-			work->frame_id = cur_frame_id;
+			work->frame_id = frame_sequence;
 			work->isp_ris = isp_ris;
 			if (!queue_work(stats->readout_wq,
 					&work->work))

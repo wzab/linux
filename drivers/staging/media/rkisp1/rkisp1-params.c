@@ -1198,9 +1198,7 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 	struct rkisp1_params *params = &rkisp1->params;
 	struct rkisp1_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf = NULL;
-	unsigned int cur_frame_id = -1;
-
-	cur_frame_id = atomic_read(&rkisp1->isp.frm_sync_seq) - 1;
+	unsigned int frame_sequence = atomic_read(&rkisp1->isp.frame_sequence);
 
 	spin_lock(&params->config_lock);
 	if (!params->streamon) {
@@ -1234,7 +1232,7 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1, u32 isp_mis)
 		list_del(&cur_buf->queue);
 		spin_unlock(&params->config_lock);
 
-		cur_buf->vb.sequence = cur_frame_id;
+		cur_buf->vb.sequence = frame_sequence;
 		vb2_buffer_done(&cur_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 	}
 }
@@ -1455,16 +1453,13 @@ static void rkisp1_params_vb2_buf_queue(struct vb2_buffer *vb)
 	struct rkisp1_params *params = vq->drv_priv;
 	struct rkisp1_params_cfg *new_params;
 	unsigned long flags;
-
-	unsigned int cur_frame_id = -1;
-
-	cur_frame_id =
-		atomic_read(&params->rkisp1->isp.frm_sync_seq) - 1;
+	unsigned int frame_sequence =
+		atomic_read(&params->rkisp1->isp.frame_sequence);
 
 	if (params->first_params) {
 		new_params = (struct rkisp1_params_cfg *)
 			(vb2_plane_vaddr(vb, 0));
-		vbuf->sequence = cur_frame_id;
+		vbuf->sequence = frame_sequence;
 		vb2_buffer_done(&params_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
 		params->first_params = false;
 		params->cur_params = *new_params;

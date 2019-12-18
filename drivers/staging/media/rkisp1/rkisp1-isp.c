@@ -995,7 +995,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	rkisp1->active_sensor = container_of(sensor_sd->asd,
 					      struct rkisp1_sensor_async, asd);
 
-	atomic_set(&rkisp1->isp.frm_sync_seq, 0);
+	atomic_set(&rkisp1->isp.frame_sequence, -1);
 	ret = rkisp1_config_cif(rkisp1);
 	if (ret)
 		return ret;
@@ -1148,9 +1148,16 @@ static void rkisp1_isp_queue_event_sof(struct rkisp1_isp *isp)
 {
 	struct v4l2_event event = {
 		.type = V4L2_EVENT_FRAME_SYNC,
-		.u.frame_sync.frame_sequence =
-			atomic_inc_return(&isp->frm_sync_seq) - 1,
 	};
+
+	/*
+	 * Increment the frame sequence on the vsync signal.
+	 * This will allow applications to detect dropped.
+	 * Note that there is a debugfs counter for dropped
+	 * frames, but using this event is more accurate.
+	 */
+	event.u.frame_sync.frame_sequence =
+		atomic_inc_return(&isp->frame_sequence);
 	v4l2_event_queue(isp->sd.devnode, &event);
 }
 

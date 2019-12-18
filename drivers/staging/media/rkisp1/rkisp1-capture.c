@@ -695,7 +695,7 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 	spin_lock_irqsave(&cap->buf.lock, flags);
 
 	if (curr_buf) {
-		curr_buf->vb.sequence = atomic_read(&isp->frm_sync_seq) - 1;
+		curr_buf->vb.sequence = atomic_read(&isp->frame_sequence);
 		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		curr_buf->vb.field = V4L2_FIELD_NONE;
 		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
@@ -823,7 +823,7 @@ static void rkisp1_vb2_buf_queue(struct vb2_buffer *vb)
 	 * as the next buffer, and update the memory interface.
 	 */
 	if (cap->streaming && !cap->buf.next &&
-	    atomic_read(&cap->rkisp1->isp.frm_sync_seq) == 0) {
+	    atomic_read(&cap->rkisp1->isp.frame_sequence) == -1) {
 		cap->buf.next = ispbuf;
 		rkisp1_set_next_buf(cap);
 	} else {
