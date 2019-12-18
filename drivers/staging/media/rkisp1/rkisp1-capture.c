@@ -860,11 +860,11 @@ static void rkisp1_return_all_buffers(struct rkisp1_capture *cap,
 
 	spin_lock_irqsave(&cap->buf.lock, flags);
 	if (cap->buf.curr) {
-		list_add_tail(&cap->buf.curr->queue, &cap->buf.queue);
+		vb2_buffer_done(&cap->buf.curr->vb.vb2_buf, state);
 		cap->buf.curr = NULL;
 	}
 	if (cap->buf.next) {
-		list_add_tail(&cap->buf.next->queue, &cap->buf.queue);
+		vb2_buffer_done(&cap->buf.next->vb.vb2_buf, state);
 		cap->buf.next = NULL;
 	}
 	while (!list_empty(&cap->buf.queue)) {
