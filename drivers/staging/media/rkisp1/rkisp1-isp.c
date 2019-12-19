@@ -900,7 +900,6 @@ static int rkisp1_isp_set_selection(struct v4l2_subdev *sd,
 				    struct v4l2_subdev_selection *sel)
 {
 	struct rkisp1_isp *isp = container_of(sd, struct rkisp1_isp, sd);
-	/* TODO: No need, isp->rkisp1 */
 	struct rkisp1_device *rkisp1 = container_of(sd->v4l2_dev,
 						    struct rkisp1_device,
 						    v4l2_dev);
