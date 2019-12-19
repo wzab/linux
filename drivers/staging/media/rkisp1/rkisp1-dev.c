@@ -113,6 +113,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	struct media_entity *source, *sink;
 	unsigned int flags, source_pad;
 	struct v4l2_subdev *sd;
+	unsigned int i;
 	int ret;
 
 	/* sensor links */
@@ -151,38 +152,22 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	if (ret)
 		return ret;
 
-	/* create ISP internal links */
-	/* TODO: optimize this */
+	/* create ISP->RSZ->CAP links */
+	for (i = 0; i < 2; i++) {
+		source = &rkisp1->isp.sd.entity;
+		sink = &rkisp1->resizer_devs[i].sd.entity;
+		ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
+					    sink, RKISP1_RSZ_PAD_SINK, flags);
+		if (ret)
+			return ret;
 
-	/* SP links */
-	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->resizer_devs[RKISP1_SELFPATH].sd.entity;
-	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
-				    sink, RKISP1_RSZ_PAD_SINK, flags);
-	if (ret)
-		return ret;
-
-	source = sink;
-	sink = &rkisp1->capture_devs[RKISP1_SELFPATH].vnode.vdev.entity;
-	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
-				    sink, 0, flags);
-	if (ret)
-		return ret;
-
-	/* MP links */
-	source = &rkisp1->isp.sd.entity;
-	sink = &rkisp1->resizer_devs[RKISP1_MAINPATH].sd.entity;
-	ret = media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_VIDEO,
-				    sink, RKISP1_RSZ_PAD_SINK, flags);
-	if (ret)
-		return ret;
-
-	source = sink;
-	sink = &rkisp1->capture_devs[RKISP1_MAINPATH].vnode.vdev.entity;
-	ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
-				    sink, 0, flags);
-	if (ret)
-		return ret;
+		source = sink;
+		sink = &rkisp1->capture_devs[i].vnode.vdev.entity;
+		ret = media_create_pad_link(source, RKISP1_RSZ_PAD_SRC,
+					    sink, 0, flags);
+		if (ret)
+			return ret;
+	}
 
 	/* 3A stats links */
 	source = &rkisp1->isp.sd.entity;
