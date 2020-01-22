@@ -97,11 +97,11 @@ void v4l2_device_unregister(struct v4l2_device *v4l2_dev)
 
 	/* Unregister subdevs */
 	list_for_each_entry_safe(sd, next, &v4l2_dev->subdevs, list) {
-		v4l2_device_unregister_subdev(sd);
 		if (sd->flags & V4L2_SUBDEV_FL_IS_I2C)
 			v4l2_i2c_subdev_unregister(sd);
 		else if (sd->flags & V4L2_SUBDEV_FL_IS_SPI)
 			v4l2_spi_subdev_unregister(sd);
+		v4l2_device_unregister_subdev(sd);
 	}
 	/* Mark as unregistered, thus preventing duplicate unregistrations */
 	v4l2_dev->name[0] = '\0';
