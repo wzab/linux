@@ -1339,7 +1339,7 @@ static int adv7180_probe(struct i2c_client *client,
 		return -ENOMEM;
 
 	state->client = client;
-	state->field = V4L2_FIELD_ALTERNATE;
+	state->field = V4L2_FIELD_NONE;
 	state->chip_info = (struct adv7180_chip_info *)id->driver_data;
 
 	state->pwdn_gpio = devm_gpiod_get_optional(&client->dev, "powerdown",
