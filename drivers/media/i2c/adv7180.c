@@ -664,6 +664,7 @@ static int adv7180_enum_mbus_code(struct v4l2_subdev *sd,
 static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 			    struct v4l2_mbus_framefmt *fmt)
 {
+	printk(KERN_ALERT "I'm in adv7180_mbus_fmt");
 	struct adv7180_state *state = to_state(sd);
 
 	fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
@@ -679,6 +680,7 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 
 static int adv7180_set_field_mode(struct adv7180_state *state)
 {
+	printk(KERN_ALERT "I'm in set field mode");
 	if (!(state->chip_info->flags & ADV7180_FLAG_I2P)) {
 		printk(KERN_ALERT "Can't set field mode");
 		return 0;
@@ -742,7 +744,7 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *framefmt;
 	s64 pixel_rate;
 	int ret;
-
+	printk(KERN_ALERT "I'm in adv7180_set_pad_format");
 	switch (format->format.field) {
 	case V4L2_FIELD_NONE:
 		if (state->chip_info->flags & ADV7180_FLAG_I2P) {
