@@ -183,9 +183,9 @@
 /* Initial number of frames to skip to avoid possible garbage */
 #define ADV7180_NUM_OF_SKIP_FRAMES       2
 
-#define ADV7180_LINK_FREQ_108MHZ       108000000
+#define ADV7180_LINK_FREQ_216MHZ       216000000
 static const s64 link_freq_menu_items[] = {
-	ADV7180_LINK_FREQ_108MHZ
+	ADV7180_LINK_FREQ_216MHZ
 };
 
 struct adv7180_state;
@@ -629,7 +629,7 @@ static int adv7180_init_controls(struct adv7180_state *state)
 	if (state->link_freq)
 		state->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 	//pixel_rate = mode->vts_def * mode->hts_def * mode->max_fps;
-	pixel_rate = ADV7180_LINK_FREQ_108MHZ * 2 / 16;
+	pixel_rate = ADV7180_LINK_FREQ_216MHZ * 2 / 16;
 	state->pixel_rate = v4l2_ctrl_new_std(&state->ctrl_hdl, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
 						1, pixel_rate);
 
@@ -753,7 +753,9 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 		/* fall through */
 		}
 	default:
-		format->format.field = V4L2_FIELD_ALTERNATE;
+		printk(KERN_ALERT "Default case used");
+		//format->format.field = V4L2_FIELD_ALTERNATE;
+		format->format.field = V4L2_FIELD_NONE;
 		break;
 	}
 
@@ -770,7 +772,7 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 		framefmt = v4l2_subdev_get_try_format(sd, cfg, 0);
 		*framefmt = format->format;
 	}
-	pixel_rate = ADV7180_LINK_FREQ_108MHZ * 2 / 16;
+	pixel_rate = ADV7180_LINK_FREQ_216MHZ * 2 / 16;
 	__v4l2_ctrl_modify_range(state->pixel_rate, pixel_rate,
 				pixel_rate, 1, pixel_rate);
 	return ret;
