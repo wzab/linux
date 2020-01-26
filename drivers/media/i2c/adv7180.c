@@ -765,7 +765,7 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 	}
 	pixel_rate = ADV7180_LINK_FREQ_108MHZ * 2 / 16;
 	__v4l2_ctrl_modify_range(state->pixel_rate, pixel_rate,
-				pixel_rate, 1, pixel_rate)
+				pixel_rate, 1, pixel_rate);
 	return ret;
 }
 
