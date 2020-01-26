@@ -1376,9 +1376,9 @@ static int adv7180_probe(struct i2c_client *client,
 	if (ret)
 		goto err_unregister_vpp_client;
 
-	sd->entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR; //WZab
+	//sd->entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR; //WZab
 	state->pad.flags = MEDIA_PAD_FL_SOURCE;
-	sd->entity.function = MEDIA_ENT_F_ATV_DECODER;
+	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR; //MEDIA_ENT_F_ATV_DECODER;
 	ret = media_entity_pads_init(&sd->entity, 1, &state->pad);
 	if (ret)
 		goto err_free_ctrl;
