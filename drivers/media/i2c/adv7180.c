@@ -679,9 +679,10 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 
 static int adv7180_set_field_mode(struct adv7180_state *state)
 {
-	if (!(state->chip_info->flags & ADV7180_FLAG_I2P))
+	if (!(state->chip_info->flags & ADV7180_FLAG_I2P)) {
+		printk(KERN_ALERT "Can't set field mode")
 		return 0;
-
+	}
 	if (state->field == V4L2_FIELD_NONE) {
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 			adv7180_csi_write(state, 0x01, 0x20);
@@ -696,6 +697,7 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, 0xa3, 0x00);
 		adv7180_vpp_write(state, 0x5b, 0x00);
 		adv7180_vpp_write(state, 0x55, 0x80);
+		printk(KERN_ALERT "Setting field mode to NONE")
 	} else {
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 			adv7180_csi_write(state, 0x01, 0x18);
@@ -710,6 +712,7 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, 0xa3, 0x70);
 		adv7180_vpp_write(state, 0x5b, 0x80);
 		adv7180_vpp_write(state, 0x55, 0x00);
+		printk(KERN_ALERT "Setting field mode to ALTERNATE")
 	}
 
 	return 0;
@@ -742,9 +745,11 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 
 	switch (format->format.field) {
 	case V4L2_FIELD_NONE:
-		if (state->chip_info->flags & ADV7180_FLAG_I2P)
+		if (state->chip_info->flags & ADV7180_FLAG_I2P) {
+			format->format.field = V4L2_FIELD_NONE;
 			break;
 		/* fall through */
+		}
 	default:
 		format->format.field = V4L2_FIELD_ALTERNATE;
 		break;
