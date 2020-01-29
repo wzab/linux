@@ -183,6 +183,7 @@
 /* Initial number of frames to skip to avoid possible garbage */
 #define ADV7180_NUM_OF_SKIP_FRAMES       2
 
+unsigned int adv_input = 0;
 module_param(adv_input, uint, 0644);
 MODULE_PARM_DESC(adv_input, "Select the analog input");
 
