@@ -183,6 +183,9 @@
 /* Initial number of frames to skip to avoid possible garbage */
 #define ADV7180_NUM_OF_SKIP_FRAMES       2
 
+module_param(adv_input, uint, 0644);
+MODULE_PARM_DESC(adv_input, "Select the analog input");
+
 #define ADV7180_LINK_FREQ_216MHZ       216000000
 static const s64 link_freq_menu_items[] = {
 	ADV7180_LINK_FREQ_216MHZ
@@ -263,6 +266,7 @@ static int adv7180_csi_write(struct adv7180_state *state, unsigned int reg,
 static int adv7180_set_video_standard(struct adv7180_state *state,
 	unsigned int std)
 {
+	state->chip_info->select_input(state, adv_input); //WZab
 	return state->chip_info->set_std(state, std);
 }
 
