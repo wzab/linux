@@ -267,6 +267,7 @@ static int adv7180_csi_write(struct adv7180_state *state, unsigned int reg,
 static int adv7180_set_video_standard(struct adv7180_state *state,
 	unsigned int std)
 {
+	printk(KERN_ALERT "I will call slect_input");
 	state->chip_info->select_input(state, adv_input); //WZab
 	return state->chip_info->set_std(state, std);
 }
