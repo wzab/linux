@@ -23,6 +23,20 @@
 #include "rkisp1-common.h"
 
 /*
+  Code added by WZab for debugging
+*/
+static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+  struct rkisp1_device * rkisp1_ptr;
+  rkisp1_ptr = container_of(dev,struct rkisp1_device,dev);
+  sprintf(buf,PAGE_SIZE,"%d",rkisp1_read(rkisp1, RKISP1_CIF_ISP_MIS));
+  return strlen(buf);
+}
+
+DEVICE_ATTR_RO(isp1_stat);
+
+
+/*
  * ISP Details
  * -----------
  *
