@@ -28,7 +28,7 @@
 static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
   struct rkisp1_device * rkisp1_ptr;
-  rkisp1_ptr = container_of(dev,struct rkisp1_device,dev);
+  rkisp1_ptr = dev_get_drvdata(dev);
   sprintf(buf,PAGE_SIZE,"%d",rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS));
   return strlen(buf);
 }
