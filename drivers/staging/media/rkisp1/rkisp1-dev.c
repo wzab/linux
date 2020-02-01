@@ -540,7 +540,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 		goto err_unreg_media_dev;
 
 	rkisp1_debug_init(rkisp1);
-	device_create_file(dev,&attr_dev_isp1_stat);
+	device_create_file(dev,&dev_attr_isp1_stat);
 	return 0;
 
 err_unreg_media_dev:
@@ -570,7 +570,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 
 	debugfs_remove_recursive(rkisp1->debug.debugfs_dir);
-	device_remove_file(dev,&attr_dev_isp1_stat);
+	device_remove_file(dev,&dev_attr_isp1_stat);
 	return 0;
 }
 
