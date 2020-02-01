@@ -462,6 +462,8 @@ static void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 			     &debug->data_loss);
 	debugfs_create_ulong("pic_size_error", 0444,  debug->debugfs_dir,
 			     &debug->pic_size_error);
+	debugfs_create_ulong("mipi_ok", 0444, debug->debugfs_dir,
+			     &debug->mipi_ok);
 	debugfs_create_ulong("mipi_error", 0444, debug->debugfs_dir,
 			     &debug->mipi_error);
 	debugfs_create_ulong("stats_error", 0444, debug->debugfs_dir,

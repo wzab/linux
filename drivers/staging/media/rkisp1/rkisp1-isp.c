@@ -1103,6 +1103,7 @@ void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 			val |= RKISP1_CIF_MIPI_ERR_CTRL(0x0f);
 			rkisp1_write(rkisp1, val, RKISP1_CIF_MIPI_IMSC);
 			rkisp1->isp.is_dphy_errctrl_disabled = false;
+			rkisp1->debug.mipi_ok++;
 		}
 	} else {
 		rkisp1->debug.mipi_error++;
