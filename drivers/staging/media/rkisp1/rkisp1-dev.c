@@ -40,7 +40,7 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_CTRL),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ACQ_PROP),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_CTRL),
-    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_BYTE_CNT),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_BYTE_CNT)
     );
   return strlen(buf);
 }
