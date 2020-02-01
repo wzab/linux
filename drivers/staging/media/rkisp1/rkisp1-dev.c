@@ -29,7 +29,8 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
 {
   struct rkisp1_device * rkisp1_ptr;
   rkisp1_ptr = dev_get_drvdata(dev);
-  snprintf(buf,PAGE_SIZE,"MIS=%8.8x\nIMSC=%8.8x\nRIS=%8.8x\nICR=%8.8x\nISR=%8.8x\nERR=%8.8x\nCTRL=%8.8x\nACQ_PROP=%8.8x\n",
+  snprintf(buf,PAGE_SIZE,"MIS=%8.8x\nIMSC=%8.8x\nRIS=%8.8x\nICR=%8.8x\nISR=%8.8x\nERR=%8.8x\nCTRL=%8.8x\nACQ_PROP=%8.8x\n"
+                         "MI_CTRL=%8.8x\nMI_BYTE_CNT=%8.8x\n",
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_IMSC),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_RIS),
@@ -37,7 +38,9 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ISR),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ERR),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_CTRL),
-    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ACQ_PROP)
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ACQ_PROP),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_CTRL),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_BYTE_CNT),
     );
   return strlen(buf);
 }
