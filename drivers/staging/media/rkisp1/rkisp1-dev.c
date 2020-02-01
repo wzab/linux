@@ -29,7 +29,14 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
 {
   struct rkisp1_device * rkisp1_ptr;
   rkisp1_ptr = dev_get_drvdata(dev);
-  snprintf(buf,PAGE_SIZE,"%d",rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS));
+  snprintf(buf,PAGE_SIZE,"MIS=%x IMSC=%x RIS=%x ICR=%x ISR=%x ERR=%x",
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_IMSC),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_RIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ICR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ISR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ERR)
+    );
   return strlen(buf);
 }
 
@@ -570,7 +577,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 
 	debugfs_remove_recursive(rkisp1->debug.debugfs_dir);
-	device_remove_file(dev,&dev_attr_isp1_stat);
+	device_remove_file(&pdev->dev,&dev_attr_isp1_stat);
 	return 0;
 }
 
