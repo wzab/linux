@@ -237,8 +237,6 @@ static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 	ret = phy_mipi_dphy_config_validate(config);
 	if (ret)
 		return ret;
-	return ret; //WZab - crazy test. For 0v5647 the above if returns, but acquisition
-                    //works. Let's try if it works for ADV7280?
 	data_rate_mbps = div_u64(config->hs_clk_rate, 1000 * 1000);
 
 	dev_dbg(priv->dev, "lanes %d - data_rate_mbps %llu\n",
@@ -253,7 +251,7 @@ static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 		return -EINVAL;
 
 	priv->hsfreq = hsfreq;
-	priv->config = *config;
+	//priv->config = *config; //WZab - let's check what stops acquisition.
 	return 0;
 }
 
