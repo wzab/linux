@@ -676,7 +676,8 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 
 	//fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
 	fmt->code = MEDIA_BUS_FMT_SBGGR8_1X8;
-	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
+	//fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
+	fmt->colorspace = V4L2_COLORSPACE_SRGB;
 	fmt->width = 720;
 	fmt->height = state->curr_norm & V4L2_STD_525_60 ? 480 : 576;
 
