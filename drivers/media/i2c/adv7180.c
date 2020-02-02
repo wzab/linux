@@ -662,7 +662,8 @@ static int adv7180_enum_mbus_code(struct v4l2_subdev *sd,
 	if (code->index != 0)
 		return -EINVAL;
 
-	code->code = MEDIA_BUS_FMT_UYVY8_2X8;
+	//code->code = MEDIA_BUS_FMT_UYVY8_2X8;
+	code->code = MEDIA_BUS_FMT_SBGGR8_1X8;
 
 	return 0;
 }
@@ -673,7 +674,8 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 	printk(KERN_ALERT "I'm in adv7180_mbus_fmt");
 	struct adv7180_state *state = to_state(sd);
 
-	fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
+	//fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
+	fmt->code = MEDIA_BUS_FMT_SBGGR8_1X8;
 	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
 	fmt->width = 720;
 	fmt->height = state->curr_norm & V4L2_STD_525_60 ? 480 : 576;
