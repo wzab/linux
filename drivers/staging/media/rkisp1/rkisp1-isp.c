@@ -162,6 +162,13 @@ static const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
 		.bus_width	= 16,
 		.direction	= RKISP1_DIR_SINK,
 	}, {
+		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
+		.fmt_type	= RKISP1_FMT_YUV,
+		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
+		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_YCBYCR,
+		.bus_width	= 8,
+		.direction	= RKISP1_DIR_SINK,
+ 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 		.fmt_type	= RKISP1_FMT_YUV,
 		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
