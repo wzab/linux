@@ -251,7 +251,7 @@ static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 		return -EINVAL;
 
 	priv->hsfreq = hsfreq;
-	//priv->config = *config; //WZab - let's check what stops acquisition.
+	priv->config = *config;
 	return 0;
 }
 
