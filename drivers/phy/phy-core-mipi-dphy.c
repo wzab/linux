@@ -93,32 +93,36 @@ int phy_mipi_dphy_config_validate(struct phy_configure_opts_mipi_dphy *cfg)
 	ui = ALIGN(PSEC_PER_SEC, cfg->hs_clk_rate);
 	do_div(ui, cfg->hs_clk_rate);
 	printk(KERN_ALERT "phy_mipi_dphy_config_validate, ui=%llu\n",ui);
+	printk(KERN_ALERT "phy_mipi_dphy_config_validate, hs_clk_rate=%lu\n",cfg->hs_clk_rate);
+	printk(KERN_ALERT "phy_mipi_dphy_config_validate, lp_clk_rate=%lu\n",cfg->lp_clk_rate);
+	printk(KERN_ALERT "phy_mipi_dphy_config_validate, lanes=%d\n",(int) cfg->lanes);
+
 	if (cfg->clk_miss > 60000) {
-		printk(KERN_ALERT "Invalid clk_miss: %d\n",cfg->clk_miss);
+		printk(KERN_ALERT "Invalid clk_miss: %u\n",cfg->clk_miss);
 		return -EINVAL;
 	};
 	if (cfg->clk_post < (60000 + 52 * ui)) {
-		printk(KERN_ALERT "Invalid clk_post: %d\n",cfg->clk_post);
+		printk(KERN_ALERT "Invalid clk_post: %u\n",cfg->clk_post);
 		return -EINVAL;
 	};
 	if (cfg->clk_pre < 8000) {
-		printk(KERN_ALERT "Invalid clk_pre: %d\n",cfg->clk_pre);
+		printk(KERN_ALERT "Invalid clk_pre: %u\n",cfg->clk_pre);
 		return -EINVAL;
 	};
 	if (cfg->clk_prepare < 38000 || cfg->clk_prepare > 95000) {
-		printk(KERN_ALERT "Invalid clk_prepare: %d\n",cfg->clk_prepare);
+		printk(KERN_ALERT "Invalid clk_prepare: %u\n",cfg->clk_prepare);
 		return -EINVAL;
 	};
 	if (cfg->clk_settle < 95000 || cfg->clk_settle > 300000) {
-		printk(KERN_ALERT "Invalid clk_settle: %d\n",cfg->clk_settle);
+		printk(KERN_ALERT "Invalid clk_settle: %u\n",cfg->clk_settle);
 		return -EINVAL;
 	};
 	if (cfg->clk_term_en > 38000) {
-		printk(KERN_ALERT "Invalid clk_term_en: %d\n",cfg->clk_term_en);
+		printk(KERN_ALERT "Invalid clk_term_en: %u\n",cfg->clk_term_en);
 		return -EINVAL;
 	};
 	if (cfg->clk_trail < 60000) {
-		printk(KERN_ALERT "Invalid clk_trail: %d\n",cfg->clk_trail);
+		printk(KERN_ALERT "Invalid clk_trail: %u\n",cfg->clk_trail);
 		return -EINVAL;
 	};
 	if ((cfg->clk_prepare + cfg->clk_zero) < 300000) {
@@ -126,61 +130,61 @@ int phy_mipi_dphy_config_validate(struct phy_configure_opts_mipi_dphy *cfg)
 		return -EINVAL;
 	};
 	if (cfg->d_term_en > (35000 + 4 * ui)) {
-		printk(KERN_ALERT "Invalid d_term_en: %d\n",cfg->d_term_en);
+		printk(KERN_ALERT "Invalid d_term_en: %u\n",cfg->d_term_en);
 		return -EINVAL;
 	};
 	if (cfg->eot > (105000 + 12 * ui)) {
-		printk(KERN_ALERT "Invalid eot: %d\n",cfg->eot);
+		printk(KERN_ALERT "Invalid eot: %u\n",cfg->eot);
 		return -EINVAL;
 	};
 	if (cfg->hs_exit < 100000) {
-		printk(KERN_ALERT "Invalid hs_exit: %d\n",cfg->hs_exit);
+		printk(KERN_ALERT "Invalid hs_exit: %u\n",cfg->hs_exit);
 		return -EINVAL;
 	};
 	if (cfg->hs_prepare < (40000 + 4 * ui) ||
 	    cfg->hs_prepare > (85000 + 6 * ui)) {
-		printk(KERN_ALERT "Invalid hs_prepare: %d\n",cfg->hs_prepare);
+		printk(KERN_ALERT "Invalid hs_prepare: %u\n",cfg->hs_prepare);
 		return -EINVAL;
 	};
 	if ((cfg->hs_prepare + cfg->hs_zero) < (145000 + 10 * ui)) {
-		printk(KERN_ALERT "Invalid hs_prepare+hs_zero: %d\n",cfg->hs_prepare + cfg->hs_zero);
+		printk(KERN_ALERT "Invalid hs_prepare+hs_zero: %u\n",cfg->hs_prepare + cfg->hs_zero);
 		return -EINVAL;
 	};
 	if ((cfg->hs_settle < (85000 + 6 * ui)) ||
 	    (cfg->hs_settle > (145000 + 10 * ui))) {
-		printk(KERN_ALERT "Invalid hs_settle: %d\n",cfg->hs_settle);
+		printk(KERN_ALERT "Invalid hs_settle: %u\n",cfg->hs_settle);
 		return -EINVAL;
 	};
 	if (cfg->hs_skip < 40000 || cfg->hs_skip > (55000 + 4 * ui)) {
-		printk(KERN_ALERT "Invalid hs_skip: %d\n",cfg->hs_skip);
+		printk(KERN_ALERT "Invalid hs_skip: %u\n",cfg->hs_skip);
 		return -EINVAL;
 	};
 	if (cfg->hs_trail < max(8 * ui, 60000 + 4 * ui)) {
-		printk(KERN_ALERT "Invalid hs_trail: %d\n",cfg->hs_trail);
+		printk(KERN_ALERT "Invalid hs_trail: %u\n",cfg->hs_trail);
 		return -EINVAL;
 	};
 	if (cfg->init < 100) {
-		printk(KERN_ALERT "Invalid init: %d\n",cfg->init);
+		printk(KERN_ALERT "Invalid init: %u\n",cfg->init);
 		return -EINVAL;
 	};
 	if (cfg->lpx < 50000) {
-		printk(KERN_ALERT "Invalid lpx: %d\n",cfg->lpx);
+		printk(KERN_ALERT "Invalid lpx: %u\n",cfg->lpx);
 		return -EINVAL;
 	};
 	if (cfg->ta_get != (5 * cfg->lpx)) {
-		printk(KERN_ALERT "Invalid ta_get: %d, lpx=%d\n",cfg->ta_get,cfg->lpx);
+		printk(KERN_ALERT "Invalid ta_get: %u, lpx=%d\n",cfg->ta_get,cfg->lpx);
 		return -EINVAL;
 	};
 	if (cfg->ta_go != (4 * cfg->lpx)) {
-		printk(KERN_ALERT "Invalid ta_go: %d, lpx=%d\n",cfg->ta_go, cfg->lpx);
+		printk(KERN_ALERT "Invalid ta_go: %u, lpx=%d\n",cfg->ta_go, cfg->lpx);
 		return -EINVAL;
 	};
 	if (cfg->ta_sure < cfg->lpx || cfg->ta_sure > (2 * cfg->lpx)) {
-		printk(KERN_ALERT "Invalid ta_sure: %d, lpx=%d\n",cfg->ta_sure,cfg->lpx);
+		printk(KERN_ALERT "Invalid ta_sure: %u, lpx=%d\n",cfg->ta_sure,cfg->lpx);
 		return -EINVAL;	
 	};
 	if (cfg->wakeup < 1000)	{
-		printk(KERN_ALERT "Invalid wakeup: %d\n",cfg->wakeup);
+		printk(KERN_ALERT "Invalid wakeup: %u\n",cfg->wakeup);
 		return -EINVAL;
 	}
 	return 0;
