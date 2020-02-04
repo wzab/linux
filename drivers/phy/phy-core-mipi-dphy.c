@@ -121,7 +121,7 @@ int phy_mipi_dphy_config_validate(struct phy_configure_opts_mipi_dphy *cfg)
 		printk(KERN_ALERT "Invalid clk_trail: %d\n",cfg->clk_trail);
 		return -EINVAL;
 	};
-	if ((cfg->clk_prepare + cfg->clk_zero) < 300000)
+	if ((cfg->clk_prepare + cfg->clk_zero) < 300000) {
 		printk(KERN_ALERT "Invalid clk_prepare+clk_zero: %d\n",cfg->clk_prepare + cfg->clk_zero);
 		return -EINVAL;
 	};
@@ -163,11 +163,11 @@ int phy_mipi_dphy_config_validate(struct phy_configure_opts_mipi_dphy *cfg)
 		printk(KERN_ALERT "Invalid init: %d\n",cfg->init);
 		return -EINVAL;
 	};
-	if (cfg->lpx < 50000)
+	if (cfg->lpx < 50000) {
 		printk(KERN_ALERT "Invalid lpx: %d\n",cfg->lpx);
 		return -EINVAL;
 	};
-	if (cfg->ta_get != (5 * cfg->lpx))
+	if (cfg->ta_get != (5 * cfg->lpx)) {
 		printk(KERN_ALERT "Invalid ta_get: %d, lpx=%d\n",cfg->ta_get,cfg->lpx);
 		return -EINVAL;
 	};
