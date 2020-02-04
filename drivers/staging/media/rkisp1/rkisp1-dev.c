@@ -28,8 +28,30 @@
 static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
   struct rkisp1_device * rkisp1_ptr;
-  rkisp1_ptr = container_of(dev,struct rkisp1_device,dev);
-  sprintf(buf,PAGE_SIZE,"%d",rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS));
+  rkisp1_ptr = dev_get_drvdata(dev);
+  snprintf(buf,PAGE_SIZE,"MIS=%8.8x\nIMSC=%8.8x\nRIS=%8.8x\nICR=%8.8x\nISR=%8.8x\nERR=%8.8x\nCTRL=%8.8x\nACQ_PROP=%8.8x\n"
+                         "MI_CTRL=%8.8x\nMI_BYTE_CNT=%8.8x\n"
+			 "MIPI_IMSC=%8.8x\nMIPI_RIS=%8.8x\nMIPI_MIS=%8.8x\nMIPI_ICR=%8.8x\nMIPI_ISR=%8.8x\n"
+			 "MIPI_CTRL=%8.8x\nMIPI_IMG_DATA_SEL=%8.8x\nMIPI_STATUS=%8.8x\n",
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_IMSC),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_RIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ICR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ISR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ERR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_CTRL),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_ACQ_PROP),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_CTRL),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MI_BYTE_CNT),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_IMSC),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_RIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_MIS),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_ICR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_ISR),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_CTRL),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_IMG_DATA_SEL),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_STATUS)
+    );
   return strlen(buf);
 }
 
@@ -453,6 +475,8 @@ static void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 			     &debug->data_loss);
 	debugfs_create_ulong("pic_size_error", 0444,  debug->debugfs_dir,
 			     &debug->pic_size_error);
+	debugfs_create_ulong("mipi_ok", 0444, debug->debugfs_dir,
+			     &debug->mipi_ok);
 	debugfs_create_ulong("mipi_error", 0444, debug->debugfs_dir,
 			     &debug->mipi_error);
 	debugfs_create_ulong("stats_error", 0444, debug->debugfs_dir,
@@ -540,7 +564,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 		goto err_unreg_media_dev;
 
 	rkisp1_debug_init(rkisp1);
-
+	device_create_file(dev,&dev_attr_isp1_stat);
 	return 0;
 
 err_unreg_media_dev:
@@ -570,6 +594,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 
 	debugfs_remove_recursive(rkisp1->debug.debugfs_dir);
+	device_remove_file(&pdev->dev,&dev_attr_isp1_stat);
 	return 0;
 }
 

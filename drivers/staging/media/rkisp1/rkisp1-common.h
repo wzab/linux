@@ -231,6 +231,7 @@ struct rkisp1_debug {
 	unsigned long data_loss;
 	unsigned long pic_size_error;
 	unsigned long mipi_error;
+	unsigned long mipi_ok;
 	unsigned long stats_error;
 	unsigned long stop_timeout[2];
 	unsigned long frame_drop[2];

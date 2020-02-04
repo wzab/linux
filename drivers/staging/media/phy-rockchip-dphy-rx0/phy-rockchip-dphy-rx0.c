@@ -232,12 +232,11 @@ static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
 	unsigned int i;
 	u64 data_rate_mbps;
 	int ret;
-
+	printk(KERN_ALERT "I'm in rk_dphy_configure\n"); //WZab
 	/* pass with phy_mipi_dphy_get_default_config (with pixel rate?) */
 	ret = phy_mipi_dphy_config_validate(config);
 	if (ret)
 		return ret;
-
 	data_rate_mbps = div_u64(config->hs_clk_rate, 1000 * 1000);
 
 	dev_dbg(priv->dev, "lanes %d - data_rate_mbps %llu\n",
@@ -260,7 +259,7 @@ static int rk_dphy_power_on(struct phy *phy)
 {
 	struct rk_dphy *priv = phy_get_drvdata(phy);
 	int ret;
-
+	printk(KERN_ALERT "I'm in rk_dphy_power_on\n"); //WZab
 	ret = clk_bulk_enable(priv->drv_data->num_clks, priv->clks);
 	if (ret)
 		return ret;

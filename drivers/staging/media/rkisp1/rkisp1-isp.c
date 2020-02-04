@@ -162,12 +162,26 @@ static const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
 		.bus_width	= 16,
 		.direction	= RKISP1_DIR_SINK,
 	}, {
+		.mbus_code	= MEDIA_BUS_FMT_YUYV8_2X8,
+		.fmt_type	= RKISP1_FMT_YUV,
+		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
+		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_YCBYCR,
+		.bus_width	= 8,
+		.direction	= RKISP1_DIR_SINK,
+ 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 		.fmt_type	= RKISP1_FMT_YUV,
 		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
 		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_CBYCRY,
 		.bus_width	= 16,
 		.direction	= RKISP1_DIR_SINK,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_2X8,
+		.fmt_type	= RKISP1_FMT_YUV,
+		.mipi_dt	= RKISP1_CIF_CSI2_DT_YUV422_8b,
+		.yuv_seq	= RKISP1_CIF_ISP_ACQ_PROP_CBYCRY,
+		.bus_width	= 8,
+		.direction	= RKISP1_DIR_SINK_SRC,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_VYUY8_1X16,
 		.fmt_type	= RKISP1_FMT_YUV,
@@ -903,6 +917,7 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_pad_ops = {
 static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
 				  struct rkisp1_sensor_async *sensor)
 {
+	int ret;
 	union phy_configure_opts opts;
 	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
 	s64 pixel_clock;
@@ -920,10 +935,23 @@ static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
 
 	phy_mipi_dphy_get_default_config(pixel_clock, isp->sink_fmt->bus_width,
 					 sensor->lanes, cfg);
-	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
-	phy_configure(sensor->dphy, &opts);
-	phy_power_on(sensor->dphy);
+	ret = phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
+	if (ret) {
+		dev_err(sensor->sd->dev, "Fail setting MIPI DPHY mode\n");
+		return -EINVAL;
+	}
 
+	ret = phy_configure(sensor->dphy, &opts);
+	if (ret && ret != -EOPNOTSUPP) {
+		dev_err(sensor->sd->dev, "Fail configuring MIPI DPHY\n");
+		return -EINVAL;
+	}
+
+	ret = phy_power_on(sensor->dphy);
+	if (ret) {
+		dev_err(sensor->sd->dev, "Fail powering on MIPI DPHY\n");
+		return -EINVAL;
+	}
 	return 0;
 }
 
@@ -1096,6 +1124,7 @@ void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 			val |= RKISP1_CIF_MIPI_ERR_CTRL(0x0f);
 			rkisp1_write(rkisp1, val, RKISP1_CIF_MIPI_IMSC);
 			rkisp1->isp.is_dphy_errctrl_disabled = false;
+			rkisp1->debug.mipi_ok++;
 		}
 	} else {
 		rkisp1->debug.mipi_error++;
