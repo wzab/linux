@@ -695,6 +695,9 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		return 0;
 	}
 	if (state->field == V4L2_FIELD_NONE) {
+		adv7180_vpp_write(state, 0xa3, 0x00);
+		adv7180_vpp_write(state, 0x5b, 0x00);
+		adv7180_vpp_write(state, 0x55, 0x80);
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 			adv7180_csi_write(state, 0x01, 0x20);
 			adv7180_csi_write(state, 0x02, 0x28);
@@ -705,11 +708,11 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 			adv7180_csi_write(state, 0x07, 0x70);
 			adv7180_csi_write(state, 0x08, 0x50);
 		}
-		adv7180_vpp_write(state, 0xa3, 0x00);
-		adv7180_vpp_write(state, 0x5b, 0x00);
-		adv7180_vpp_write(state, 0x55, 0x80);
 		printk(KERN_ALERT "Setting field mode to NONE");
 	} else {
+		adv7180_vpp_write(state, 0xa3, 0x70);
+		adv7180_vpp_write(state, 0x5b, 0x80);
+		adv7180_vpp_write(state, 0x55, 0x00);
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 			adv7180_csi_write(state, 0x01, 0x18);
 			adv7180_csi_write(state, 0x02, 0x18);
@@ -720,9 +723,6 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 			adv7180_csi_write(state, 0x07, 0x58);
 			adv7180_csi_write(state, 0x08, 0x30);
 		}
-		adv7180_vpp_write(state, 0xa3, 0x70);
-		adv7180_vpp_write(state, 0x5b, 0x80);
-		adv7180_vpp_write(state, 0x55, 0x00);
 		printk(KERN_ALERT "Setting field mode to ALTERNATE");
 	}
 
