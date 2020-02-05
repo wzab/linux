@@ -441,8 +441,9 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 
 	mipi_ctrl = RKISP1_CIF_MIPI_CTRL_NUM_LANES(lanes - 1) |
 		    RKISP1_CIF_MIPI_CTRL_SHUTDOWNLANES(0xf) |
-		    RKISP1_CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP |
 		    RKISP1_CIF_MIPI_CTRL_CLOCKLANE_ENA;
+		    // RKISP1_CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP | //Removed by WZab for tests
+
 
 	rkisp1_write(rkisp1, mipi_ctrl, RKISP1_CIF_MIPI_CTRL);
 
