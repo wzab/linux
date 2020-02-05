@@ -944,7 +944,7 @@ static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
 	ret = phy_configure(sensor->dphy, &opts);
 	if (ret && ret != -EOPNOTSUPP) {
 		dev_err(sensor->sd->dev, "Fail configuring MIPI DPHY\n");
-		//return -EINVAL;
+		return -EINVAL;
 	}
 
 	ret = phy_power_on(sensor->dphy);
