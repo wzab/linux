@@ -33,7 +33,7 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
                          "MI_CTRL=%8.8x\nMI_BYTE_CNT=%8.8x\n"
 			 "MIPI_IMSC=%8.8x\nMIPI_RIS=%8.8x\nMIPI_MIS=%8.8x\nMIPI_ICR=%8.8x\nMIPI_ISR=%8.8x\n"
 			 "MIPI_CTRL=%8.8x\nMIPI_IMG_DATA_SEL=%8.8x\nMIPI_STATUS=%8.8x\n"
-			 "ISP_FLAGS_SHD=%8.8x\n",
+			 "ISP_FLAGS_SHD=%8.8x\nMIPI_CUR_DATA_ID=%8.8x\n",
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_MIS),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_IMSC),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_RIS),
@@ -52,7 +52,8 @@ static ssize_t isp1_stat_show(struct device *dev, struct device_attribute *attr,
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_CTRL),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_IMG_DATA_SEL),
     rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_STATUS),
-    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_FLAGS_SHD)
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_ISP_FLAGS_SHD),
+    rkisp1_read(rkisp1_ptr, RKISP1_CIF_MIPI_CUR_DATA_ID)
     );
   return strlen(buf);
 }
