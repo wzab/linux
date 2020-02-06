@@ -416,6 +416,8 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 {
 	const struct rkisp1_isp_mbus_info *sink_fmt = rkisp1->isp.sink_fmt;
 	unsigned int lanes;
+	unsigned int shutdown_lanes;
+ 	int i;
 	u32 mipi_ctrl;
 
 	/*
@@ -439,8 +441,12 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 		return -EINVAL;
 	}
 
+        shutdown_lanes = 0x00;
+        for (i = 0; i < lanes; i++)
+                shutdown_lanes |= (1 << i);
+
 	mipi_ctrl = RKISP1_CIF_MIPI_CTRL_NUM_LANES(lanes - 1) |
-		    RKISP1_CIF_MIPI_CTRL_SHUTDOWNLANES(0xf) |
+		    RKISP1_CIF_MIPI_CTRL_SHUTDOWNLANES(shutdown_lanes) |
 		    RKISP1_CIF_MIPI_CTRL_ERR_SOT_SYNC_HS_SKIP |
 		    RKISP1_CIF_MIPI_CTRL_CLOCKLANE_ENA;
 
