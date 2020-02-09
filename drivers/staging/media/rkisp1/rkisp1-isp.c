@@ -130,8 +130,7 @@ static const struct rkisp1_isp_mbus_info rkisp1_isp_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.fmt_type	= RKISP1_FMT_BAYER,
-		.mipi_dt	= RKISP1_CIF_CSI2_DT_RGB565,
-//		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
+		.mipi_dt	= RKISP1_CIF_CSI2_DT_RAW8,
 		.bayer_pat	= RKISP1_RAW_BGGR,
 		.bus_width	= 8,
 		.direction	= RKISP1_DIR_SINK_SRC,
