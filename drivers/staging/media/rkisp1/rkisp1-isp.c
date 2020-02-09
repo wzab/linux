@@ -935,7 +935,7 @@ static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
 		return -EINVAL;
 	}
 
-	phy_mipi_dphy_get_default_config(pixel_clock, isp->sink_fmt->bus_width,
+	phy_mipi_dphy_get_default_config(pixel_clock, isp->sink_fmt->bus_width*2,
 					 sensor->lanes, cfg);
 	ret = phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
 	if (ret) {
