@@ -323,7 +323,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	} else if (sink_fmt->fmt_type == RKISP1_FMT_YUV) {
 		acq_mult = 2;
 		if (sensor->mbus.type == V4L2_MBUS_CSI2_DPHY) {
-			isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU656;
+			isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU601;
 		} else {
 			if (sensor->mbus.type == V4L2_MBUS_BT656)
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU656;
