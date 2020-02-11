@@ -30,7 +30,7 @@ int phy_mipi_dphy_get_default_config(unsigned long pixel_clock,
 	if (!cfg)
 		return -EINVAL;
 
-	hs_clk_rate = pixel_clock * bpp / 2;
+	hs_clk_rate = pixel_clock * bpp;
 	do_div(hs_clk_rate, lanes);
 
 	ui = ALIGN(PSEC_PER_SEC, hs_clk_rate);
