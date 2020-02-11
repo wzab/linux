@@ -70,8 +70,8 @@
 #define ADV7180_CTRL_IRQ_SPACE		0x20
 
 #define ADV7180_REG_PWR_MAN		0x0f
-#define ADV7180_PWR_MAN_ON		0x04
-#define ADV7180_PWR_MAN_OFF		0x24
+#define ADV7180_PWR_MAN_ON		0x00
+#define ADV7180_PWR_MAN_OFF		0x20
 #define ADV7180_PWR_MAN_RES		0x80
 
 #define ADV7180_REG_STATUS1		0x0010
@@ -1290,7 +1290,10 @@ static int init_device(struct adv7180_state *state)
 	adv7180_set_power_pin(state, true);
 
 	adv7180_write(state, ADV7180_REG_PWR_MAN, ADV7180_PWR_MAN_RES);
-	usleep_range(5000, 10000);
+	usleep_range(10000, 12000);
+	adv7180_write(state, ADV7180_REG_PWR_MAN, ADV7180_PWR_MAN_ON); //Added by WZab
+	adv7180_write(state, 0x0052,0xCD); //Added by WZab from AD scripts - https://www.analog.com/media/en/engineering-tools/design-tools/ADV7280AM_Cust.zip - "42 52 CD ; AFE IBIAS"
+
 
 	ret = state->chip_info->init(state);
 	if (ret)
