@@ -444,7 +444,7 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 
         shutdown_lanes = 0x00;
         for (i = 0; i < lanes; i++)
-                shutdown_lanes |= (1 << i);
+                shutdown_lanes |= (1 << (3-i));
 
 	mipi_ctrl = RKISP1_CIF_MIPI_CTRL_NUM_LANES(lanes - 1) |
 		    RKISP1_CIF_MIPI_CTRL_SHUTDOWNLANES(shutdown_lanes) |
