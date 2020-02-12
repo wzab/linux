@@ -462,7 +462,7 @@ static int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1,
 		     RKISP1_CIF_MIPI_FRAME_END | RKISP1_CIF_MIPI_ERR_CSI |
 		     RKISP1_CIF_MIPI_ERR_DPHY |
-		     RKISP1_CIF_MIPI_SYNC_FIFO_OVFLW(0x03) |
+		     RKISP1_CIF_MIPI_SYNC_FIFO_OVFLW(0x01) |
 		     RKISP1_CIF_MIPI_ADD_DATA_OVFLW,
 		     RKISP1_CIF_MIPI_IMSC);
 
