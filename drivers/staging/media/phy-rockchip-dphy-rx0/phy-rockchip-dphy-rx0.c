@@ -190,6 +190,7 @@ static void rk_dphy_enable(struct rk_dphy *priv)
 	//Added by WZab from the old driver
 	rk_dphy_write_grf(priv, GRF_DPHY_TX1RX1_MASTERSLAVEZ, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_TX1RX1_BASEDIR, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX1_SRC_SEL, 0);
 	//End of the added section.
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
@@ -219,16 +220,19 @@ static void rk_dphy_enable(struct rk_dphy *priv)
 	rk_dphy_write(priv, CLOCK_LANE_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane0 */
 	rk_dphy_write(priv, LANE0_HS_RX_CONTROL, priv->hsfreq << 1);
+	// WZab: in the old driver hsfreq was written only to lane0 control.
 	/* HS RX Control of lane1 */
-	rk_dphy_write(priv, LANE1_HS_RX_CONTROL, priv->hsfreq << 1);
+	rk_dphy_write(priv, LANE1_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane2 */
-	rk_dphy_write(priv, LANE2_HS_RX_CONTROL, priv->hsfreq << 1);
+	rk_dphy_write(priv, LANE2_HS_RX_CONTROL, 0);
 	/* HS RX Control of lane3 */
-	rk_dphy_write(priv, LANE3_HS_RX_CONTROL, priv->hsfreq << 1);
+	rk_dphy_write(priv, LANE3_HS_RX_CONTROL, 0);
 	/* HS RX Data Lanes Settle State Time Control */
 	rk_dphy_write(priv, LANES_THS_SETTLE_CONTROL,
 		      THS_SETTLE_COUNTER_THRESHOLD);
-
+	//WZab: In the old driver, that register was read before the next operation.
+	//Maybe it is necessary? It could be needed either as a delay, or as something
+	// that generates certain number of test clock cycles.
 	/* Normal operation */
 	rk_dphy_write(priv, 0x0, -1);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
