@@ -279,7 +279,7 @@ static int rk_dphy_power_on(struct phy *phy)
 	ret = clk_bulk_enable(priv->drv_data->num_clks, priv->clks);
 	if (ret)
 		return ret;
-
+	printk(KERN_ALERT "Calling rk_dphy_enable.\n"); //WZab
 	rk_dphy_enable(priv);
 
 	return 0;
