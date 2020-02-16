@@ -187,6 +187,10 @@ static void rk_dphy_write(struct rk_dphy *priv, u8 test_code, u8 test_data)
 
 static void rk_dphy_enable(struct rk_dphy *priv)
 {
+	//Added by WZab from the old driver
+	rk_dphy_write_grf(priv, GRF_DPHY_TX1RX1_MASTERSLAVEZ, 0);
+	rk_dphy_write_grf(priv, GRF_DPHY_TX1RX1_BASEDIR, 1);
+	//End of the added section.
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
 
