@@ -230,7 +230,9 @@ static void rk_dphy_enable(struct rk_dphy *priv)
 		      THS_SETTLE_COUNTER_THRESHOLD);
 
 	/* Normal operation */
-	rk_dphy_write(priv, 0x0, 0);
+	rk_dphy_write(priv, 0x0, -1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTEN, 0);
 }
 
 static int rk_dphy_configure(struct phy *phy, union phy_configure_opts *opts)
