@@ -193,13 +193,19 @@ static void rk_dphy_enable(struct rk_dphy *priv)
 	//End of the added section.
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCETXSTOPMODE, 0);
-
-	/* Disable lane turn around, which is ignored in receive mode */
-	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNREQUEST, 0);
-	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
-
+	//In the old diver, lanes were selected in that step!
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_ENABLE,
 			  GENMASK(priv->config.lanes - 1, 0));
+
+	/* Disable lane turn around, which is ignored in receive mode */
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNDISABLE, 0xf);
+	/* In the old driver, there was:
+	write_grf_reg(GRF_SOC_CON21_OFFSET, (0x0 << 4) | (0xf << 20));
+	after TURNDISABLE it is just setting FORCERXMODE to 0 once again... */
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_FORCERXMODE, 0);
+
+	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TURNREQUEST, 0);
+
 
 	/* dphy start */
 	rk_dphy_write_grf(priv, GRF_DPHY_RX0_TESTCLK, 1);
