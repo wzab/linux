@@ -1722,10 +1722,10 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 
 	switch (code) {
 	case MEDIA_BUS_FMT_RGB888_1X24:
-		bpp = 24;
+		bpp = 8;
 		break;
 	case MEDIA_BUS_FMT_UYVY8_1X16:
-		bpp = 16;
+		bpp = 8;
 		break;
 	default:
 		return -EINVAL;
@@ -2090,14 +2090,14 @@ static int tc358743_probe(struct i2c_client *client)
 
 	state->detect_tx_5v_ctrl = v4l2_ctrl_new_std(&state->hdl, NULL,
 			V4L2_CID_DV_RX_POWER_PRESENT, 0, 1, 0, 0);
-	state->link_freq = v4l2_ctrl_new_int_menu(&state->ctrl_hdl, NULL,
+	state->link_freq = v4l2_ctrl_new_int_menu(&state->hdl, NULL,
 						V4L2_CID_LINK_FREQ,
 						0, 0, link_freq_menu_items);
 	if (state->link_freq)
 		state->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 	//pixel_rate = mode->vts_def * mode->hts_def * mode->max_fps;
 	pixel_rate = TC358743_LINK_FREQ * 2 / 8;
-	state->pixel_rate = v4l2_ctrl_new_std(&state->ctrl_hdl, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
+	state->pixel_rate = v4l2_ctrl_new_std(&state->hdl, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
 						1, pixel_rate);
 	/* custom controls */
 	state->audio_sampling_rate_ctrl = v4l2_ctrl_new_custom(&state->hdl,
