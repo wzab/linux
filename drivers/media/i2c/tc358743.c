@@ -46,6 +46,11 @@ MODULE_AUTHOR("Mikhail Khelik <mkhelik@cisco.com>");
 MODULE_AUTHOR("Mats Randgaard <matrandg@cisco.com>");
 MODULE_LICENSE("GPL");
 
+#define TC358743_LINK_FREQ       297000000
+static const s64 link_freq_menu_items[] = {
+	TC358743_LINK_FREQ
+};
+
 #define EDID_NUM_BLOCKS_MAX 8
 #define EDID_BLOCK_SIZE 128
 
@@ -81,6 +86,8 @@ struct tc358743_state {
 	struct v4l2_ctrl *detect_tx_5v_ctrl;
 	struct v4l2_ctrl *audio_sampling_rate_ctrl;
 	struct v4l2_ctrl *audio_present_ctrl;
+	struct v4l2_ctrl *pixel_rate;
+	struct v4l2_ctrl *link_freq;
 
 	struct delayed_work delayed_work_enable_hotplug;
 
@@ -1703,7 +1710,8 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 		struct v4l2_subdev_format *format)
 {
 	struct tc358743_state *state = to_state(sd);
-
+	int bpp; //WZab
+	s64 pixel_rate; //WZab
 	u32 code = format->format.code; /* is overwritten by get_fmt */
 	int ret = tc358743_get_fmt(sd, cfg, format);
 
@@ -1714,7 +1722,10 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 
 	switch (code) {
 	case MEDIA_BUS_FMT_RGB888_1X24:
+		bpp = 24;
+		break;
 	case MEDIA_BUS_FMT_UYVY8_1X16:
+		bpp = 16;
 		break;
 	default:
 		return -EINVAL;
@@ -1728,8 +1739,11 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 	enable_stream(sd, false);
 	tc358743_set_pll(sd);
 	tc358743_set_csi(sd);
+	
 	tc358743_set_csi_color_space(sd);
-
+	pixel_rate = TC358743_LINK_FREQ * 2 / bpp / to_state(sd)->csi_lanes_in_use ;
+	__v4l2_ctrl_modify_range(state->pixel_rate, pixel_rate,
+				pixel_rate, 1, pixel_rate);
 	return 0;
 }
 
@@ -2035,7 +2049,7 @@ static int tc358743_probe(struct i2c_client *client)
 	struct v4l2_subdev *sd;
 	u16 irq_mask = MASK_HDMI_MSK | MASK_CSI_MSK;
 	int err;
-
+	s64 pixel_rate;
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -EIO;
 	v4l_dbg(1, debug, client, "chip found @ 0x%x (%s)\n",
@@ -2076,7 +2090,15 @@ static int tc358743_probe(struct i2c_client *client)
 
 	state->detect_tx_5v_ctrl = v4l2_ctrl_new_std(&state->hdl, NULL,
 			V4L2_CID_DV_RX_POWER_PRESENT, 0, 1, 0, 0);
-
+	state->link_freq = v4l2_ctrl_new_int_menu(&state->ctrl_hdl, NULL,
+						V4L2_CID_LINK_FREQ,
+						0, 0, link_freq_menu_items);
+	if (state->link_freq)
+		state->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+	//pixel_rate = mode->vts_def * mode->hts_def * mode->max_fps;
+	pixel_rate = TC358743_LINK_FREQ * 2 / 8;
+	state->pixel_rate = v4l2_ctrl_new_std(&state->ctrl_hdl, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
+						1, pixel_rate);
 	/* custom controls */
 	state->audio_sampling_rate_ctrl = v4l2_ctrl_new_custom(&state->hdl,
 			&tc358743_ctrl_audio_sampling_rate, NULL);
