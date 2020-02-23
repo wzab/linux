@@ -1097,7 +1097,7 @@ void rkisp1_mipi_isr(struct rkisp1_device *rkisp1)
 		return;
 
 	rkisp1_write(rkisp1, status, RKISP1_CIF_MIPI_ICR);
-
+	printk(KERN_ALERT, "RKISP1_CIF_MIPI_MIS: %x\n",status);
 	/*
 	 * Disable DPHY errctrl interrupt, because this dphy
 	 * erctrl signal is asserted until the next changes
