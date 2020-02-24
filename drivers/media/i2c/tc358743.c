@@ -1743,8 +1743,7 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 	tc358743_set_csi_color_space(sd);
 	printk(KERN_ALERT "Number of lanes in set_fmt: %d\n", to_state(sd)->csi_lanes_in_use);
 	pixel_rate = TC358743_LINK_FREQ * 2 / bpp * (to_state(sd)->csi_lanes_in_use) ;
-	__v4l2_ctrl_modify_range(state->pixel_rate, pixel_rate,
-				pixel_rate, 1, pixel_rate);
+	v4l2_ctrl_s_ctrl_int64(state->pixel_rate, pixel_rate);
 	return 0;
 }
 
@@ -2097,9 +2096,9 @@ static int tc358743_probe(struct i2c_client *client)
 	if (state->link_freq)
 		state->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 	//pixel_rate = mode->vts_def * mode->hts_def * mode->max_fps;
-	pixel_rate = TC358743_LINK_FREQ * 2 / 8;
-	state->pixel_rate = v4l2_ctrl_new_std(&state->hdl, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
-						1, pixel_rate);
+	//pixel_rate = TC358743_LINK_FREQ * 2 / 8;
+	state->pixel_rate = v4l2_ctrl_new_std(&state->hdl, NULL, V4L2_CID_PIXEL_RATE, 1, INT_MAX,
+						1, 1);
 	/* custom controls */
 	state->audio_sampling_rate_ctrl = v4l2_ctrl_new_custom(&state->hdl,
 			&tc358743_ctrl_audio_sampling_rate, NULL);
