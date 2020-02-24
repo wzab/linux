@@ -1722,10 +1722,10 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 
 	switch (code) {
 	case MEDIA_BUS_FMT_RGB888_1X24:
-		bpp = 8;
+		bpp = 24;
 		break;
 	case MEDIA_BUS_FMT_UYVY8_1X16:
-		bpp = 8;
+		bpp = 16;
 		break;
 	default:
 		return -EINVAL;
