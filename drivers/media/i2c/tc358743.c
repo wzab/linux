@@ -1741,7 +1741,8 @@ static int tc358743_set_fmt(struct v4l2_subdev *sd,
 	tc358743_set_csi(sd);
 	
 	tc358743_set_csi_color_space(sd);
-	pixel_rate = TC358743_LINK_FREQ * 2 / bpp * to_state(sd)->csi_lanes_in_use ;
+	printk(KERN_ALERT "Number of lanes in set_fmt: %d\n", to_state(sd)->csi_lanes_in_use);
+	pixel_rate = TC358743_LINK_FREQ * 2 / bpp * (to_state(sd)->csi_lanes_in_use) ;
 	__v4l2_ctrl_modify_range(state->pixel_rate, pixel_rate,
 				pixel_rate, 1, pixel_rate);
 	return 0;
