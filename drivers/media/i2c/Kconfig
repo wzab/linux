@@ -433,6 +433,15 @@ config VIDEO_TW9910
 	  To compile this driver as a module, choose M here: the
 	  module will be called tw9910.
 
+config VIDEO_TW9992
+	tristate "Techwell TW9992 video decoder"
+	depends on VIDEO_V4L2 && I2C
+	help
+	  Support for Techwell TW9992 NTSC/PAL/SECAM video decoder.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tw9992.
+
 config VIDEO_VPX3220
 	tristate "vpx3220a, vpx3216b & vpx3214c video decoders"
 	depends on VIDEO_V4L2 && I2C
