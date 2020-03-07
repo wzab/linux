@@ -488,6 +488,7 @@ static int tw9992_s_stream(struct v4l2_subdev *sd, int enable)
 	return ret;
 }
 
+/*
 static int tw9992_g_crop(struct v4l2_subdev *sd, struct v4l2_crop *a)
 {
 	a->c.left	= 0;
@@ -497,6 +498,7 @@ static int tw9992_g_crop(struct v4l2_subdev *sd, struct v4l2_crop *a)
 
 	return 0;
 }
+*/
 
 static int tw9992_enum_frame_size(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
@@ -539,7 +541,7 @@ static int tw9992_enum_frame_interval(struct v4l2_subdev *sd,
 
 static const struct v4l2_subdev_video_ops tw9992_video_ops = {
 	.s_stream		= tw9992_s_stream,
-	.g_crop			= tw9992_g_crop,
+//	.g_crop			= tw9992_g_crop,
 };
 
 static int tw9992_set_fmt(struct v4l2_subdev *sd,
@@ -577,7 +579,9 @@ static int tw9992_probe(struct i2c_client *client,
 
 	v4l2_i2c_subdev_init(sd, client, &tw9992_ops);
 
-	sd->entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
+	//sd->entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
+	state->pad.flags = MEDIA_PAD_FL_SOURCE;
+	sd->entity.function = MEDIA_ENT_F_ATV_DECODER;
 	sd->flags = V4L2_SUBDEV_FL_HAS_DEVNODE;
 
 	ret = tw9992_initialize_ctrls(state);
